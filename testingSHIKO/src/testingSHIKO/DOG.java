@@ -6,7 +6,7 @@ public class DOG {
 	private String name;
 	private Breed breed;
 	
-	public DOG(String colour, int age,, String name, Breed breed) {
+	public DOG(String colour, int age, String name, Breed breed) {
 		this.colour = colour;
 		this.name = name;
 		this.age = age;
@@ -22,7 +22,7 @@ public class DOG {
 	}
 	
 	public String getColour() {
-		return this.colour
+		return this.colour;
 	}
 	
 	public Breed getBreed() {
