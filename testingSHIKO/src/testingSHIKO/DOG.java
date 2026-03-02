@@ -28,4 +28,8 @@ public class DOG {
 	public Breed getBreed() {
 		return this.breed;
 	}
+	
+	public int getHalfAge() {
+		return this.age/2;
+	}
 }
