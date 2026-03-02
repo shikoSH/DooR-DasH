@@ -13,4 +13,19 @@ public class DOG {
 		this.breed = breed;
 	}
 	
+	public String getName() {
+		return this.name;
+	}
+	
+	public int getAge() {
+		return this.age;
+	}
+	
+	public String getColour() {
+		return this.colour
+	}
+	
+	public Breed getBreed() {
+		return this.breed;
+	}
 }
