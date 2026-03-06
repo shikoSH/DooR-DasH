@@ -31,11 +31,11 @@ public class DataLoader {
 
 	            Card c = new Card(name,description,rarity,lucky);
 
-	            card.add(s);
+	            cards.add(c);
 	        }
 
 	        br.close();
-	        return
+	        return cards;
 		 
 	 }
 	 public static ArrayList<Cell> readCells() throws IOException{}
