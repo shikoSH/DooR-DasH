@@ -3,7 +3,7 @@ package game.engine.cells;
 import game.engine.monsters.Monster;
 
 public class MonsterCell extends Cell {
-	 Monster cellMonster;
+	private Monster cellMonster;
 
 	 public Monster getCellMonster() {
 		 return cellMonster;
