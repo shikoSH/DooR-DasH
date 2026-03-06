@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import game.engine.Role;
 import game.engine.cards.*;
 import game.engine.cells.*;
 import game.engine.monsters.*;
@@ -60,6 +61,45 @@ public class DataLoader {
 	        return cards;   
 	        }
 		 
+
+public static ArrayList<Monster> readMonsters() throws IOException{
+    ArrayList<Monster> monsters = new ArrayList<>();
+    
+    BufferedReader br = new BufferedReader(new FileReader(MONSTERS_FILE_NAME));
+    String line;
+    
+    while((line = br.readLine()) != null) {
+        String[] parts = line.split(",");
+        String type = parts[0];
+        String name = parts[1];
+        String description = parts[2];
+        Role role = Role.valueOf(parts[3]);
+        int energy = Integer.parseInt(parts[4]);
+        
+        switch (type) {
+        case "Dasher":
+            monsters.add(new Dasher(name, description, role, energy));
+            break;
+        case "Dynamo":
+            monsters.add(new Dynamo(name, description, role, energy));
+            break;
+        case "MultiTasker":
+            monsters.add(new MultiTasker(name, description, role, energy));
+            break;
+        default:
+            monsters.add(new Schemer(name, description, role, energy));
+            break;
+        }
+    }
+    return monsters;
+}
+
+
+
+
+
+
+
 }
 /*
 public static ArrayList<Cell> readCells() throws IOException
