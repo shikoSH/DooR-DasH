@@ -1,7 +1,9 @@
 package game.engine;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
+import game.engine.dataloader.DataLoader;
 import game.engine.monsters.Monster;
 
 public class Game {
@@ -10,6 +12,15 @@ public class Game {
 	private Monster player;
 	private Monster opponent;
 	private Monster current;
+	
+	public Game(Role playerRole) throws IOException{
+		board = new Board(DataLoader.readCards());
+		allMonsters = DataLoader.readMonsters();
+		player = all
+		
+	}
+	
+	
 	public Monster getCurrent() {
 		return current;
 	}
