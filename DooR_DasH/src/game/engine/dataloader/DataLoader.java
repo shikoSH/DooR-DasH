@@ -3,13 +3,14 @@ package game.engine.dataloader;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.io.*;
 
 import game.engine.Role;
 import game.engine.cards.*;
 import game.engine.cells.*;
 import game.engine.monsters.*;
-import java.io.*;
-import java.util.*;
+
+
 
 public class DataLoader {
 	private static String CARDS_FILE_NAME="cards.csv";
@@ -24,11 +25,11 @@ public class DataLoader {
 	        String line;
 	        
 	        while ((line = br.readLine()) != null) {
-	        	String[] values = line.split(",");
-	        	String type = values[0];
-	        	String name = values[1];
-	        	String description = values[2];
-	            int rarity = Integer.parseInt(values[3]);
+	        	String[] v = line.split(",");
+	        	String type = v[0];
+	        	String name = v[1];
+	        	String description = v[2];
+	            int rarity = Integer.parseInt(v[3]);
 	            Card c;
 	        	switch(type) {
 	        	case"SWAPPER":{
@@ -36,12 +37,12 @@ public class DataLoader {
 	        		break;
 	        	}
 	        	case"STARTOVER":{
-	        		boolean lucky = Boolean.parseBoolean(values[4]);
+	        		boolean lucky = Boolean.parseBoolean(v[4]);
 	        		c= new StartOverCard(name,description,rarity,lucky); 
 	        		break;
 	        	}
 	        	case"ENERGYSTEAL":{
-	        		int energy = Integer.parseInt(values[4]);
+	        		int energy = Integer.parseInt(v[4]);
 	        		c= new EnergyStealCard(name,description,rarity,energy); 
 	        		break;
 	        	}
@@ -50,7 +51,7 @@ public class DataLoader {
 	        		break;
 	        	}
 	        	default:{
-	        		int duration = Integer.parseInt(values[4]);
+	        		int duration = Integer.parseInt(v[4]);
 	        		c= new ConfusionCard(name,description,rarity,duration); 
 	        		break;
 	        	}
@@ -69,12 +70,12 @@ public static ArrayList<Monster> readMonsters() throws IOException{
     String line;
     
     while((line = br.readLine()) != null) {
-        String[] parts = line.split(",");
-        String type = parts[0];
-        String name = parts[1];
-        String description = parts[2];
-        Role role = Role.valueOf(parts[3]);
-        int energy = Integer.parseInt(parts[4]);
+        String[] v = line.split(",");
+        String type = v[0];
+        String name = v[1];
+        String description = v[2];
+        Role role = Role.valueOf(v[3]);
+        int energy = Integer.parseInt(v[4]);
         
         switch (type) {
         case "Dasher":
@@ -115,8 +116,17 @@ public static ArrayList<Cell> readCells() throws IOException{
                cells.add(c);
            }
            else {
+        	   
                int effect=Integer.parseInt(v[1]);
-               Cell c= new TransportCell(name, effect);
+               Cell c;
+               if(effect>0) {
+            	   c= new ConveyorBelt(name, effect);
+               }
+               else {
+            	   c= new ContaminationSock(name, effect);
+            	   
+               }
+               
                 cells.add(c);
            }
 
@@ -127,38 +137,4 @@ public static ArrayList<Cell> readCells() throws IOException{
        br.close();
        return cells;
 }
-
-
-
 }
-/*
-public static ArrayList<Cell> readCells() throws IOException
-	 {
-		 ArrayList<Cell> cells = new ArrayList<>();
-		 BufferedReader br = new BufferedReader(new FileReader(CELLS_FILE_NAME));
-		 
-	        String line;
-	        
-	        while ((line = br.readLine()) != null) {
-	        	String[] values = line.split(",");
-	        	String name = values[0];
-	        	String description = values[1];
-	            int rarity = Integer.parseInt(values[2]);
-	            boolean lucky = Boolean.parseBoolean(values[3]);
-
-	            Cell c = new Cell(name,description,rarity,lucky);
-
-	            cells.add(c);
-	        }
-
-	        br.close();
-	        return cards;
-		 
-	 }
-	 
-	 public static ArrayList<Monster> readMonsters() throws IOException{}
-	
-	
-}
-
-*/
