@@ -8,7 +8,7 @@ public class MultiTasker extends Monster{
 	
 	public MultiTasker(String name, String description, Role originalRole, int energy) {
 		super(name, description, originalRole, energy);
-		this.normalSpeedTurns=normalSpeedTurns;
+		this.normalSpeedTurns=0;
 	}
 	public int getNormalSpeedTurns() {
 		return normalSpeedTurns;
