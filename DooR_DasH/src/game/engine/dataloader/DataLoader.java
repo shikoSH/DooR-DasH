@@ -96,7 +96,37 @@ public static ArrayList<Monster> readMonsters() throws IOException{
 
 
 
+public static ArrayList<Cell> readCells() throws IOException{
+    ArrayList<Cell> cells = new ArrayList<>();
+    BufferedReader br = new BufferedReader(new FileReader(CELLS_FILE_NAME));
+    
+       String line;
+       
+       while ((line = br.readLine()) != null) {
+           String[] v = line.split(",");
+           String name=v[0];
+           
+           if(v.length==3) { Role role;
+           if(v[1].equals("LAUGHER"))
+               role=Role.LAUGHER;
+           else role = Role.SCARER;
+           int energy=Integer.parseInt(v[2]);
+               Cell c=new DoorCell(name,role, energy);
+               cells.add(c);
+           }
+           else {
+               int effect=Integer.parseInt(v[1]);
+               Cell c= new TransportCell(name, effect);
+                cells.add(c);
+           }
 
+         
+          
+       }
+
+       br.close();
+       return cells;
+}
 
 
 
