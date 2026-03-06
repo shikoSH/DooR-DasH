@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import game.engine.cards.Card;
 import game.engine.cells.Cell;
 import game.engine.monsters.Monster;
+import java.io.*;
+import java.util.*;
 
 public class DataLoader {
 	private String CARDS_FILE_NAME="cards.csv";
@@ -15,8 +17,7 @@ public class DataLoader {
 	
 	
 	
-	import java.io.*;
-	import java.util.*;
+
 
 /*
 	        try {
@@ -64,8 +65,8 @@ public class DataLoader {
 	 public static ArrayList<Monster> readMonsters() throws IOException{}
 	
 	
-
 }
+
 
 
 /*
