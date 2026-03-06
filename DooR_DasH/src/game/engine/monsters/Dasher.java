@@ -1,6 +1,7 @@
 package game.engine.monsters;
 import game.engine.Role;
 
+//subclass of monster
 public class Dasher extends Monster {
 	
 	private int momentumTurns;
