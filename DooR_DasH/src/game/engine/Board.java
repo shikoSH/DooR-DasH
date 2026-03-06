@@ -11,7 +11,10 @@ public class Board {
 	private static ArrayList<Card> originalCards;
 	private static ArrayList<Card> cards;
 	public Board(ArrayList<Card> readCards){ 
-		
+		boardCells = new Cell[Constants.BOARD_ROWS][Constants.BOARD_COLS];
+		stationedMonsters = new ArrayList<Monster>();
+		cards = new ArrayList<Card>();
+		originalCards = readCards;
 	}
 	
 	public static ArrayList<Monster> getStationedMonsters() {

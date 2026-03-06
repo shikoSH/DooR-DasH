@@ -12,7 +12,6 @@ public abstract class Card {
 	private int rarity;
 	private boolean lucky;
 	public Card(String name, String description, int rarity, boolean lucky) {
-		super();
 		this.name = name;
 		this.description = description;
 		this.rarity = rarity;
