@@ -1,6 +1,13 @@
 package game.engine.cells;
 
 import game.engine.monsters.Monster;
+//subclasses:
+//	doorcell
+//	transportcell:-
+//		conveyrbelt
+//		contaminationsock
+//	monstercell
+//	cardcell
 
 public class Cell {
 private  String name;
