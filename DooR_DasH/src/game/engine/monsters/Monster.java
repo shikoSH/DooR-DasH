@@ -1,13 +1,15 @@
 package game.engine.monsters;
 import game.engine.Role;
 
+//Its subclasses are • Dasher• Dynamo• MultiTasker• Schemer
+
 public abstract class Monster implements Comparable<Monster>{
 	private String name;
 	private String description;
 	private Role role;
 	private Role originalRole;
-	private int energy;
-	private int position;
+	private int energy;//must be >=0 --------------------------------------------------------
+	private int position;//must be 0-99 -------------------------------------------------------------------
 	private boolean frozen;
 	private boolean shielded;
 	private int confusionTurns;
@@ -15,10 +17,13 @@ public abstract class Monster implements Comparable<Monster>{
 	public Monster(String name, String description, Role originalRole, int energy){
 		this.name = name;
 		this.description = description;
+		this.role=originalRole;
 		this.originalRole = originalRole;
 		this.energy = energy;
 		this.position = 0;
 		this.confusionTurns = 0;
+		this.frozen=false;
+		this.shielded=false;
 	}
 
 	public String getName() {
