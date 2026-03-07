@@ -23,10 +23,6 @@ public class Game {
 		
 	}
 	
-	public static void main(String[] args) {
-		double rand = Math.random();
-		System.out.print((int)(rand*6 + 1));
-	}
 	
 	private Monster selectRandomMonsterByRole(Role role) {
 		ArrayList<Monster> candidates = new ArrayList<Monster>();
