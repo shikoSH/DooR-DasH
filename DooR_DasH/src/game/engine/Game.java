@@ -32,7 +32,7 @@ public class Game {
 			if(m.getRole() == role) {
 				return m;
 			}
-		}
+		} 
 	}
 	
 	public Monster getCurrent() {
