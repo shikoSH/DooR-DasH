@@ -36,7 +36,7 @@ public class Game {
 			return null;
 		}
 		double rand = Math.random();
-		return candidates.get((int) (rand*candidates.size()) + 1);
+		return candidates.get((int) (rand*candidates.size())/ 1);
 	}
 	
 	public Monster getCurrent() {
