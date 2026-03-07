@@ -16,10 +16,28 @@ public class Game {
 	public Game(Role playerRole) throws IOException{
 		board = new Board(DataLoader.readCards());
 		allMonsters = DataLoader.readMonsters();
-		player = all
+		player = selectRandomMonsterByRole(playerRole);
+		Role opponentRole = (playerRole == Role.SCARER)? Role.LAUGHER: Role.SCARER;
+		opponent = selectRandomMonsterByRole(opponentRole);
+		this.current = player;
 		
 	}
 	
+	
+	private Monster selectRandomMonsterByRole(Role role) {
+		ArrayList<Monster> candidates = new ArrayList<Monster>();
+		for(int i = 0; i < allMonsters.size();i++) {
+			Monster m = allMonsters.get(i);
+			if(m.getOriginalRole() == role) {
+				candidates.add(m);
+			}
+		}
+		if(candidates.isEmpty()) {
+			return null;
+		}
+		double rand = Math.random();
+		return candidates.get((int) (rand*candidates.size()) + 1);
+	}
 	
 	public Monster getCurrent() {
 		return current;
