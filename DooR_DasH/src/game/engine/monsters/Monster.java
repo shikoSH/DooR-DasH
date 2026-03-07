@@ -51,7 +51,10 @@ public abstract class Monster implements Comparable<Monster>{
 	}
 
 	public void setEnergy(int energy) {
-		this.energy = energy;
+		  if (energy < 0)
+		        this.energy = 0;
+		    else
+		        this.energy = energy;
 	}
 
 	public int getPosition() {
