@@ -25,18 +25,14 @@ public class Game {
 	
 	
 	private Monster selectRandomMonsterByRole(Role role) {
-		ArrayList<Monster> candidates = new ArrayList<Monster>();
-		for(int i = 0; i < allMonsters.size();i++) {
+		while(true) {
+			double rand = Math.random();
+			int i= (int) (rand*allMonsters.size());
 			Monster m = allMonsters.get(i);
-			if(m.getOriginalRole() == role) {
-				candidates.add(m);
+			if(m.getRole() == role) {
+				return m;
 			}
 		}
-		if(candidates.isEmpty()) {
-			return null;
-		}
-		double rand = Math.random();
-		return candidates.get((int) (rand*candidates.size())/ 1);
 	}
 	
 	public Monster getCurrent() {
