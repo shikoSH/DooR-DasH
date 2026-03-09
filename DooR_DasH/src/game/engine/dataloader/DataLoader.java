@@ -18,50 +18,41 @@ public class DataLoader {
 	private static final String MONSTERS_FILE_NAME="monsters.csv";
 	
 
-	 public static ArrayList<Card> readCards() throws IOException {
+	public static ArrayList<Card> readCards() throws IOException {
 		 ArrayList<Card> cards = new ArrayList<>();
 		 BufferedReader br = new BufferedReader(new FileReader(CARDS_FILE_NAME));
-		 
-	        String line;
+		 String line;
 	        
-	        while ((line = br.readLine()) != null) {
-	        	String[] v = line.split(",");
-	        	String type = v[0];
-	        	String name = v[1];
-	        	String description = v[2];
-	            int rarity = Integer.parseInt(v[3]);
-	            Card c;
-	        	switch(type) {
+        while ((line = br.readLine()) != null) {
+        	String[] v = line.split(",");
+            Card c;
+        	switch(v[0]) {
 	        	case"SWAPPER":{
-	        		c = new SwapperCard(name,description,rarity);
+	        		c = new SwapperCard(v[1],v[2],Integer.parseInt(v[3]));
 	        		break;
 	        	}
 	        	case"STARTOVER":{
-	        		boolean lucky = Boolean.parseBoolean(v[4]);
-	        		c= new StartOverCard(name,description,rarity,lucky); 
+	        		c= new StartOverCard(v[1],v[2],Integer.parseInt(v[3]),Boolean.parseBoolean(v[4])); 
 	        		break;
 	        	}
 	        	case"ENERGYSTEAL":{
-	        		int energy = Integer.parseInt(v[4]);
-	        		c= new EnergyStealCard(name,description,rarity,energy); 
+	        		c= new EnergyStealCard(v[1],v[2],Integer.parseInt(v[3]),Integer.parseInt(v[4])); 
 	        		break;
 	        	}
 	        	case"SHIELD":{
-	        		c= new ShieldCard(name,description,rarity); 
+	        		c= new ShieldCard(v[1],v[2],Integer.parseInt(v[3])); 
 	        		break;
 	        	}
 	        	default:{
-	        		int duration = Integer.parseInt(v[4]);
-	        		c= new ConfusionCard(name,description,rarity,duration); 
+	        		c= new ConfusionCard(v[1],v[2],Integer.parseInt(v[3]),Integer.parseInt(v[4])); 
 	        		break;
 	        	}
-	        	}
-	        	cards.add(c);
-	        }
-	        br.close();
-	        return cards;   
-	        }
-		 
+        	}
+        	cards.add(c);
+        }
+        br.close();
+        return cards;   
+	 }	 
 
 public static ArrayList<Monster> readMonsters() throws IOException{
     ArrayList<Monster> monsters = new ArrayList<>();
