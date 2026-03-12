@@ -25,30 +25,29 @@ public class DataLoader {
 	        
         while ((line = br.readLine()) != null) {
         	String[] v = line.split(",");
-            Card c;
         	switch(v[0]) {
 	        	case"SWAPPER":{
-	        		c = new SwapperCard(v[1],v[2],Integer.parseInt(v[3]));
+	        		cards.add(new SwapperCard(v[1],v[2],Integer.parseInt(v[3])));
 	        		break;
 	        	}
 	        	case"STARTOVER":{
-	        		c= new StartOverCard(v[1],v[2],Integer.parseInt(v[3]),Boolean.parseBoolean(v[4])); 
+	        		cards.add(new StartOverCard(v[1],v[2],Integer.parseInt(v[3]),Boolean.parseBoolean(v[4]))); 
 	        		break;
 	        	}
 	        	case"ENERGYSTEAL":{
-	        		c= new EnergyStealCard(v[1],v[2],Integer.parseInt(v[3]),Integer.parseInt(v[4])); 
+	        		cards.add(new EnergyStealCard(v[1],v[2],Integer.parseInt(v[3]),Integer.parseInt(v[4]))); 
 	        		break;
 	        	}
 	        	case"SHIELD":{
-	        		c= new ShieldCard(v[1],v[2],Integer.parseInt(v[3])); 
+	        		cards.add(new ShieldCard(v[1],v[2],Integer.parseInt(v[3])));
 	        		break;
 	        	}
 	        	default:{
-	        		c= new ConfusionCard(v[1],v[2],Integer.parseInt(v[3]),Integer.parseInt(v[4])); 
+	        		cards.add(new ConfusionCard(v[1],v[2],Integer.parseInt(v[3]),Integer.parseInt(v[4]))); 
 	        		break;
 	        	}
         	}
-        	cards.add(c);
+
         }
         br.close();
         return cards;   
@@ -83,6 +82,7 @@ public static ArrayList<Monster> readMonsters() throws IOException{
             break;
         }
     }
+    br.close();
     return monsters;
 }
 
