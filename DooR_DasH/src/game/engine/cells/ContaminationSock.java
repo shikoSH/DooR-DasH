@@ -9,7 +9,5 @@ public class ContaminationSock extends TransportCell implements CanisterModifier
 		 super(name,effect);
 	 }
 	
-	public void modifyEnergy(Monster monster) {
-		
-	}
+	
 }

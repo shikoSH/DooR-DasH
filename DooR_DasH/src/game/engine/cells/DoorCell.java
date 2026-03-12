@@ -31,9 +31,7 @@ public class DoorCell extends Cell implements CanisterModifier{
 		this.activated = activated;
 	}
 	
-	public void modifyEnergy(Monster monster) {
-		
-	}
+	
 	
 	
 	

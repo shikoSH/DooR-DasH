@@ -25,14 +25,27 @@ public class Game {
 	
 	
 	private Monster selectRandomMonsterByRole(Role role) {
-		while(true) {
+		/*while(true) {
 			double rand = Math.random();
 			int i= (int) (rand*allMonsters.size());
 			Monster m = allMonsters.get(i);
 			if(m.getRole() == role) {
 				return m;
 			}
-		} 
+		} */
+		ArrayList<Monster> candidates = new ArrayList<Monster>();
+		for(int i = 0; i < allMonsters.size();i++) {
+	            Monster m = allMonsters.get(i);
+	            if(m.getRole() == role) {
+	                candidates.add(m);
+	            }
+	        }
+	        if(candidates.isEmpty()) {
+	            return null;
+	        }
+	        double rand = Math.random();
+	        int i= (int) (rand*candidates.size());
+	        return candidates.get(i);
 	}
 	
 	public Monster getCurrent() {

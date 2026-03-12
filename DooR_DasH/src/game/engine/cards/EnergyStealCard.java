@@ -15,8 +15,6 @@ public EnergyStealCard(String name, String description, int rarity, int energy) 
 	this.energy = energy;
 }
 
-public void modifyEnergy(Monster monster) {
-	
-}
+
 
 }
