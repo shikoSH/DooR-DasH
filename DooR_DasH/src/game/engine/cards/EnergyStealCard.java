@@ -4,7 +4,7 @@ import game.engine.interfaces.CanisterModifier;
 import game.engine.monsters.Monster;
 
 public class EnergyStealCard extends Card implements CanisterModifier{
-private int energy;
+private final int energy;
 
 public int getEnergy() {
 	return energy;

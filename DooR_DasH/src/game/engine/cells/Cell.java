@@ -10,7 +10,7 @@ import game.engine.monsters.Monster;
 //	cardcell
 
 public class Cell {
-private  String name;
+private final String name;
 private Monster monster;
 public Cell(String name) {
 	this.name = name;

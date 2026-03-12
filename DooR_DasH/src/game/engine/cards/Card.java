@@ -7,10 +7,10 @@ public abstract class Card {
 //	StartOverCard
 //	ConfusionCard
 //	ShieldCard
-	private String name;
-	private String description;
-	private int rarity;
-	private boolean lucky;
+	private final String name;
+	private final String description;
+	private final int rarity;
+	private final boolean lucky;
 	public Card(String name, String description, int rarity, boolean lucky) {
 		this.name = name;
 		this.description = description;

@@ -5,9 +5,9 @@ import game.engine.Role;
 
 public abstract class Monster implements Comparable<Monster>{
 	private String name;
-	private String description;
+	private final String description;
 	private Role role;
-	private Role originalRole;
+	private final Role originalRole;
 	private int energy;//must be >=0 --------------------------------------------------------
 	private int position;//must be 0-99 -------------------------------------------------------------------
 	private boolean frozen;

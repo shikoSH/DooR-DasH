@@ -6,8 +6,8 @@ import game.engine.monsters.Monster;
 
 public class DoorCell extends Cell implements CanisterModifier{
 	
-	private Role role;
-	private int energy;
+	private final Role role;
+	private final int energy;
 	private boolean activated;
 	
 	public DoorCell(String name, Role role, int energy){

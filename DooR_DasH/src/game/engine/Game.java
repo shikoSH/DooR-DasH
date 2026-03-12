@@ -7,10 +7,10 @@ import game.engine.dataloader.DataLoader;
 import game.engine.monsters.Monster;
 
 public class Game {
-	private Board board;
-	private ArrayList<Monster> allMonsters;
-	private Monster player;
-	private Monster opponent;
+	private final Board board;
+	private final ArrayList<Monster> allMonsters;
+	private final Monster player;
+	private final Monster opponent;
 	private Monster current;
 	
 	public Game(Role playerRole) throws IOException{
