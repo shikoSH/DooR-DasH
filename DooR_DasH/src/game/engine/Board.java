@@ -56,4 +56,9 @@ public class Board {
 		int[] a= indexToRowCol(index);
 		return c[a[0]][a[1]];
 	}
+	private void setCell(int index, Cell cell) {
+		int[] a= indexToRowCol(index);
+		Cell c= getCell(index);
+		c=cell;
+	}
 }
