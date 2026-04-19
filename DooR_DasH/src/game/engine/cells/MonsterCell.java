@@ -21,13 +21,9 @@ public class MonsterCell extends Cell {
 			 landingMonster.executePowerupEffect(landingMonster);
 		 else {
 			 if(landingMonster.getEnergy() > cellMonster.getEnergy()) {
-				 if(!landingMonster.isShielded()) {
-					 int temp = landingMonster.getEnergy();
-					 landingMonster.setEnergy(cellMonster.getEnergy());
-					 cellMonster.setEnergy(temp);
-				 }else
-					 cellMonster.setEnergy(landingMonster.getEnergy());
-					 
+				 int temp = landingMonster.getEnergy();
+				 landingMonster.alterEnergy(cellMonster.getEnergy());
+				 cellMonster.setEnergy(temp);
 			 }
 		 }
 			 
