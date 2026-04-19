@@ -41,5 +41,5 @@ public class Board {
 	public static ArrayList<Card> getOriginalCards() {
 		return originalCards;
 	}
-	
+	//testing
 }
