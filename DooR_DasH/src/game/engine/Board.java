@@ -2,6 +2,8 @@ package game.engine;
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Collections;
+
 import game.engine.Constants;
 import game.engine.cells.ConveyorBelt;
 import game.engine.cells.MonsterCell;
@@ -104,7 +106,7 @@ public class Board {
 		
 		
 	}
-	private void setCardsByRarity(){
+	private static void setCardsByRarity(){
 
 
 	    ArrayList<Card> newcards = new ArrayList<>();
@@ -119,4 +121,25 @@ public class Board {
 	    cards = newcards;
 
 	}
+	
+	public static void reloadCards(){
+		setCardsByRarity();
+		Collections.shuffle(Board.getCards());
+}
+	
+	
+	public static Card drawCard(){
+		ArrayList<Card> temp = Board.getCards();
+		if(temp.size()== 0){
+			reloadCards();
+			temp = Board.getCards();
+		}
+		Card res= temp.remove(0);
+		return res;
+
+
+	}
+	
+	
+	
 }
