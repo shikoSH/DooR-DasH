@@ -51,4 +51,9 @@ public class Board {
 		int[] s= {row,col};
 		return s;
 	}
+	private Cell getCell(int index) {
+		Cell[][] c= getBoardCells();
+		int[] a= indexToRowCol(index);
+		return c[a[0]][a[1]];
+	}
 }
