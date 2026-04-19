@@ -42,4 +42,13 @@ public class Board {
 		return originalCards;
 	}
 	//testing
+	
+	private int[] indexToRowCol(int index) {
+		int row= (int)index/10;
+		int col;
+		if(row%2==0)col=index%10;
+		else col=9-(index%10);
+		int[] s= {row,col};
+		return s;
+	}
 }
