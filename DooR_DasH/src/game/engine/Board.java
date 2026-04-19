@@ -42,4 +42,23 @@ public class Board {
 		return originalCards;
 	}
 	//testing
+	
+	private int[] indexToRowCol(int index) {
+		int row= (int)index/10;
+		int col;
+		if(row%2==0)col=index%10;
+		else col=9-(index%10);
+		int[] s= {row,col};
+		return s;
+	}
+	private Cell getCell(int index) {
+		Cell[][] c= getBoardCells();
+		int[] a= indexToRowCol(index);
+		return c[a[0]][a[1]];
+	}
+	private void setCell(int index, Cell cell) {
+		int[] a= indexToRowCol(index);
+		Cell c= getCell(index);
+		c=cell;
+	}
 }
