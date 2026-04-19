@@ -2,6 +2,8 @@ package game.engine;
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Collections;
+
 import game.engine.Constants;
 import game.engine.cells.ConveyorBelt;
 import game.engine.cells.MonsterCell;
@@ -90,7 +92,7 @@ public class Board {
 			MonsterCell m= new MonsterCell(stationedMonsters.get(i).getName(),stationedMonsters.get(i));
 			mc.add(m);
 		}
-		for(int i=0;i<cards.size();i++) {
+		for(int i=0;i<originalCards.size();i++) {
 			CardCell m= new CardCell(cards.get(i).getName());
 			cc.add(m);
 		}
@@ -118,5 +120,8 @@ public class Board {
 	        }
 	    cards=(ArrayList<Card>) newcards.clone();
 
+	}
+	public static void reloadCards(){
+	    Collections.shuffle(Board.getOriginalCards());
 	}
 }
