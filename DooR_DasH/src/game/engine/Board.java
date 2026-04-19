@@ -116,7 +116,7 @@ public class Board {
 	            j++;
 	            }
 	        }
-	    cards = newcards;
+	    cards=(ArrayList<Card>) newcards.clone();
 
 	}
 }
