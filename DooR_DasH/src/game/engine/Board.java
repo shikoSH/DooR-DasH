@@ -1,9 +1,17 @@
 package game.engine;
+import java.io.IOException;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
-
+import game.engine.Constants;
+import game.engine.cells.ConveyorBelt;
+import game.engine.cells.MonsterCell;
+import game.engine.dataloader.DataLoader;
+import game.engine.cells.ContaminationSock;
 import game.engine.cells.Cell;
 import game.engine.cards.Card;
 import game.engine.monsters.Monster;
+import game.engine.cells.CardCell;
+import game.engine.Game;
 
 public class Board {
 	private final Cell[][] boardCells;
@@ -60,5 +68,55 @@ public class Board {
 		int[] a= indexToRowCol(index);
 		Cell c= getCell(index);
 		c=cell;
+	}
+	void initializeBoard(ArrayList<Cell> specialCells) throws IOException {int v=0;int s=0;
+		for(int i=0;i<specialCells.size();i++) {
+			if(i<=49) {
+				setCell((2*i)+1, specialCells.get(i));
+			}
+			else {
+				if(specialCells.get(i) instanceof ContaminationSock ) {
+					setCell(Constants.SOCK_CELL_INDICES[s],specialCells.get(i));s++;
+				}
+				else {
+					setCell(Constants.CARD_CELL_INDICES[v],specialCells.get(i));v++;
+				}
+			}
+		}
+		ArrayList<Cell> mc= new ArrayList<>();
+		ArrayList<Cell> cc= new ArrayList<>();
+		for(int i=0;i<stationedMonsters.size();i++) {
+			
+			MonsterCell m= new MonsterCell(stationedMonsters.get(i).getName(),stationedMonsters.get(i));
+			mc.add(m);
+		}
+		for(int i=0;i<cards.size();i++) {
+			CardCell m= new CardCell(cards.get(i).getName());
+			cc.add(m);
+		}
+		int ca=0;int mon=0;
+		for(int i=0;i<mc.size();i++) {
+			setCell(Constants.MONSTER_CELL_INDICES[mon],mc.get(i) );
+		}
+		for(int i=0;i<cc.size();i++) {
+			setCell(Constants.CARD_CELL_INDICES[ca],cc.get(i) );
+		}
+		
+		
+	}
+	private void setCardsByRarity(){
+
+
+	    ArrayList<Card> newcards = new ArrayList<>();
+	    for(int i=0 ; i<originalCards.size(); i++){
+	        int j=0;
+	        Card Temp = originalCards.get(i);
+	        while(j<Temp.getRarity()){
+	            newcards.add(Temp);
+	            j++;
+	            }
+	        }
+	    cards = newcards;
+
 	}
 }
