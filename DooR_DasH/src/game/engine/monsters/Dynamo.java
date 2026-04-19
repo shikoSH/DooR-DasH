@@ -9,7 +9,11 @@ public class Dynamo extends Monster{
 	}
 	
 	public void executePowerupEffect(Monster opponentMonster) {
-		// TODO Auto-generated method stub
 		
+	}
+	
+	public void setEnergy(int energy) {
+		int newEnergy = this.getEnergy()+ 2*energy;
+		super.setEnergy(newEnergy);
 	}
 }
