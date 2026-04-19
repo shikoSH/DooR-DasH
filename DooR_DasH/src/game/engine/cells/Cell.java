@@ -10,21 +10,27 @@ import game.engine.monsters.Monster;
 //	cardcell
 
 public class Cell {
-private final String name;
-private Monster monster;
-public Cell(String name) {
-	this.name = name;
-	monster=null;
-}
-public Monster getMonster() {
-	return monster;
-}
-public void setMonster(Monster monster) {
-	this.monster = monster;
-}
-public String getName() {
-	return name;
-}
-
-
+	private final String name;
+	private Monster monster;
+	public Cell(String name) {
+		this.name = name;
+		monster=null;
+	}
+	public Monster getMonster() {
+		return monster;
+	}
+	public void setMonster(Monster monster) {
+		this.monster = monster;
+	}
+	public String getName() {
+		return name;
+	}
+	
+	public boolean isOccupied() {
+		return this.getMonster() != null;
+	}
+	
+	public void onLand(Monster landingMonster, Monster opponentMonster) {
+		this.setMonster(landingMonster);
+	}
 }

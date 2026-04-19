@@ -21,4 +21,7 @@ public class Dasher extends Monster {
 		// TODO Auto-generated method stub
 		
 	}
+	public void move(int distance) {
+		super.move(distance*2);
+	}
 }
