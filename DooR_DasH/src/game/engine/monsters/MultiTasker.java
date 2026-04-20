@@ -33,7 +33,8 @@ public class MultiTasker extends Monster {
 	}
 	
 	public void setEnergy(int energy) {
-		int newEnergy = this.getEnergy()+ energy+ contan;
+		int change = energy - this.getEnergy();
+		int newEnergy = this.getEnergy()+ change+ Constants.MULTITASKER_BONUS;
 		super.setEnergy(newEnergy); 
 	
 	}
