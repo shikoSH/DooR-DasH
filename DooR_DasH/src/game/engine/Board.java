@@ -21,7 +21,7 @@ public class Board {
 		cards = new ArrayList<Card>();
 		setCardsByRarity();
 		reloadCards();
-	}
+	} 
 	
 	public Cell[][] getBoardCells() {
 		return boardCells;
