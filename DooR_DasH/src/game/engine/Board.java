@@ -76,7 +76,7 @@ public class Board {
 		else if(specialCells.get(i) instanceof ConveyorBelt) {conv.add(specialCells.get(i));}
 		else if(specialCells.get(i) instanceof ContaminationSock) {sock.add(specialCells.get(i));}
 	}
-	for(int i=0;i<100;i++) {
+	for(int i=0;i<Constants.BOARD_SIZE;i++) {
 		if(i%2==1)
 		setCell(i, doors.get(i/2));
 		else {
