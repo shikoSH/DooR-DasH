@@ -1,49 +1,50 @@
 package game.engine.monsters;
+
+import game.engine.Constants;
 import game.engine.Role;
 
-//Its subclasses are • Dasher• Dynamo• MultiTasker• Schemer
-
-public abstract class Monster implements Comparable<Monster>{
+public abstract class Monster implements Comparable<Monster> {
 	private String name;
-	private final String description;
+	private String description;
 	private Role role;
-	private final Role originalRole;
-	private int energy;//must be >=0 --------------------------------------------------------
-	private int position;//must be 0-99 -------------------------------------------------------------------
+	private Role originalRole; // For confusion card
+	private int energy;
+	private int position;
 	private boolean frozen;
 	private boolean shielded;
 	private int confusionTurns;
 	
-	public Monster(String name, String description, Role originalRole, int energy){
+	public Monster(String name, String description, Role originalRole, int energy) {
+		super();
 		this.name = name;
 		this.description = description;
-		this.role=originalRole;
-		this.originalRole = originalRole;
+		this.role = originalRole;
+		this.originalRole = originalRole; 
 		this.energy = energy;
 		this.position = 0;
+		this.frozen = false;
+		this.shielded = false;
 		this.confusionTurns = 0;
-		this.frozen=false;
-		this.shielded=false;
 	}
 
 	public String getName() {
 		return name;
 	}
-	
+
 	public String getDescription() {
 		return description;
-	}
-	
-	public Role getOriginalRole() {
-		return originalRole;
 	}
 	
 	public Role getRole() {
 		return role;
 	}
-
+	
 	public void setRole(Role role) {
 		this.role = role;
+	}
+
+	public Role getOriginalRole() {
+		return originalRole;
 	}
 
 	public int getEnergy() {
@@ -51,10 +52,7 @@ public abstract class Monster implements Comparable<Monster>{
 	}
 
 	public void setEnergy(int energy) {
-		  if (energy < 0)
-		        this.energy = 0;
-		    else
-		        this.energy = energy;
+		this.energy = Math.max(Constants.MIN_ENERGY, energy);
 	}
 
 	public int getPosition() {
@@ -62,69 +60,36 @@ public abstract class Monster implements Comparable<Monster>{
 	}
 
 	public void setPosition(int position) {
-		if(position > 99)
-			this.position = position-100;
-		else
-			this.position = position;
+		this.position = position % Constants.BOARD_SIZE;
 	}
-
+	
 	public boolean isFrozen() {
 		return frozen;
 	}
-
+	
 	public void setFrozen(boolean frozen) {
 		this.frozen = frozen;
 	}
-
+	
 	public boolean isShielded() {
 		return shielded;
 	}
-
+	
 	public void setShielded(boolean shielded) {
 		this.shielded = shielded;
 	}
-
+	
 	public int getConfusionTurns() {
 		return confusionTurns;
 	}
-
+	
 	public void setConfusionTurns(int confusionTurns) {
 		this.confusionTurns = confusionTurns;
 	}
-	
-	public int compareTo(Monster o) {
-		return this.position - o.position;
+
+	@Override
+	public int compareTo(Monster other) {
+		return this.position - other.position;
 	}
-	
-	public abstract void executePowerupEffect(Monster opponentMonster);
-	
-	public boolean isConfused(){
-		if (this.getConfusionTurns() == 0)
-			return false;
-		return true;
-	}
-	
-	public void move(int distance) {
-		int position1 = this.getPosition() + distance;
-		this.setPosition(position1);
-	}
-	
-	public final void alterEnergy(int energy) {
-		if(this.isShielded() && energy < 0) {
-			this.setShielded(false);
-			return;
-		}
-		int newEnergy = this.getEnergy() + energy;
-		this.setEnergy(newEnergy);
-	}
-	public void decrementConfusion() {
-		if(this.getConfusionTurns() > 0) {
-			int newConfusionTurns = this.getConfusionTurns() - 1;
-			this.setConfusionTurns(newConfusionTurns);
-			if(this.getConfusionTurns() == 0) {
-				this.setRole(this.getOriginalRole());
-			}
-		}
-	}
-	
+
 }
