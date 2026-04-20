@@ -24,6 +24,10 @@ public class EnergyStealCard extends Card implements CanisterModifier {
 		
 		//case that opponent energy is greater than the change in energy 
 		if(opponent_original_energy>=change_in_energy) {
+			if(opponent.isShielded()) {
+				opponent.setShielded(false);
+				return;
+			}
 			modifyCanisterEnergy(player,change_in_energy);
 			modifyCanisterEnergy(opponent,-change_in_energy);
 		}
