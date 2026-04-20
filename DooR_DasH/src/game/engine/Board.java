@@ -62,10 +62,11 @@ public class Board {
 		int a1= a[0];int a2= a[1];
 		boardCells[a1][a2]=cell;
 	}
-	void initializeBoard(ArrayList<Cell> specialCells) throws IOException {int v=0;int s=0;
+	public void initializeBoard(ArrayList<Cell> specialCells) throws IOException {int v=0;int s=0;
 	ArrayList<Cell> doors= new ArrayList<Cell>();
 	ArrayList<Cell> conv=new ArrayList<Cell>();
 	ArrayList<Cell> sock=new ArrayList<Cell>();
+
 	
 	for(int i=0;i<specialCells.size();i++) {
 		if(specialCells.get(i) instanceof DoorCell) {doors.add(specialCells.get(i));}
@@ -88,11 +89,11 @@ public class Board {
 	for(int i=0;i<Constants.CARD_CELL_INDICES.length;i++) {
 		setCell(Constants.CARD_CELL_INDICES[i], new CardCell("Cardcell "+i));
 	}
-	for(int i=0;i<Constants.MONSTER_CELL_INDICES.length;i++) {
-		Monster m = stationedMonsters.get(i);
-		
-		setCell(Constants.MONSTER_CELL_INDICES[i],new MonsterCell(m.getName(), m) );}
-	
+	for (int i = 0; i < Constants.MONSTER_CELL_INDICES.length; i++) {
+        Monster m = stationedMonsters.get(i);
+        m.setPosition(Constants.MONSTER_CELL_INDICES[i]);
+        setCell(Constants.MONSTER_CELL_INDICES[i], new MonsterCell(m.getName(), m));
+    }
 }
 	private static void setCardsByRarity(){
 

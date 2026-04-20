@@ -20,6 +20,6 @@ public class ConfusionCard extends Card {
 		Role player_original_role = player.getRole();		
 		Role opponent_original_role = opponent.getRole();
 		player.setRole(opponent_original_role);
-		opponent.setRole(opponent_original_role);
+		opponent.setRole(player_original_role);
 	}
 }
