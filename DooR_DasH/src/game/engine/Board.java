@@ -6,6 +6,7 @@ import java.util.Collections;
 
 import game.engine.Constants;
 import game.engine.cells.ConveyorBelt;
+import game.engine.cells.DoorCell;
 import game.engine.cells.MonsterCell;
 import game.engine.dataloader.DataLoader;
 import game.engine.cells.ContaminationSock;
@@ -54,7 +55,7 @@ public class Board {
 	//testing
 	
 	private int[] indexToRowCol(int index) {
-		int row= (int)index/10;
+		int row= index/10;
 		int col;
 		if(row%2==0)col=index%10;
 		else col=9-(index%10);
@@ -67,45 +68,42 @@ public class Board {
 		return c[a[0]][a[1]];
 	}
 	private void setCell(int index, Cell cell) {
-		int[] a= indexToRowCol(index);
-		Cell c= getCell(index);
-		c=cell;
+		int[] a =indexToRowCol(index);
+		int a1= a[0];int a2= a[1];
+		boardCells[a1][a2]=cell;
 	}
 	void initializeBoard(ArrayList<Cell> specialCells) throws IOException {int v=0;int s=0;
-		for(int i=0;i<specialCells.size();i++) {
-			if(i<=49) {
-				setCell((2*i)+1, specialCells.get(i));
-			}
-			else {
-				if(specialCells.get(i) instanceof ContaminationSock ) {
-					setCell(Constants.SOCK_CELL_INDICES[s],specialCells.get(i));s++;
-				}
-				else {
-					setCell(Constants.CARD_CELL_INDICES[v],specialCells.get(i));v++;
-				}
-			}
-		}
-		ArrayList<Cell> mc= new ArrayList<>();
-		ArrayList<Cell> cc= new ArrayList<>();
-		for(int i=0;i<stationedMonsters.size();i++) {
-			
-			MonsterCell m= new MonsterCell(stationedMonsters.get(i).getName(),stationedMonsters.get(i));
-			mc.add(m);
-		}
-		for(int i=0;i<cards.size();i++) {
-			CardCell m= new CardCell(cards.get(i).getName());
-			cc.add(m);
-		}
-		int ca=0;int mon=0;
-		for(int i=0;i<mc.size();i++) {
-			setCell(Constants.MONSTER_CELL_INDICES[mon],mc.get(i) );
-		}
-		for(int i=0;i<cc.size();i++) {
-			setCell(Constants.CARD_CELL_INDICES[ca],cc.get(i) );
-		}
-		
-		
+	ArrayList<Cell> doors= new ArrayList<Cell>();
+	ArrayList<Cell> conv=new ArrayList<Cell>();
+	ArrayList<Cell> sock=new ArrayList<Cell>();
+	
+	for(int i=0;i<specialCells.size();i++) {
+		if(specialCells.get(i) instanceof DoorCell) {doors.add(specialCells.get(i));}
+		else if(specialCells.get(i) instanceof ConveyorBelt) {conv.add(specialCells.get(i));}
+		else if(specialCells.get(i) instanceof ContaminationSock) {sock.add(specialCells.get(i));}
 	}
+	for(int i=0;i<100;i++) {
+		if(i%2==1)
+		setCell(i, doors.get(i/2));
+		else {
+			setCell(i, new Cell("Cell "+i));
+		}
+	}
+	for(int i=0;i<Constants.CONVEYOR_CELL_INDICES.length;i++) {
+		setCell(Constants.CONVEYOR_CELL_INDICES[i], conv.get(i));
+	}
+	for(int i=0;i<Constants.SOCK_CELL_INDICES.length;i++) {
+		setCell(Constants.SOCK_CELL_INDICES[i], sock.get(i));
+	}
+	for(int i=0;i<Constants.CARD_CELL_INDICES.length;i++) {
+		setCell(Constants.CARD_CELL_INDICES[i], new CardCell("Cardcell "+i));
+	}
+	for(int i=0;i<Constants.MONSTER_CELL_INDICES.length;i++) {
+		Monster m = stationedMonsters.get(i);
+		
+		setCell(Constants.MONSTER_CELL_INDICES[i],new MonsterCell(m.getName(), m) );}
+	
+}
 	private static void setCardsByRarity(){
 
 
@@ -118,7 +116,7 @@ public class Board {
 	            j++;
 	            }
 	        }
-	    cards = newcards;
+	    cards = (ArrayList<Card>) newcards.clone();
 
 	}
 	
