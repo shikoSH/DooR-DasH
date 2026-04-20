@@ -18,7 +18,7 @@ public class Schemer extends Monster {
 		for(int i=0; i<stationed.size();i++) {
 			allGainedEnergy += stealEnergyFrom(stationed.get(i));
 		}
-		this.setEnergy(this.getEnergy() + allGainedEnergy);
+		this.setEnergy(allGainedEnergy);
 	}
 	
 	private int stealEnergyFrom(Monster target) {
@@ -26,7 +26,7 @@ public class Schemer extends Monster {
 		int gainedEnergy;
 		if(opponentEnergy >= Constants.SCHEMER_STEAL) {
 			gainedEnergy = Constants.SCHEMER_STEAL;
-			target.setEnergy(gainedEnergy - Constants.SCHEMER_STEAL);
+			target.setEnergy(target.getEnergy() - Constants.SCHEMER_STEAL);
 		}
 		else {
 			gainedEnergy = opponentEnergy;
