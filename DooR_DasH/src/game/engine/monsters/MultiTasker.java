@@ -1,5 +1,6 @@
 package game.engine.monsters;
 
+import game.engine.Constants;
 import game.engine.Role;
 
 public class MultiTasker extends Monster {
@@ -32,7 +33,7 @@ public class MultiTasker extends Monster {
 	}
 	
 	public void setEnergy(int energy) {
-		int newEnergy = this.getEnergy()+ energy+ 200;
+		int newEnergy = this.getEnergy()+ energy+ contan;
 		super.setEnergy(newEnergy); 
 	
 	}
