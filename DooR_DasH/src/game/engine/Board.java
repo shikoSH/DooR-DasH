@@ -138,18 +138,21 @@ public class Board {
 		int opponentMonster_position= opponentMonster.getPosition();
 		int final_position = currentMonster_position + roll;
 		//case that final position classes with oppoenent's position
-		if(final_position==opponentMonster_position) {
-			final_position=currentMonster_position;
+		if(currentMonster_position + roll==opponentMonster_position) {
+			
 		}
 		else {
 			//case moves normally 
-			currentMonster.setPosition(final_position);
+			currentMonster.move(roll);
+			//calling on land to effect
 			Cell currentCell= getCell(final_position);
 			currentCell.onLand(currentMonster, opponentMonster);
-			if(currentMonster.isConfused()==true) {
-				currentMonster.decrementConfusion();
-				opponentMonster.decrementConfusion();
-			}	
+			//decrementing confusion
+			currentMonster.decrementConfusion();
+			opponentMonster.decrementConfusion();
+			//refreshing the cells 
+			updateMonsterPositions(currentMonster, opponentMonster);
+			
 		}
 	
 	}
@@ -161,16 +164,10 @@ public class Board {
 				Cell cell =getCell(i);
 				cell.setMonster(null);
 		}
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
+		Cell player_cell=  getCell(player.getPosition());
+		player_cell.setMonster(player);
+		Cell opponent_cell = getCell(opponent.getPosition());
+		opponent_cell.setMonster(opponent);
 	}
 		
 }
