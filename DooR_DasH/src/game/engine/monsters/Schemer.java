@@ -18,7 +18,7 @@ public class Schemer extends Monster {
 		for(int i=0; i<stationed.size();i++) {
 			allGainedEnergy += stealEnergyFrom(stationed.get(i));
 		}
-		this.setEnergy(allGainedEnergy);
+		this.setEnergy(this.getEnergy()+allGainedEnergy);
 	}
 	
 	private int stealEnergyFrom(Monster target) {
@@ -36,8 +36,8 @@ public class Schemer extends Monster {
 	}
 	
 	public void setEnergy(int energy) {
-		int change = energy - this.getEnergy() + 10;
-		int newEnergy = this.getEnergy()+ change;
+		int change = energy - this.getEnergy() ;
+		int newEnergy = this.getEnergy()+ change + 10;
 		super.setEnergy(newEnergy);
 	
 	}
