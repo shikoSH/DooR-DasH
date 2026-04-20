@@ -136,24 +136,22 @@ public class Board {
 	{
 		int currentMonster_position= currentMonster.getPosition();		
 		int opponentMonster_position= opponentMonster.getPosition();
-		int final_position = currentMonster_position + roll;
+		currentMonster.move(roll);
+		int final_position = currentMonster.getPosition();
 		//case that final position classes with oppoenent's position
-		if(currentMonster_position + roll==opponentMonster_position) {
-			
+		if(final_position==opponentMonster_position) {
+			currentMonster.setPosition(currentMonster_position);
+			throw new InvalidMoveException("Landing position is occupied by the opponent!");
 		}
-		else {
-			//case moves normally 
-			currentMonster.move(roll);
-			//calling on land to effect
-			Cell currentCell= getCell(final_position);
-			currentCell.onLand(currentMonster, opponentMonster);
-			//decrementing confusion
-			currentMonster.decrementConfusion();
-			opponentMonster.decrementConfusion();
-			//refreshing the cells 
-			updateMonsterPositions(currentMonster, opponentMonster);
-			
-		}
+		//calling on land to effect
+		Cell currentCell= getCell(final_position);
+		currentCell.onLand(currentMonster, opponentMonster);
+		//decrementing confusion			
+		currentMonster.decrementConfusion();
+		opponentMonster.decrementConfusion();
+		//refreshing the cells 
+		updateMonsterPositions(currentMonster, opponentMonster);
+
 	
 	}
 	
