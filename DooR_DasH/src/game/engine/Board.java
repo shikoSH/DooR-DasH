@@ -92,7 +92,7 @@ public class Board {
 			MonsterCell m= new MonsterCell(stationedMonsters.get(i).getName(),stationedMonsters.get(i));
 			mc.add(m);
 		}
-		for(int i=0;i<cards.size();i++) {
+		for(int i=0;i<originalCards.size();i++) {
 			CardCell m= new CardCell(cards.get(i).getName());
 			cc.add(m);
 		}
@@ -118,9 +118,10 @@ public class Board {
 	            j++;
 	            }
 	        }
-	    cards = newcards;
+	    cards=(ArrayList<Card>) newcards.clone();
 
 	}
+<<<<<<< HEAD
 	
 	public static void reloadCards(){
 		setCardsByRarity();
@@ -142,4 +143,9 @@ public class Board {
 	
 	
 	//hdjlljcjlxzj
+=======
+	public static void reloadCards(){
+	    Collections.shuffle(Board.getOriginalCards());
+	}
+>>>>>>> 07eee3b1e96f5ef63c7900677e705ae65b69f3ee
 }
