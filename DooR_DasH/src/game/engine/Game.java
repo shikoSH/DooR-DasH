@@ -24,7 +24,10 @@ public class Game {
 		this.player = selectRandomMonsterByRole(playerRole);
 		this.opponent = selectRandomMonsterByRole(playerRole == Role.SCARER ? Role.LAUGHER : Role.SCARER);
 		this.current = player;
-		board.setStationedMonsters(allMonsters);
+		ArrayList<Monster> temp= DataLoader.readMonsters();
+		temp.remove(player);
+		temp.remove(opponent);
+		board.setStationedMonsters(temp);
 		board.initializeBoard(DataLoader.readCells());
 	}
 	
@@ -66,7 +69,8 @@ public class Game {
 	 private int rollDice() {int x= (int) ((Math.random()*6)+1);
 	 return x;}
 	 public void usePowerup() throws OutOfEnergyException{
-		 if (this.getCurrent().getEnergy()>=Constants.POWERUP_COST) {this.getCurrent().executePowerupEffect(getCurrentOpponent());}
+		 if (this.getCurrent().getEnergy()>=Constants.POWERUP_COST) {this.getCurrent().executePowerupEffect(getCurrentOpponent());
+		 }
 		 else {OutOfEnergyException e= new OutOfEnergyException();
 		 throw e;}
 	 }
@@ -78,7 +82,7 @@ public class Game {
 		 setCurrent(this.getCurrentOpponent());
 	 }
 	 private boolean checkWinCondition(Monster monster) {
-		 if (this.getCurrent().getPosition()==99 && this.getCurrent().getEnergy()>=1000) {return true;}
+		 if (monster.getPosition()==99 && monster.getEnergy()>=1000) {return true;}
 		 else return false;
 			 } 
 	 public Monster getWinner() {
