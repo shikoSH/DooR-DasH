@@ -24,10 +24,10 @@ public class Game {
 		this.player = selectRandomMonsterByRole(playerRole);
 		this.opponent = selectRandomMonsterByRole(playerRole == Role.SCARER ? Role.LAUGHER : Role.SCARER);
 		this.current = player;
-		ArrayList<Monster> temp= DataLoader.readMonsters();
-		temp.remove(player);
-		temp.remove(opponent);
-		board.setStationedMonsters(temp);
+		ArrayList<Monster> stationedMonsters= DataLoader.readMonsters();
+		stationedMonsters.remove(player);
+		stationedMonsters.remove(opponent);
+		board.setStationedMonsters(stationedMonsters);
 		board.initializeBoard(DataLoader.readCells());
 	}
 	
@@ -70,13 +70,14 @@ public class Game {
 	 return x;}
 	 public void usePowerup() throws OutOfEnergyException{
 		 if (this.getCurrent().getEnergy()>=Constants.POWERUP_COST) {this.getCurrent().executePowerupEffect(getCurrentOpponent());
+		 getCurrent().setEnergy(getCurrent().getEnergy()-Constants.POWERUP_COST);
 		 }
 		 else {OutOfEnergyException e= new OutOfEnergyException();
 		 throw e;}
 	 }
 	 public void playTurn() throws InvalidMoveException{
 		 if(this.getCurrent().isFrozen()==true) {this.getCurrent().setFrozen(false);this.switchTurn();}
-		 else {}
+		 else {board.moveMonster(getCurrent(), rollDice(), getCurrentOpponent());}
 	 }
 	 private void switchTurn() {
 		 setCurrent(this.getCurrentOpponent());
@@ -90,4 +91,6 @@ public class Game {
 		 else if (this.checkWinCondition(getOpponent())) {return getOpponent();}
 		 else return null;
 	 }
+	 
+	
 }

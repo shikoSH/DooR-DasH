@@ -161,16 +161,8 @@ public class Board {
 				Cell cell =getCell(i);
 				cell.setMonster(null);
 		}
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
+		}
+	
+	
 	}
 		
-}
