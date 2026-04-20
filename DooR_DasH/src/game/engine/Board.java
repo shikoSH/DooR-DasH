@@ -19,6 +19,8 @@ public class Board {
 		stationedMonsters = new ArrayList<Monster>();
 		originalCards = readCards;
 		cards = new ArrayList<Card>();
+		setCardsByRarity();
+		reloadCards();
 	}
 	
 	public Cell[][] getBoardCells() {
