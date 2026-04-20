@@ -6,6 +6,7 @@ import java.util.Collections;
 
 import game.engine.cards.Card;
 import game.engine.cells.*;
+import game.engine.exceptions.InvalidMoveException;
 import game.engine.monsters.Monster;
 
 public class Board {
@@ -130,4 +131,46 @@ public class Board {
 
 
 	}
+	
+	public void moveMonster(Monster currentMonster, int roll, Monster opponentMonster) throws InvalidMoveException
+	{
+		int currentMonster_position= currentMonster.getPosition();		
+		int opponentMonster_position= opponentMonster.getPosition();
+		int final_position = currentMonster_position + roll;
+		//case that final position classes with oppoenent's position
+		if(final_position==opponentMonster_position) {
+			final_position=currentMonster_position;
+		}
+		else {
+			//case moves normally 
+			currentMonster.setPosition(final_position);
+			Cell currentCell= getCell(final_position);
+			currentCell.onLand(currentMonster, opponentMonster);
+			if(currentMonster.isConfused()==true) {
+				currentMonster.decrementConfusion();
+				opponentMonster.decrementConfusion();
+			}	
+		}
+	
+	}
+	
+	private void updateMonsterPositions(Monster player, Monster opponent) {
+		
+		//the problem is that when swapper card is used the monster position updates but the cells still have the original monster refrence so you should wynchronise it every time
+		for(int i=0;i<Constants.BOARD_SIZE; i++) {
+				Cell cell =getCell(i);
+				cell.setMonster(null);
+		}
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+	}
+		
 }
