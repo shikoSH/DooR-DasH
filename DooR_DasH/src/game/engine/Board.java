@@ -97,7 +97,7 @@ public class Board {
         m.setPosition(Constants.MONSTER_CELL_INDICES[i]);
         setCell(Constants.MONSTER_CELL_INDICES[i], new MonsterCell(m.getName(), m));
     }
-}
+	}
 	private static void setCardsByRarity(){
 
 
@@ -110,12 +110,12 @@ public class Board {
 	            j++;
 	            }
 	        }
-	    cards = (ArrayList<Card>) newcards.clone();
+	    originalCards = (ArrayList<Card>) newcards.clone();
 
 	}
 	
 	public static void reloadCards(){
-		setCardsByRarity();
+		setCards(getOriginalCards());
 		Collections.shuffle(Board.getCards());
 }
 	
@@ -128,8 +128,6 @@ public class Board {
 		}
 		Card res= temp.remove(0);
 		return res;
-
-
 	}
 	
 	public void moveMonster(Monster currentMonster, int roll, Monster opponentMonster) throws InvalidMoveException
@@ -151,8 +149,6 @@ public class Board {
 		opponentMonster.decrementConfusion();
 		//refreshing the cells 
 		updateMonsterPositions(currentMonster, opponentMonster);
-
-	
 	}
 	
 	private void updateMonsterPositions(Monster player, Monster opponent) {
