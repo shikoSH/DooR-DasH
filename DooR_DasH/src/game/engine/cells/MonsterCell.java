@@ -21,7 +21,8 @@ public class MonsterCell extends Cell {
 		 else
 			 if(landingMonster.getEnergy() > cellMonster.getEnergy()) {
 				 int temp = landingMonster.getEnergy();
-				 landingMonster.alterEnergy(cellMonster.getEnergy());
+				 int tmp2 = cellMonster.getEnergy();
+				 landingMonster.alterEnergy(tmp2);
 				 cellMonster.setEnergy(temp);
 			 }
 			 
