@@ -147,9 +147,11 @@ public class Board {
 		//calling on land to effect
 		Cell currentCell= getCell(final_position);
 		currentCell.onLand(currentMonster, opponentMonster);
-		//decrementing confusion			
-		currentMonster.decrementConfusion();
-		opponentMonster.decrementConfusion();
+		//decrementing confusion if it is confused		
+		if(currentMonster.getConfusionTurns()>0) {
+			currentMonster.decrementConfusion();
+			opponentMonster.decrementConfusion();
+		}
 		//refreshing the cells 
 		updateMonsterPositions(currentMonster, opponentMonster);
 	}
