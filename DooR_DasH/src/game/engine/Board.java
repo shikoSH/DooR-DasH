@@ -6,6 +6,7 @@ import java.util.Collections;
 
 import game.engine.cards.Card;
 import game.engine.cells.*;
+import game.engine.dataloader.DataLoader;
 import game.engine.exceptions.InvalidMoveException;
 import game.engine.monsters.Monster;
 
@@ -69,16 +70,17 @@ public class Board {
 	ArrayList<Cell> doors= new ArrayList<Cell>();
 	ArrayList<Cell> conv=new ArrayList<Cell>();
 	ArrayList<Cell> sock=new ArrayList<Cell>();
-
 	
 	for(int i=0;i<specialCells.size();i++) {
-		if(specialCells.get(i) instanceof DoorCell) {doors.add(specialCells.get(i));}
-		else if(specialCells.get(i) instanceof ConveyorBelt) {conv.add(specialCells.get(i));}
-		else if(specialCells.get(i) instanceof ContaminationSock) {sock.add(specialCells.get(i));}
+		if(specialCells.get(i) instanceof DoorCell) {DoorCell d= (DoorCell) specialCells.get(i);doors.add(d);}
+		else if(specialCells.get(i) instanceof ConveyorBelt) {ConveyorBelt cv = (ConveyorBelt) specialCells.get(i);conv.add(cv);}
+		else if(specialCells.get(i) instanceof ContaminationSock) {ContaminationSock cs= (ContaminationSock) specialCells.get(i);sock.add(cs);}
 	}
+	
+	int doorIndex = 0;
 	for(int i=0;i<Constants.BOARD_SIZE;i++) {
 		if(i%2==1)
-		setCell(i, doors.get(i/2));
+		setCell(i, doors.get(doorIndex++));
 		else {
 			setCell(i, new Cell("Cell "+i));
 		}
@@ -93,6 +95,7 @@ public class Board {
 		setCell(Constants.CARD_CELL_INDICES[i], new CardCell("Cardcell "+i));
 	}
 	for (int i = 0; i < Constants.MONSTER_CELL_INDICES.length; i++) {
+        if (i >= stationedMonsters.size()) break; 
         Monster m = stationedMonsters.get(i);
         m.setPosition(Constants.MONSTER_CELL_INDICES[i]);
         setCell(Constants.MONSTER_CELL_INDICES[i], new MonsterCell(m.getName(), m));
@@ -163,7 +166,9 @@ public class Board {
 		Cell opponent_cell = getCell(opponent.getPosition());
 		opponent_cell.setMonster(opponent);
 		}
-	
+	public static void main(String[] args) throws IOException {
+		Board b = new Board(DataLoader.readCards());
+	}
 	
 	}
 		
