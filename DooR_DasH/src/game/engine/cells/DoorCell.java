@@ -35,7 +35,10 @@ public class DoorCell extends Cell implements CanisterModifier {
 		this.activated = isActivated;
 	}
 	public void modifyCanisterEnergy(Monster monster, int canisterValue) {
-	    monster.alterEnergy(canisterValue);
+		if(monster.getRole() != this.getRole())
+			monster.alterEnergy(-canisterValue);
+		else
+			monster.alterEnergy(canisterValue);
 	}
 	
 	public void onLand(Monster landingMonster, Monster opponentMonster) {
@@ -44,17 +47,16 @@ public class DoorCell extends Cell implements CanisterModifier {
 		if(activated)
 			return;
 		
-		int energyChange = this.getEnergy();
-		ArrayList<Monster> stationedMonsters = Board.getStationedMonsters();
-		
-		if(landingMonster.getRole() != this.getRole()) {
-			energyChange = -energyChange;
+		if(landingMonster.isShielded() & landingMonster.getRole() != this.getRole()) {
+			modifyCanisterEnergy(landingMonster, this.getEnergy());
+			return;
 		}
-		modifyCanisterEnergy(landingMonster, energyChange);
+		modifyCanisterEnergy(landingMonster, this.getEnergy());
+		ArrayList<Monster> stationedMonsters = Board.getStationedMonsters();
 		for(int i=0; i<stationedMonsters.size(); i++) {
 			Monster currentMonster = stationedMonsters.get(i);
 			if(landingMonster.getRole() == currentMonster.getRole())
-				modifyCanisterEnergy(currentMonster, energyChange);
+				modifyCanisterEnergy(currentMonster, this.getEnergy());
 		}
 		
 		this.setActivated(true);
