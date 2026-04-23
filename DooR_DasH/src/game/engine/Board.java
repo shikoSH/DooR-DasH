@@ -166,9 +166,5 @@ public class Board {
 		Cell opponent_cell = getCell(opponent.getPosition());
 		opponent_cell.setMonster(opponent);
 		}
-	public static void main(String[] args) throws IOException {
-		Board b = new Board(DataLoader.readCards());
-	}
-	
-	}
+}
 		
