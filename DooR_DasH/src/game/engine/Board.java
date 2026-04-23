@@ -101,7 +101,7 @@ public class Board {
         setCell(Constants.MONSTER_CELL_INDICES[i], new MonsterCell(m.getName(), m));
     }
 	}
-	private static void setCardsByRarity(){
+	private void setCardsByRarity(){
 
 
 	    ArrayList<Card> newcards = new ArrayList<>();
