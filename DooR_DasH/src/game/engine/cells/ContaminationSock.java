@@ -13,6 +13,7 @@ public class ContaminationSock extends TransportCell implements CanisterModifier
 	public void transport(Monster monster) {
 		int newPos = monster.getPosition() - Math.abs(super.getEffect());
 	    monster.setPosition(newPos);
+		monster.setShielded(false);
 	}
 	
 	public void modifyCanisterEnergy(Monster monster, int canisterValue) {
@@ -21,9 +22,8 @@ public class ContaminationSock extends TransportCell implements CanisterModifier
 	
 	public void onLand(Monster landingMonster, Monster opponentMonster) {
 		super.onLand(landingMonster, opponentMonster);
-		
 		this.transport(landingMonster);
-		modifyCanisterEnergy(landingMonster, Constants.SLIP_PENALTY);
+		modifyCanisterEnergy(landingMonster, -Constants.SLIP_PENALTY);
 	}
 }
 
