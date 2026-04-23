@@ -35,8 +35,10 @@ public class EnergyStealCard extends Card implements CanisterModifier {
 		}
 		else {
 			//case that the opponent energy is less than the change in energy
-			modifyCanisterEnergy(player,opponent.getEnergy());
-			modifyCanisterEnergy(opponent,0);
+			int tmp = opponent.getEnergy();
+			modifyCanisterEnergy(player,tmp);
+			int makeZero = 0 - opponent_original_energy;
+			modifyCanisterEnergy(opponent,makeZero);
 		}
 }
 
