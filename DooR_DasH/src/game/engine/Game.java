@@ -80,7 +80,11 @@ public class Game {
 		 else 
 		 {boolean f=false;
 		 while(!f){
-			 try {board.moveMonster(getCurrent(), rollDice(), getCurrentOpponent());f=true;}
+			 try {
+				 board.moveMonster(getCurrent(), rollDice(), getCurrentOpponent());
+				 f=true;
+				 switchTurn();
+			 }
 			 catch(InvalidMoveException e){
 				 e.getMessage();
 			 }
