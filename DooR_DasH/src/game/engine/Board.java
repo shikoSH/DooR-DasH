@@ -114,7 +114,7 @@ public class Board {
 	            j++;
 	            }
 	        }
-	    originalCards = (ArrayList<Card>) newcards.clone();
+	    originalCards = newcards;
 
 	}
 	
@@ -138,6 +138,13 @@ public class Board {
 	{
 		int currentMonster_position= currentMonster.getPosition();		
 		int opponentMonster_position= opponentMonster.getPosition();
+		//decrement confusion turns
+
+		if(currentMonster.getConfusionTurns()>0) {
+			currentMonster.decrementConfusion();
+			opponentMonster.decrementConfusion();
+
+		}
 		currentMonster.move(roll);
 		int final_position = currentMonster.getPosition();
 		//case that final position classes with oppoenent's position
@@ -146,14 +153,7 @@ public class Board {
 			throw new InvalidMoveException("Landing position is occupied by the opponent!");
 		}
 		
-		//decrement confusion turns
-		boolean wasConfusiondecremented= false;
-		if(currentMonster.getConfusionTurns()>0) {
-			currentMonster.decrementConfusion();
-			opponentMonster.decrementConfusion();
-			wasConfusiondecremented= true;
 
-		}
 		
 		//calling on land to effect
 		Cell currentCell= getCell(final_position);
@@ -163,10 +163,6 @@ public class Board {
 		int final_position2 = currentMonster.getPosition();
 		if(final_position2==opponentMonster_position) {
 			currentMonster.setPosition(currentMonster_position);
-			if(wasConfusiondecremented==true) {
-				currentMonster.setConfusionTurns(currentMonster.getConfusionTurns()+1);				
-				opponentMonster.setConfusionTurns(opponentMonster.getConfusionTurns()+1);
-			}
 			throw new InvalidMoveException("Landing position is occupied by the opponent!");	
 			}	
 		
