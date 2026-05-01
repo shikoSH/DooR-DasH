@@ -66,7 +66,8 @@ public class Board {
 		int a1= a[0];int a2= a[1];
 		boardCells[a1][a2]=cell;
 	}
-	public void initializeBoard(ArrayList<Cell> specialCells) throws IOException {int v=0;int s=0;
+	public void initializeBoard(ArrayList<Cell> specialCells) {int v=0;int s=0;
+	if(!(specialCells.size()==0)) {
 	ArrayList<Cell> doors= new ArrayList<Cell>();
 	ArrayList<Cell> conv=new ArrayList<Cell>();
 	ArrayList<Cell> sock=new ArrayList<Cell>();
@@ -99,7 +100,7 @@ public class Board {
         Monster m = stationedMonsters.get(i);
         m.setPosition(Constants.MONSTER_CELL_INDICES[i]);
         setCell(Constants.MONSTER_CELL_INDICES[i], new MonsterCell(m.getName(), m));
-    }
+    }}
 	}
 	private void setCardsByRarity(){
 
