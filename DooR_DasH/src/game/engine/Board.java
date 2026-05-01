@@ -138,13 +138,7 @@ public class Board {
 	{
 		int currentMonster_position= currentMonster.getPosition();		
 		int opponentMonster_position= opponentMonster.getPosition();
-		//decrement confusion turns
 
-		if(currentMonster.isConfused()) {
-			currentMonster.decrementConfusion();
-			opponentMonster.decrementConfusion();
-
-		}
 		currentMonster.move(roll);
 		int final_position = currentMonster.getPosition();
 		//case that final position classes with oppoenent's position
@@ -152,8 +146,13 @@ public class Board {
 			currentMonster.setPosition(currentMonster_position);
 			throw new InvalidMoveException("Landing position is occupied by the opponent!");
 		}
-		
 
+		//decrement confusion turns
+
+		if(currentMonster.isConfused()) {
+			currentMonster.decrementConfusion();
+			opponentMonster.decrementConfusion();
+		}
 		
 		//calling on land to effect
 		Cell currentCell= getCell(final_position);
