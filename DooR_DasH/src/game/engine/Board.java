@@ -140,7 +140,7 @@ public class Board {
 		int opponentMonster_position= opponentMonster.getPosition();
 		//decrement confusion turns
 
-		if(currentMonster.getConfusionTurns()>0) {
+		if(currentMonster.isConfused()) {
 			currentMonster.decrementConfusion();
 			opponentMonster.decrementConfusion();
 
