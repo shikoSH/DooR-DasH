@@ -78,7 +78,7 @@ public class Game {
 		 if(this.getCurrent().isFrozen()==true) 
 		 {this.getCurrent().setFrozen(false);this.switchTurn();}
 		 else 
-		 {  board.moveMonster(this.getCurrent(), rollDice(),this.getCurrentOpponent());
+		 {  board.moveMonster(this.getCurrent(), rollDice(),this.getCurrentOpponent()); this.switchTurn();
 		 }
 	 }
 	 private void switchTurn() {
