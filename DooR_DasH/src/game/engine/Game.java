@@ -78,8 +78,7 @@ public class Game {
 		 if(this.getCurrent().isFrozen()==true) 
 		 {this.getCurrent().setFrozen(false);this.switchTurn();}
 		 else 
-		 { InvalidMoveException e= new InvalidMoveException();
-		 throw e;
+		 {  board.moveMonster(this.getCurrent(), rollDice(),this.getCurrentOpponent());
 		 }
 	 }
 	 private void switchTurn() {
