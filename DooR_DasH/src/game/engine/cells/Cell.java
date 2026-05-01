@@ -1,5 +1,6 @@
 package game.engine.cells;
 
+import game.engine.exceptions.InvalidMoveException;
 import game.engine.monsters.Monster;
 
 public class Cell {
@@ -26,7 +27,7 @@ public class Cell {
 		return this.getMonster() != null;
 	}
 	
-	public void onLand(Monster landingMonster, Monster opponentMonster) {
+	public void onLand(Monster landingMonster, Monster opponentMonster)  {
 		this.setMonster(landingMonster);
 	}
 }
