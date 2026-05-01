@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 
 import game.engine.cards.Card;
+import game.engine.cards.ConfusionCard;
 import game.engine.cells.*;
 import game.engine.dataloader.DataLoader;
 import game.engine.exceptions.InvalidMoveException;
