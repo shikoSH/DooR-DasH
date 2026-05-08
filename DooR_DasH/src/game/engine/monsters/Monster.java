@@ -87,39 +87,38 @@ public abstract class Monster implements Comparable<Monster> {
 		this.confusionTurns = confusionTurns;
 	}
 
-	@Override
-	public int compareTo(Monster other) {
-		return this.position - other.position;
-	}
 	public abstract void executePowerupEffect(Monster opponentMonster);
 	
-	public boolean isConfused(){
-		if (this.getConfusionTurns() == 0)
-			return false;
-		return true;
+	public boolean isConfused() {
+		return confusionTurns > 0;
 	}
 	
 	public void move(int distance) {
-		int position1 = this.getPosition() + distance;
-		this.setPosition(position1);
+		this.setPosition(this.getPosition() + distance);
 	}
 	
 	public final void alterEnergy(int energy) {
-		if(this.isShielded() && energy < 0) {
-			this.setShielded(false);
-			return;
+		if (shielded && energy < 0) {
+			System.out.println(name + "'s shield blocked " + (-energy) + " damage!");
+			shielded = false; // Shield breaks after one use
 		}
-		int newEnergy = this.getEnergy() + energy;
-		this.setEnergy(newEnergy);
+		
+		else 
+			this.setEnergy(this.getEnergy() + energy);	
 	}
+	
 	public void decrementConfusion() {
-		if(this.getConfusionTurns() > 0) {
-			int newConfusionTurns = this.getConfusionTurns() - 1;
-			this.setConfusionTurns(newConfusionTurns);
-			if(this.getConfusionTurns() == 0) {
-				this.setRole(this.getOriginalRole());
-			}
+		if (isConfused()) {
+			this.setConfusionTurns(this.getConfusionTurns() - 1);
+			
+			if(!isConfused())
+				this.setRole(originalRole);
 		}
+	}
+
+	@Override
+	public int compareTo(Monster other) {
+		return this.position - other.position;
 	}
 
 }

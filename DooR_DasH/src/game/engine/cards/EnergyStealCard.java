@@ -14,37 +14,27 @@ public class EnergyStealCard extends Card implements CanisterModifier {
 	public int getEnergy() {
 		return energy;
 	}
+
 	@Override
 	public void performAction(Monster player, Monster opponent) {
+		int opponentEnergyBefore = opponent.getEnergy();
 		
-		//initialising variables
-		int player_original_energy = player.getEnergy();
-		int opponent_original_energy = opponent.getEnergy();
-		int change_in_energy = this.getEnergy();
-		
-		if(opponent.isShielded()) {
-			opponent.setShielded(false);
-			return;
-		}
-		//case that opponent energy is greater than the change in energy 
-		if(opponent_original_energy>=change_in_energy) {
-			
-			modifyCanisterEnergy(player,change_in_energy);
-			int negativeChange = 0 - change_in_energy;
-			modifyCanisterEnergy(opponent,negativeChange);
-		}
-		else {
-			//case that the opponent energy is less than the change in energy
-			int tmp = opponent.getEnergy();
-			modifyCanisterEnergy(player,tmp);
-			int makeZero = 0 - opponent_original_energy;
-			modifyCanisterEnergy(opponent,makeZero);
-		}
-}
+	    int toSteal = Math.min(this.getEnergy(), opponentEnergyBefore);
 
+	    modifyCanisterEnergy(opponent, -toSteal);
+
+	    if (opponent.getEnergy() == opponentEnergyBefore) {
+	        System.out.println(opponent.getName() + "'s shield blocked the energy steal!");
+	        return;
+	    }
+
+	    modifyCanisterEnergy(player, toSteal);
+	    System.out.println(player.getName() + " stole " + toSteal + " energy from " + opponent.getName() + "!");
+	}
+	
 	@Override
 	public void modifyCanisterEnergy(Monster monster, int canisterValue) {
 		monster.alterEnergy(canisterValue);
-		
 	}
+	
 }

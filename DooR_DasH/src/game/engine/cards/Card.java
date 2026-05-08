@@ -31,6 +31,7 @@ public abstract class Card {
 	public boolean isLucky() {
 		return lucky;
 	}
+
 	public abstract void performAction(Monster player, Monster opponent);
 	
 }
