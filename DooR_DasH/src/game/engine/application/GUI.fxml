@@ -2,6 +2,7 @@
 
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.BorderPane?>
@@ -11,57 +12,70 @@
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="350.0" prefWidth="566.0" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="game.engine.application.Controller">
-   <left>
-      <VBox prefHeight="200.0" prefWidth="100.0" BorderPane.alignment="CENTER" />
-   </left>
-   <right>
-      <VBox prefHeight="200.0" prefWidth="100.0" BorderPane.alignment="CENTER" />
-   </right>
-   <top>
-      <Label fx:id="myLabel" text="Label" BorderPane.alignment="CENTER" />
-   </top>
-   <bottom>
-      <AnchorPane BorderPane.alignment="CENTER">
-         <children>
-            <Button layoutX="319.0" layoutY="77.0" mnemonicParsing="false" text="Power Up" />
-            <Button layoutX="402.0" layoutY="101.0" mnemonicParsing="false" text="Roll" />
-            <Button layoutX="107.0" layoutY="89.0" mnemonicParsing="false" text="Shuffel CardDeck" />
-         </children>
-      </AnchorPane>
-   </bottom>
-   <center>
-      <StackPane fx:id="root" BorderPane.alignment="CENTER">
-         <children>
-            <ImageView fx:id="imageView" fitHeight="150.0" fitWidth="200.0" pickOnBounds="true" preserveRatio="true" />
-            <GridPane fx:id="grid" gridLinesVisible="true">
-              <columnConstraints>
-                  <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" prefWidth="100.0" />
-                <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" prefWidth="100.0" />
-                <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" prefWidth="100.0" />
-                  <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" prefWidth="100.0" />
-                  <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" prefWidth="100.0" />
-                  <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" prefWidth="100.0" />
-                  <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" prefWidth="100.0" />
-                  <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" prefWidth="100.0" />
-                  <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" prefWidth="100.0" />
-                  <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" prefWidth="100.0" />
-              </columnConstraints>
-              <rowConstraints>
-                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="ALWAYS" />
-                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="ALWAYS" />
-                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="ALWAYS" />
-                  <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="ALWAYS" />
-                  <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="ALWAYS" />
-                  <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="ALWAYS" />
-                  <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="ALWAYS" />
-                  <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="ALWAYS" />
-                  <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="ALWAYS" />
-                  <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="ALWAYS" />
-              </rowConstraints>
-            </GridPane>
-         </children>
-      </StackPane>
-   </center>
-
-</BorderPane>
+<StackPane fx:id="backgroundRoot" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="game.engine.application.Controller">
+   <children>
+      <ImageView fx:id="backgroundView" fitHeight="464.0" fitWidth="578.0" pickOnBounds="true">
+         <image>
+            <Image url="@Images/Background.png" />
+         </image>
+      </ImageView>
+      <BorderPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="350.0" prefWidth="566.0">
+         <left>
+            <VBox prefHeight="195.0" prefWidth="106.0" BorderPane.alignment="CENTER" />
+         </left>
+         <right>
+            <VBox prefHeight="210.0" prefWidth="172.0" BorderPane.alignment="CENTER" />
+         </right>
+         <top>
+            <Label fx:id="myLabel" text="Messages" textFill="#fc0808" BorderPane.alignment="CENTER" />
+         </top>
+         <bottom>
+            <AnchorPane prefHeight="125.0" prefWidth="578.0" BorderPane.alignment="CENTER">
+               <children>
+                  <Button layoutX="255.0" layoutY="14.0" mnemonicParsing="false" text="Power Up" />
+                  <Button layoutX="442.0" layoutY="14.0" mnemonicParsing="false" text="Roll" />
+                  <Button layoutX="57.0" layoutY="14.0" mnemonicParsing="false" text="Shuffel CardDeck" />
+               </children>
+            </AnchorPane>
+         </bottom>
+         <center>
+            <StackPane fx:id="boardRoot" prefHeight="178.0" prefWidth="329.0" BorderPane.alignment="CENTER">
+               <children>
+                  <ImageView fx:id="boardView" fitHeight="210.0" fitWidth="374.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@Images/Board.png" />
+                     </image>
+                  </ImageView>
+                  <GridPane fx:id="grid" gridLinesVisible="true" prefHeight="238.0" prefWidth="191.0">
+                    <columnConstraints>
+                        <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" prefWidth="100.0" />
+                      <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" prefWidth="100.0" />
+                      <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" prefWidth="100.0" />
+                        <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" prefWidth="100.0" />
+                        <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" prefWidth="100.0" />
+                        <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" prefWidth="100.0" />
+                        <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" prefWidth="100.0" />
+                        <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" prefWidth="100.0" />
+                        <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" prefWidth="100.0" />
+                        <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" prefWidth="100.0" />
+                    </columnConstraints>
+                    <rowConstraints>
+                      <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="ALWAYS" />
+                      <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="ALWAYS" />
+                      <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="ALWAYS" />
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="ALWAYS" />
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="ALWAYS" />
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="ALWAYS" />
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="ALWAYS" />
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="ALWAYS" />
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="ALWAYS" />
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="ALWAYS" />
+                    </rowConstraints>
+                  </GridPane>
+               </children>
+            </StackPane>
+         </center>
+      
+      </BorderPane>
+   </children>
+</StackPane>
