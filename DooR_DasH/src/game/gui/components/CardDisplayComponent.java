@@ -7,6 +7,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import game.engine.cards.Card;
+import game.gui.controllers.AnimationController;
 
 public class CardDisplayComponent extends StackPane {
 

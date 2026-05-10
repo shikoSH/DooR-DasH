@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.util.HashMap;
 
 public class SceneManager {
+
     private static SceneManager instance;
     private Stage primaryStage;
     private HashMap<String, Scene> scenes = new HashMap<>();
@@ -28,7 +29,23 @@ public class SceneManager {
     }
 
     public void switchToStartScreen() {
-        loadScene("StartScreen", "/game/gui/views/StartScreen.fxml");
+        try {
+            if (!scenes.containsKey("StartScreen")) {
+                FXMLLoader loader = new FXMLLoader(getClass().getResource("/game/gui/views/StartScreen.fxml"));
+                Parent root = loader.load();
+                Scene scene = new Scene(root, 1280, 720);
+                addStylesheet(scene, "/game/gui/resources/css/styles.css");
+                addStylesheet(scene, "/game/gui/resources/css/start-screen.css");
+                scenes.put("StartScreen", scene);
+            }
+            primaryStage.setScene(scenes.get("StartScreen"));
+            if (!primaryStage.isShowing()) {
+                primaryStage.show();
+            }
+        } catch (IOException e) {
+            System.err.println("Failed to load scene: StartScreen");
+            e.printStackTrace();
+        }
     }
 
     public void switchToInstructionsScreen() {
@@ -39,13 +56,10 @@ public class SceneManager {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/game/gui/views/GameScreen.fxml"));
             Parent root = loader.load();
-            
-            game.gui.controllers.GameController controller = loader.getController();
+            GameController controller = loader.getController();
             controller.startGame(playerRole);
-            
             Scene scene = new Scene(root, 1280, 720);
-            scene.getStylesheets().add(getClass().getResource("/game/gui/resources/css/styles.css").toExternalForm());
-            
+            addStylesheet(scene, "/game/gui/resources/css/styles.css");
             scenes.put("GameScreen", scene);
             primaryStage.setScene(scene);
         } catch (IOException e) {
@@ -63,7 +77,7 @@ public class SceneManager {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
                 Parent root = loader.load();
                 Scene scene = new Scene(root, 1280, 720);
-                scene.getStylesheets().add(getClass().getResource("/game/gui/resources/css/styles.css").toExternalForm());
+                addStylesheet(scene, "/game/gui/resources/css/styles.css");
                 scenes.put(name, scene);
             }
             primaryStage.setScene(scenes.get(name));
@@ -73,6 +87,19 @@ public class SceneManager {
         } catch (IOException e) {
             System.err.println("Failed to load scene: " + fxmlPath);
             e.printStackTrace();
+        }
+    }
+
+    /**
+     * Safely adds a stylesheet to a scene.
+     * Prints a warning instead of crashing if the file is not found.
+     */
+    private void addStylesheet(Scene scene, String path) {
+        java.net.URL url = getClass().getResource(path);
+        if (url != null) {
+            scene.getStylesheets().add(url.toExternalForm());
+        } else {
+            System.err.println("WARNING: Stylesheet not found, skipping: " + path);
         }
     }
 }

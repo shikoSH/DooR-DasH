@@ -4,8 +4,15 @@ import javafx.fxml.FXML;
 import javafx.scene.layout.StackPane;
 import game.engine.Game;
 import game.engine.Role;
-import javafx.scene.control.Alert;
-import javafx.scene.control.ButtonType;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 import java.util.Optional;
 import game.gui.components.DiceComponent;
 import game.engine.monsters.Monster;
@@ -204,14 +211,11 @@ public class GameController {
     @FXML
     private void handlePowerUp() {
         if (isAnimating) return;
-        
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Use Powerup");
-        confirm.setHeaderText("Activate Powerup?");
-        confirm.setContentText("This will consume energy. Do you want to proceed?");
-        
-        Optional<ButtonType> result = confirm.showAndWait();
-        if (result.isPresent() && result.get() == ButtonType.OK) {
+
+        boolean confirmed = showConfirmDialog("Use Powerup", "Activate Powerup?",
+                "This will consume energy. Do you want to proceed?");
+
+        if (confirmed) {
             try {
                 String name = game.getCurrent().getName();
                 game.usePowerup();
@@ -223,12 +227,71 @@ public class GameController {
             }
         }
     }
-    
+
+    /**
+     * Shows a confirmation dialog using a plain Stage (compatible with JavaFX 8).
+     * Returns true if the user clicked OK.
+     */
+    private boolean showConfirmDialog(String title, String header, String content) {
+        final boolean[] result = {false};
+
+        Stage dialog = new Stage();
+        dialog.setTitle(title);
+        dialog.initModality(Modality.APPLICATION_MODAL);
+
+        Label headerLabel = new Label(header);
+        headerLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
+
+        Label contentLabel = new Label(content);
+        contentLabel.setWrapText(true);
+
+        Button okButton = new Button("OK");
+        Button cancelButton = new Button("Cancel");
+
+        okButton.setOnAction(e -> {
+            result[0] = true;
+            dialog.close();
+        });
+        cancelButton.setOnAction(e -> dialog.close());
+
+        HBox buttons = new HBox(10, okButton, cancelButton);
+        buttons.setAlignment(javafx.geometry.Pos.CENTER);
+
+        VBox layout = new VBox(12, headerLabel, contentLabel, buttons);
+        layout.setPadding(new javafx.geometry.Insets(20));
+        layout.setAlignment(javafx.geometry.Pos.CENTER);
+
+        dialog.setScene(new Scene(layout, 320, 160));
+        dialog.showAndWait();
+
+        return result[0];
+    }
+
+    /**
+     * Shows an error dialog using a plain Stage (compatible with JavaFX 8).
+     */
     private void showErrorAlert(String title, String message) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle(title);
-        alert.setHeaderText("Invalid Action");
-        alert.setContentText(message);
-        alert.showAndWait();
+        Stage dialog = new Stage();
+        dialog.setTitle(title);
+        dialog.initModality(Modality.APPLICATION_MODAL);
+
+        Label headerLabel = new Label("Invalid Action");
+        headerLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: red;");
+
+        Label contentLabel = new Label(message);
+        contentLabel.setWrapText(true);
+
+        Button okButton = new Button("OK");
+        okButton.setOnAction(e -> dialog.close());
+
+        HBox buttons = new HBox(okButton);
+        buttons.setAlignment(javafx.geometry.Pos.CENTER);
+
+        VBox layout = new VBox(12, headerLabel, contentLabel, buttons);
+        layout.setPadding(new javafx.geometry.Insets(20));
+        layout.setAlignment(javafx.geometry.Pos.CENTER);
+
+        dialog.setScene(new Scene(layout, 320, 140));
+        dialog.showAndWait();
     }
 }
