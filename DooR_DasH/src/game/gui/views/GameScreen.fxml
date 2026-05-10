@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml/1" fx:controller="game.gui.controllers.GameController" styleClass="game-screen">
+    <left>
+        <VBox fx:id="opponentPanelContainer" alignment="CENTER" styleClass="panel-container"/>
+    </left>
+    
+    <center>
+        <!-- Board Container -->
+        <VBox alignment="CENTER" styleClass="board-container">
+            <StackPane fx:id="boardContainer"/>
+        </VBox>
+    </center>
+    
+    <right>
+        <VBox fx:id="playerPanelContainer" alignment="CENTER" styleClass="panel-container"/>
+    </right>
+    
+    <bottom>
+        <!-- Control Panel -->
+        <HBox alignment="CENTER" spacing="50" styleClass="control-panel">
+            <VBox fx:id="actionLogContainer" alignment="CENTER" prefWidth="400">
+                <Label text="Action Log" styleClass="log-title"/>
+            </VBox>
+            <HBox spacing="20" alignment="CENTER">
+                <Button text="POWER UP" onAction="#handlePowerUp" styleClass="action-button, powerup-button"/>
+                <javafx.scene.layout.VBox fx:id="diceContainer" alignment="CENTER" spacing="10">
+                    <!-- Dice component injected here -->
+                </javafx.scene.layout.VBox>
+                <Button text="ROLL" onAction="#handleRollDice" styleClass="action-button, roll-button"/>
+            </HBox>
+        </HBox>
+    </bottom>
+</BorderPane>
