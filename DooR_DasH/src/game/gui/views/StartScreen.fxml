@@ -16,16 +16,14 @@
       <ImageView fx:id="backgroundImage" fitHeight="720.0" fitWidth="1280.0" pickOnBounds="true" preserveRatio="false">
          <image>
             <Image url="@../resources/images/StartScreen_Background.png" />
-         </image>
-      </ImageView>
+         </image></ImageView>
+
+      <ImageView fx:id="logoImage" fitHeight="233.0" fitWidth="405.0" pickOnBounds="true" preserveRatio="true" StackPane.alignment="TOP_CENTER">
+         <image>
+            <Image url="@../resources/images/DoorDash_Logo.png" />
+         </image></ImageView>
 
       <VBox alignment="CENTER" spacing="30" styleClass="start-content">
-         <VBox alignment="CENTER" spacing="6">
-            <Label styleClass="eyebrow-label" text="Monsters University Presents" textFill="#e4ebe3" />
-            <Label styleClass="title-label" text="DooR DasH" textFill="WHITE" />
-            <Label styleClass="subtitle-label" text="Scare vs Laugh Touchdown" textFill="WHITE" />
-         </VBox>
-
          <VBox alignment="CENTER" spacing="12" styleClass="role-box">
             <Label styleClass="section-label" text="Choose your role" textFill="WHITE" />
             <HBox alignment="CENTER" spacing="16">
@@ -47,13 +45,13 @@
                </VBox>
             </HBox>
          </VBox>
-
          <VBox alignment="CENTER" spacing="10" styleClass="button-group">
-            <Button onAction="#handleStartGame" styleClass="primary-button" text="START GAME" />
-            <Button onAction="#handleInstructions" styleClass="secondary-button" text="INSTRUCTIONS" />
-            <Button onAction="#handleExit" styleClass="ghost-button" text="EXIT" />
+            <Button fx:id="start_game_button" onAction="#handleStartGame" styleClass="primary-button" text="START GAME" />
+            <Label styleClass="eyebrow-label" text="Monsters University Presents" textFill="#e4ebe3" />
+            <Button fx:id="instructions_button" onAction="#handleInstructions" styleClass="secondary-button" text="INSTRUCTIONS" />
+            <Button fx:id="exit_button" onAction="#handleExit" styleClass="ghost-button" text="EXIT" />
          </VBox>
       </VBox>
 
    </children>
-</StackPane>  
+</StackPane>

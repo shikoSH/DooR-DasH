@@ -11,38 +11,27 @@
 <?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.layout.HBox?>
 
-<StackPane fx:id="backgroundRoot"
-           xmlns="http://javafx.com/javafx/8"
-           xmlns:fx="http://javafx.com/fxml/1"
-           fx:controller="game.gui.controllers.GameController">
+<StackPane fx:id="backgroundRoot" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="game.gui.controllers.GameController">
    <children>
 
       <!-- Background image -->
-      <ImageView fx:id="backgroundView"
-                 fitHeight="600.0" fitWidth="700.0"
-                 pickOnBounds="true" preserveRatio="false">
+      <ImageView fx:id="backgroundView" fitHeight="600.0" fitWidth="700.0" pickOnBounds="true" preserveRatio="false">
          <image>
-            <Image url="@../resources/images/WhatsApp%20Image%202026-05-09%20at%2010.42.57%20PM.jpeg" />
+            <Image url="@../resources/images/background%20.png" />
          </image>
       </ImageView>
 
-      <BorderPane maxHeight="1.7976931348623157E308"
-                  maxWidth="1.7976931348623157E308"
-                  prefHeight="600.0" prefWidth="700.0">
+      <BorderPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="600.0" prefWidth="700.0">
 
          <!-- Left sidebar: player panel -->
          <left>
-            <VBox fx:id="playerPanelContainer"
-                  prefWidth="150.0" spacing="8.0"
-                  BorderPane.alignment="CENTER" />
+            <VBox fx:id="playerPanelContainer" prefWidth="150.0" spacing="8.0" BorderPane.alignment="CENTER" />
          </left>
 
          <!-- Right sidebar: opponent panel + action log + dice -->
          <right>
-            <VBox prefWidth="150.0" spacing="8.0"
-                  BorderPane.alignment="CENTER">
+            <VBox prefWidth="150.0" spacing="8.0" BorderPane.alignment="CENTER">
                <children>
                   <VBox fx:id="opponentPanelContainer" spacing="4.0" />
                   <VBox fx:id="actionLogContainer" spacing="4.0" />
@@ -53,67 +42,55 @@
 
          <!-- Top message label -->
          <top>
-            <Label fx:id="myLabel"
-                   text="Messages" textFill="#fc0808"
-                   style="-fx-font-size: 16px; -fx-padding: 8 0 8 0;"
-                   BorderPane.alignment="CENTER" />
+            <Label fx:id="myLabel" style="-fx-font-size: 16px; -fx-padding: 8 0 8 0;" text="Messages" textFill="#fc0808" BorderPane.alignment="CENTER" />
          </top>
 
          <!-- Bottom buttons -->
          <bottom>
             <AnchorPane prefHeight="70.0" BorderPane.alignment="CENTER">
                <children>
-                  <Button layoutX="60.0"  layoutY="20.0" text="Shuffle CardDeck" />
-                  <Button layoutX="255.0" layoutY="20.0" text="Power Up"
-                          onAction="#handlePowerUp" />
-                  <Button layoutX="430.0" layoutY="20.0" text="Roll"
-                          onAction="#handleRollDice" />
+                  <Button layoutX="60.0" layoutY="20.0" text="Shuffle CardDeck" />
+                  <Button layoutX="255.0" layoutY="20.0" onAction="#handlePowerUp" text="Power Up" />
+                  <Button layoutX="430.0" layoutY="20.0" onAction="#handleRollDice" text="Roll" />
                </children>
             </AnchorPane>
          </bottom>
 
          <!-- CENTER: board image + grid overlay, both 370×370 -->
          <center>
-            <StackPane fx:id="boardContainer"
-                       prefWidth="370.0" prefHeight="370.0"
-                       maxWidth="370.0"  maxHeight="370.0"
-                       BorderPane.alignment="CENTER">
+            <StackPane fx:id="boardContainer" maxHeight="370.0" maxWidth="370.0" prefHeight="370.0" prefWidth="370.0" BorderPane.alignment="CENTER">
                <children>
 
-                  <ImageView fitHeight="370.0" fitWidth="370.0"
-                             pickOnBounds="true" preserveRatio="false">
+                  <ImageView fitHeight="370.0" fitWidth="370.0" pickOnBounds="true" preserveRatio="false">
                      <image>
                         <Image url="@../resources/images/WhatsApp%20Image%202026-05-09%20at%2011.11.46%20PM.jpeg" />
                      </image>
                   </ImageView>
 
-                  <GridPane fx:id="grid"
-                            gridLinesVisible="true"
-                            prefWidth="370.0" prefHeight="370.0"
-                            maxWidth="370.0"  maxHeight="370.0">
+                  <GridPane fx:id="grid" gridLinesVisible="true" maxHeight="370.0" maxWidth="370.0" prefHeight="370.0" prefWidth="370.0">
                      <columnConstraints>
-                        <ColumnConstraints minWidth="37.0" prefWidth="37.0" maxWidth="37.0" />
-                        <ColumnConstraints minWidth="37.0" prefWidth="37.0" maxWidth="37.0" />
-                        <ColumnConstraints minWidth="37.0" prefWidth="37.0" maxWidth="37.0" />
-                        <ColumnConstraints minWidth="37.0" prefWidth="37.0" maxWidth="37.0" />
-                        <ColumnConstraints minWidth="37.0" prefWidth="37.0" maxWidth="37.0" />
-                        <ColumnConstraints minWidth="37.0" prefWidth="37.0" maxWidth="37.0" />
-                        <ColumnConstraints minWidth="37.0" prefWidth="37.0" maxWidth="37.0" />
-                        <ColumnConstraints minWidth="37.0" prefWidth="37.0" maxWidth="37.0" />
-                        <ColumnConstraints minWidth="37.0" prefWidth="37.0" maxWidth="37.0" />
-                        <ColumnConstraints minWidth="37.0" prefWidth="37.0" maxWidth="37.0" />
+                        <ColumnConstraints maxWidth="37.0" minWidth="37.0" prefWidth="37.0" />
+                        <ColumnConstraints maxWidth="37.0" minWidth="37.0" prefWidth="37.0" />
+                        <ColumnConstraints maxWidth="37.0" minWidth="37.0" prefWidth="37.0" />
+                        <ColumnConstraints maxWidth="37.0" minWidth="37.0" prefWidth="37.0" />
+                        <ColumnConstraints maxWidth="37.0" minWidth="37.0" prefWidth="37.0" />
+                        <ColumnConstraints maxWidth="37.0" minWidth="37.0" prefWidth="37.0" />
+                        <ColumnConstraints maxWidth="37.0" minWidth="37.0" prefWidth="37.0" />
+                        <ColumnConstraints maxWidth="37.0" minWidth="37.0" prefWidth="37.0" />
+                        <ColumnConstraints maxWidth="37.0" minWidth="37.0" prefWidth="37.0" />
+                        <ColumnConstraints maxWidth="37.0" minWidth="37.0" prefWidth="37.0" />
                      </columnConstraints>
                      <rowConstraints>
-                        <RowConstraints minHeight="37.0" prefHeight="37.0" maxHeight="37.0" />
-                        <RowConstraints minHeight="37.0" prefHeight="37.0" maxHeight="37.0" />
-                        <RowConstraints minHeight="37.0" prefHeight="37.0" maxHeight="37.0" />
-                        <RowConstraints minHeight="37.0" prefHeight="37.0" maxHeight="37.0" />
-                        <RowConstraints minHeight="37.0" prefHeight="37.0" maxHeight="37.0" />
-                        <RowConstraints minHeight="37.0" prefHeight="37.0" maxHeight="37.0" />
-                        <RowConstraints minHeight="37.0" prefHeight="37.0" maxHeight="37.0" />
-                        <RowConstraints minHeight="37.0" prefHeight="37.0" maxHeight="37.0" />
-                        <RowConstraints minHeight="37.0" prefHeight="37.0" maxHeight="37.0" />
-                        <RowConstraints minHeight="37.0" prefHeight="37.0" maxHeight="37.0" />
+                        <RowConstraints maxHeight="37.0" minHeight="37.0" prefHeight="37.0" />
+                        <RowConstraints maxHeight="37.0" minHeight="37.0" prefHeight="37.0" />
+                        <RowConstraints maxHeight="37.0" minHeight="37.0" prefHeight="37.0" />
+                        <RowConstraints maxHeight="37.0" minHeight="37.0" prefHeight="37.0" />
+                        <RowConstraints maxHeight="37.0" minHeight="37.0" prefHeight="37.0" />
+                        <RowConstraints maxHeight="37.0" minHeight="37.0" prefHeight="37.0" />
+                        <RowConstraints maxHeight="37.0" minHeight="37.0" prefHeight="37.0" />
+                        <RowConstraints maxHeight="37.0" minHeight="37.0" prefHeight="37.0" />
+                        <RowConstraints maxHeight="37.0" minHeight="37.0" prefHeight="37.0" />
+                        <RowConstraints maxHeight="37.0" minHeight="37.0" prefHeight="37.0" />
                      </rowConstraints>
                   </GridPane>
 

@@ -1,7 +1,10 @@
 package game.gui.controllers;
 
 import javafx.fxml.FXML;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
+import game.engine.Constants;
 import game.engine.Game;
 import game.engine.Role;
 import javafx.geometry.Insets;
@@ -9,23 +12,92 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+
 import java.util.Optional;
+
 import game.gui.components.DiceComponent;
 import game.engine.monsters.Monster;
 import game.gui.components.BoardView;
 import game.gui.components.CardDisplayComponent;
 import game.engine.Board;
 import game.engine.cards.Card;
+import game.engine.cells.CardCell;
+import game.engine.cells.Cell;
+import game.engine.cells.ContaminationSock;
+import game.engine.cells.ConveyorBelt;
+import game.engine.cells.DoorCell;
+import game.engine.cells.MonsterCell;
 import javafx.scene.shape.Rectangle;
 
 public class GameController {
 
+	//all of our images
+	private Image normalImage =
+		    new Image(getClass().getResourceAsStream("NormalCell.png"));
+
+		private Image ScarerdoorImage =
+		    new Image(getClass().getResourceAsStream("Scarer_ClosedDoor_Cell2.png"));
+
+		private Image laugherdoorImage =
+			    new Image(getClass().getResourceAsStream("Laugher_ClosedDoor_Cell.png"));
+		
+		
+		private Image monsterImage_celia_mae=
+		    new Image(getClass().getResourceAsStream("celia mae.png"));
+
+		private Image monsterImage_Fungus=
+			    new Image(getClass().getResourceAsStream("Fungus.png"));
+
+		
+		private Image monsterImage_Henry_J_Waternoose_III=
+			    new Image(getClass().getResourceAsStream("Henry_J._Waternoose_III.png"));
+		
+		
+		private Image monsterImage_James_sullivan=
+			    new Image(getClass().getResourceAsStream("James sullivan.png"));
+		
+		
+		private Image monsterImage_Mike_Wazowski=
+			    new Image(getClass().getResourceAsStream("Mike_Wazowski.png"));
+		
+
+		private Image monsterImage_Randall=
+			    new Image(getClass().getResourceAsStream("Randall.png"));
+		
+		
+		private Image monsterImage_Roz=
+	    new Image(getClass().getResourceAsStream("Roz.png"));
+		
+		private Image monsterImage_Yeti=
+			    new Image(getClass().getResourceAsStream("Yeti.png"));
+			
+		
+		private Image conveyorImage =
+		    new Image(getClass().getResourceAsStream("conveyor.png"));
+
+		private Image contaminationImage =
+		    new Image(getClass().getResourceAsStream("sock.png"));
+
+		
+		
+		//cards
+		private Image cardImage =
+		    new Image(getClass().getResourceAsStream("card.png"));
+	
+		
+		
     @FXML
     private StackPane boardContainer;
+    
+    @FXML
+    private GridPane grid; 
+    
+    private ImageView[][] cellViews;
     
     @FXML
     private javafx.scene.layout.VBox playerPanelContainer;
@@ -50,7 +122,108 @@ public class GameController {
 
     @FXML
     private void initialize() {
-        // Will be called when FXML is loaded
+    	cellViews = new ImageView[Constants.BOARD_ROWS][Constants.BOARD_COLS];
+
+    	for (int row = 0; row < Constants.BOARD_ROWS; row++) {
+
+    	    for (int col = 0; col < Constants.BOARD_COLS; col++) {
+
+    	        ImageView imageView = new ImageView();
+
+    	        imageView.setFitWidth(64);
+    	        imageView.setFitHeight(64);
+
+    	        cellViews[row][col] = imageView;
+
+    	        grid.add(imageView, col, row);
+    	    }
+    	}
+    }
+    
+    
+    private void refreshBoard() {
+
+        Board board = game.getBoard();
+
+        Cell[][] cells = board.getBoardCells();
+
+        for (int row = 0; row < Constants.BOARD_ROWS; row++) {
+
+            for (int col = 0; col < Constants.BOARD_COLS; col++) {
+
+                Cell cell = cells[row][col];
+
+                // MONSTER CELL
+                if (cell instanceof MonsterCell) {
+
+                    Monster monster =
+                            ((MonsterCell) cell).getMonster();
+
+                    if (monster.getName().equals("Celia Mae"))
+                        cellViews[row][col].setImage(monsterImage_celia_mae);
+
+                    else if (monster.getName().equals("Fungus"))
+                        cellViews[row][col].setImage(monsterImage_Fungus);
+
+                    else if (monster.getName().equals("Henry J. Waternoose III"))
+                        cellViews[row][col].setImage(monsterImage_Henry_J_Waternoose_III);
+
+                    else if (monster.getName().equals("James Sullivan"))
+                        cellViews[row][col].setImage(monsterImage_James_sullivan);
+
+                    else if (monster.getName().equals("Mike Wazowski"))
+                        cellViews[row][col].setImage(monsterImage_Mike_Wazowski);
+
+                    else if (monster.getName().equals("Randall"))
+                        cellViews[row][col].setImage(monsterImage_Randall);
+
+                    else if (monster.getName().equals("Roz"))
+                        cellViews[row][col].setImage(monsterImage_Roz);
+
+                    else if (monster.getName().equals("Yeti"))
+                        cellViews[row][col].setImage(monsterImage_Yeti);
+
+                    else
+                        cellViews[row][col].setImage(normalImage);
+                }
+
+                // DOOR CELL
+                else if (cell instanceof DoorCell) {
+
+                    DoorCell door = (DoorCell) cell;
+
+                    if (door.getRole() == Role.SCARER)
+                        cellViews[row][col].setImage(ScarerdoorImage);
+
+                    else
+                        cellViews[row][col].setImage(laugherdoorImage);
+                }
+
+                // CONVEYOR BELT
+                else if (cell instanceof ConveyorBelt) {
+
+                    cellViews[row][col].setImage(conveyorImage);
+                }
+
+                // SOCK
+                else if (cell instanceof ContaminationSock) {
+
+                    cellViews[row][col].setImage(contaminationImage);
+                }
+
+                // CARD CELL
+                else if (cell instanceof CardCell) {
+
+                    cellViews[row][col].setImage(cardImage);
+                }
+
+                // NORMAL CELL
+                else {
+
+                    cellViews[row][col].setImage(normalImage);
+                }
+            }
+        }
     }
 
     public void startGame(Role playerRole) {
@@ -64,31 +237,88 @@ public class GameController {
     }
 
     private void initializeBoardUI() {
-        boardContainer.getChildren().clear();
-        boardView = new BoardView(game.getBoard());
-        boardContainer.getChildren().add(boardView);
-        
-        playerPanel = new game.gui.components.MonsterPanel("PLAYER 1");
-        opponentPanel = new game.gui.components.MonsterPanel("OPPONENT");
-        
-        playerPanelContainer.getChildren().clear();
-        playerPanelContainer.getChildren().add(playerPanel);
-        
-        opponentPanelContainer.getChildren().clear();
-        opponentPanelContainer.getChildren().add(opponentPanel);
-        
-        actionLog = new game.gui.components.ActionLogComponent();
-        actionLogContainer.getChildren().add(actionLog);
-        actionLog.log("Game initialized. " + game.getPlayer().getName() + " vs " + game.getOpponent().getName());
-        
-        dice = new DiceComponent();
-        diceContainer.getChildren().add(dice);
-        
-        cardDisplay = new CardDisplayComponent();
-        boardContainer.getChildren().add(cardDisplay);
-        
-        // Hide card display on click
-        cardDisplay.setOnMouseClicked(e -> cardDisplay.hideCard());
+
+        Board board = game.getBoard();
+
+        Cell[][] cells = board.getBoardCells();
+
+        for (int row = 0; row < Constants.BOARD_ROWS; row++) {
+
+            for (int col = 0; col < Constants.BOARD_COLS; col++) {
+
+                Cell cell = cells[row][col];
+
+                // NORMAL CELL
+                if (cell instanceof MonsterCell) {
+
+                    Monster monster =
+                            ((MonsterCell) cell).getMonster();
+
+                    if (monster.getName().equals("Celia Mae"))
+                        cellViews[row][col].setImage(monsterImage_celia_mae);
+
+                    else if (monster.getName().equals("Fungus"))
+                        cellViews[row][col].setImage(monsterImage_Fungus);
+
+                    else if (monster.getName().equals("Henry J. Waternoose III"))
+                        cellViews[row][col].setImage(monsterImage_Henry_J_Waternoose_III);
+
+                    else if (monster.getName().equals("James Sullivan"))
+                        cellViews[row][col].setImage(monsterImage_James_sullivan);
+
+                    else if (monster.getName().equals("Mike Wazowski"))
+                        cellViews[row][col].setImage(monsterImage_Mike_Wazowski);
+
+                    else if (monster.getName().equals("Randall"))
+                        cellViews[row][col].setImage(monsterImage_Randall);
+
+                    else if (monster.getName().equals("Roz"))
+                        cellViews[row][col].setImage(monsterImage_Roz);
+
+                    else if (monster.getName().equals("Yeti"))
+                        cellViews[row][col].setImage(monsterImage_Yeti);
+
+                    else
+                        cellViews[row][col].setImage(normalImage);
+                }
+
+                // DOOR CELLS
+                else if (cell instanceof DoorCell) {
+
+                    DoorCell door = (DoorCell) cell;
+
+                    if (door.getRole() == Role.SCARER)
+                        cellViews[row][col].setImage(ScarerdoorImage);
+
+                    else
+                        cellViews[row][col].setImage(laugherdoorImage);
+                }
+
+                // CONVEYOR
+                else if (cell instanceof ConveyorBelt) {
+
+                    cellViews[row][col].setImage(conveyorImage);
+                }
+
+                // SOCK
+                else if (cell instanceof ContaminationSock) {
+
+                    cellViews[row][col].setImage(contaminationImage);
+                }
+
+                // CARD
+                else if (cell instanceof CardCell) {
+
+                    cellViews[row][col].setImage(cardImage);
+                }
+
+                // NORMAL
+                else {
+
+                    cellViews[row][col].setImage(normalImage);
+                }
+            }
+        }
     }
 
     private void updateUI() {

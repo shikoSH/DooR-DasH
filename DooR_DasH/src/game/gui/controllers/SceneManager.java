@@ -25,7 +25,6 @@ public class SceneManager {
     public void initialize(Stage stage) {
         this.primaryStage = stage;
         this.primaryStage.setTitle("DooR DasH: Scare vs Laugh Touchdown");
-        this.primaryStage.setResizable(false);
     }
 
     public void switchToStartScreen() {
