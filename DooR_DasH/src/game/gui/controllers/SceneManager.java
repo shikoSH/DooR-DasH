@@ -30,7 +30,12 @@ public class SceneManager {
     public void switchToStartScreen() {
         try {
             if (!scenes.containsKey("StartScreen")) {
-                FXMLLoader loader = new FXMLLoader(getClass().getResource("/game/gui/views/StartScreen.fxml"));
+                java.net.URL fxmlUrl = getClass().getResource("/game/gui/views/StartScreen.fxml");
+                if (fxmlUrl == null) {
+                    System.err.println("ERROR: StartScreen.fxml not found in classpath!");
+                    return;
+                }
+                FXMLLoader loader = new FXMLLoader(fxmlUrl);
                 Parent root = loader.load();
                 Scene scene = new Scene(root, 1280, 720);
                 addStylesheet(scene, "/game/gui/resources/css/styles.css");
@@ -41,8 +46,8 @@ public class SceneManager {
             if (!primaryStage.isShowing()) {
                 primaryStage.show();
             }
-        } catch (IOException e) {
-            System.err.println("Failed to load scene: StartScreen");
+        } catch (Exception e) {
+            System.err.println("ERROR: Failed to load StartScreen");
             e.printStackTrace();
         }
     }
@@ -52,16 +57,46 @@ public class SceneManager {
     }
 
     public void startGameScreen(game.engine.Role playerRole) {
+        System.out.println("DEBUG: startGameScreen() called with role = " + playerRole);
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/game/gui/views/GameScreen.fxml"));
+            // 1. Check FXML exists
+            java.net.URL fxmlUrl = getClass().getResource("/game/gui/views/GameScreen.fxml");
+            if (fxmlUrl == null) {
+                System.err.println("ERROR: GameScreen.fxml not found in classpath!");
+                return;
+            }
+
+            // 2. Load FXML
+            FXMLLoader loader = new FXMLLoader(fxmlUrl);
             Parent root = loader.load();
+            System.out.println("DEBUG: GameScreen.fxml loaded OK");
+
+            // 3. Get controller and start game
             GameController controller = loader.getController();
+            if (controller == null) {
+                System.err.println("ERROR: GameController is null — check fx:controller in GameScreen.fxml");
+                return;
+            }
             controller.startGame(playerRole);
+            System.out.println("DEBUG: controller.startGame() called OK");
+
+            // 4. Build and switch scene
             Scene scene = new Scene(root, 1280, 720);
             addStylesheet(scene, "/game/gui/resources/css/styles.css");
             scenes.put("GameScreen", scene);
             primaryStage.setScene(scene);
+
+            // 5. Ensure stage is visible
+            if (!primaryStage.isShowing()) {
+                primaryStage.show();
+            }
+            System.out.println("DEBUG: Switched to GameScreen successfully");
+
         } catch (IOException e) {
+            System.err.println("ERROR: IOException loading GameScreen.fxml");
+            e.printStackTrace();
+        } catch (Exception e) {
+            System.err.println("ERROR: Unexpected exception in startGameScreen()");
             e.printStackTrace();
         }
     }
@@ -73,7 +108,12 @@ public class SceneManager {
     private void loadScene(String name, String fxmlPath) {
         try {
             if (!scenes.containsKey(name)) {
-                FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
+                java.net.URL fxmlUrl = getClass().getResource(fxmlPath);
+                if (fxmlUrl == null) {
+                    System.err.println("ERROR: FXML not found: " + fxmlPath);
+                    return;
+                }
+                FXMLLoader loader = new FXMLLoader(fxmlUrl);
                 Parent root = loader.load();
                 Scene scene = new Scene(root, 1280, 720);
                 addStylesheet(scene, "/game/gui/resources/css/styles.css");
@@ -83,16 +123,12 @@ public class SceneManager {
             if (!primaryStage.isShowing()) {
                 primaryStage.show();
             }
-        } catch (IOException e) {
-            System.err.println("Failed to load scene: " + fxmlPath);
+        } catch (Exception e) {
+            System.err.println("ERROR: Failed to load scene: " + fxmlPath);
             e.printStackTrace();
         }
     }
 
-    /**
-     * Safely adds a stylesheet to a scene.
-     * Prints a warning instead of crashing if the file is not found.
-     */
     private void addStylesheet(Scene scene, String path) {
         java.net.URL url = getClass().getResource(path);
         if (url != null) {

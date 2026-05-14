@@ -16,11 +16,10 @@
    <children>
 
       <!-- Background image -->
-      <ImageView fx:id="backgroundView" fitHeight="600.0" fitWidth="700.0" pickOnBounds="true" preserveRatio="false">
+      <ImageView fx:id="backgroundView" fitHeight="600.0" fitWidth="758.0" pickOnBounds="true">
          <image>
             <Image url="@../resources/images/background%20.png" />
-         </image>
-      </ImageView>
+         </image></ImageView>
 
       <BorderPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="600.0" prefWidth="700.0">
 
@@ -49,9 +48,9 @@
          <bottom>
             <AnchorPane prefHeight="70.0" BorderPane.alignment="CENTER">
                <children>
-                  <Button layoutX="60.0" layoutY="20.0" text="Shuffle CardDeck" />
-                  <Button layoutX="255.0" layoutY="20.0" onAction="#handlePowerUp" text="Power Up" />
-                  <Button layoutX="430.0" layoutY="20.0" onAction="#handleRollDice" text="Roll" />
+                  <Button layoutX="87.0" layoutY="20.0" text="Shuffle CardDeck" />
+                  <Button layoutX="345.0" layoutY="20.0" onAction="#handlePowerUp" text="Power Up" />
+                  <Button layoutX="568.0" layoutY="20.0" onAction="#handleRollDice" text="Roll" />
                </children>
             </AnchorPane>
          </bottom>
@@ -63,7 +62,7 @@
 
                   <ImageView fitHeight="370.0" fitWidth="370.0" pickOnBounds="true" preserveRatio="false">
                      <image>
-                        <Image url="@../resources/images/WhatsApp%20Image%202026-05-09%20at%2011.11.46%20PM.jpeg" />
+                        <Image url="@../resources/images/images.png" />
                      </image>
                   </ImageView>
 

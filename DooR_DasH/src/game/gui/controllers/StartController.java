@@ -3,63 +3,58 @@ package game.gui.controllers;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.RadioButton;
-import javafx.scene.image.Image;
+import javafx.scene.control.ToggleGroup;
 import javafx.scene.image.ImageView;
-import java.io.File;
 
 public class StartController {
 
-    // Images
     @FXML private ImageView backgroundImage;
     @FXML private ImageView logoImage;
 
-    // Radio buttons — fx:id must match FXML exactly
+    @FXML private ToggleGroup roleGroup;
     @FXML private RadioButton scarerRadio;
     @FXML private RadioButton laugherRadio;
 
-    // Buttons — fx:id must match FXML exactly
     @FXML private Button start_game_button;
     @FXML private Button instructions_button;
     @FXML private Button exit_button;
 
-    // Base path to your images folder
-    private static final String IMG_PATH =
-        "D:/Desktop/Game project/Repo directory/DooR-DasH/DooR_DasH/src/game/gui/resources/images/";
-
-    // Called automatically by JavaFX when FXML finishes loading
     @FXML
     private void initialize() {
-        loadImage(backgroundImage, "StartScreen_Background.png");
-        loadImage(logoImage,       "DoorDash_Logo.png");
-    }
+        System.out.println("DEBUG: StartController.initialize() called");
 
-    // Helper to load an image from disk into an ImageView
-    private void loadImage(ImageView view, String filename) {
-        File file = new File(IMG_PATH + filename);
-        if (file.exists()) {
-            view.setImage(new Image(file.toURI().toString()));
-            System.out.println("OK: Loaded " + filename);
-        } else {
-            System.err.println("ERROR: Not found: " + file.getAbsolutePath());
+        if (scarerRadio == null)   System.err.println("ERROR: scarerRadio not injected");
+        if (laugherRadio == null)  System.err.println("ERROR: laugherRadio not injected");
+        if (roleGroup == null)     System.err.println("ERROR: roleGroup not injected");
+        if (start_game_button == null) System.err.println("ERROR: start_game_button not injected");
+
+        if (scarerRadio != null && laugherRadio != null && roleGroup != null) {
+            System.out.println("DEBUG: All FXML fields injected OK");
         }
     }
 
-    // Linked to start_game_button via onAction="#handleStartGame"
     @FXML
     private void handleStartGame() {
+        System.out.println("DEBUG: handleStartGame() called");
+
+        if (roleGroup == null || roleGroup.getSelectedToggle() == null) {
+            System.err.println("ERROR: No role selected or roleGroup is null");
+            return;
+        }
+
         game.engine.Role role = scarerRadio.isSelected()
             ? game.engine.Role.SCARER
             : game.engine.Role.LAUGHER;
+
+        System.out.println("DEBUG: Role selected = " + role);
         SceneManager.getInstance().startGameScreen(role);
     }
 
-    // Linked to instructions_button via onAction="#handleInstructions"
     @FXML
     private void handleInstructions() {
         SceneManager.getInstance().switchToInstructionsScreen();
     }
 
-    // Linked to exit_button via onAction="#handleExit"
     @FXML
     private void handleExit() {
         System.exit(0);
