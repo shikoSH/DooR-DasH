@@ -15,21 +15,25 @@
 <StackPane fx:id="backgroundRoot" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="game.gui.controllers.GameController">
    <children>
 
-      <!-- Background image -->
       <ImageView fx:id="backgroundView" fitHeight="600.0" fitWidth="758.0" pickOnBounds="true">
          <image>
             <Image url="@../resources/images/background_Game.png" />
-         </image></ImageView>
+         </image>
+      </ImageView>
+      
+      <ImageView fitHeight="600.0" fitWidth="758.0" pickOnBounds="true" preserveRatio="false">
+         <image>
+            <Image url="@../resources/images/ControlPanel.png" />
+         </image>
+      </ImageView>
 
-      <BorderPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="600.0" prefWidth="700.0">
+            <BorderPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="600.0" prefWidth="700.0">
 
-         <!-- Left sidebar: player panel -->
-         <left>
+               <left>
             <VBox fx:id="playerPanelContainer" prefWidth="150.0" spacing="8.0" BorderPane.alignment="CENTER" />
          </left>
 
-         <!-- Right sidebar: opponent panel + action log + dice -->
-         <right>
+               <right>
             <VBox prefWidth="150.0" spacing="8.0" BorderPane.alignment="CENTER">
                <children>
                   <VBox fx:id="opponentPanelContainer" spacing="4.0" />
@@ -39,13 +43,11 @@
             </VBox>
          </right>
 
-         <!-- Top message label -->
-         <top>
+               <top>
             <Label fx:id="myLabel" style="-fx-font-size: 16px; -fx-padding: 8 0 8 0;" text="Messages" textFill="#fc0808" BorderPane.alignment="CENTER" />
          </top>
 
-         <!-- Bottom buttons -->
-         <bottom>
+               <bottom>
             <AnchorPane prefHeight="70.0" BorderPane.alignment="CENTER">
                <children>
                   <Button layoutX="403.0" layoutY="20.0" onAction="#handlePowerUp" text="Power Up" />
@@ -54,18 +56,17 @@
             </AnchorPane>
          </bottom>
 
-         <!-- CENTER: board image + grid overlay, both 370×370 -->
-         <center>
+               <center>
             <StackPane fx:id="boardContainer" maxHeight="370.0" maxWidth="370.0" prefHeight="370.0" prefWidth="370.0" BorderPane.alignment="CENTER">
                <children>
 
-                  <ImageView fitHeight="370.0" fitWidth="370.0" pickOnBounds="true" preserveRatio="false">
+                        <ImageView fitHeight="370.0" fitWidth="370.0" pickOnBounds="true" preserveRatio="false">
                      <image>
                         <Image url="@../resources/images/images.png" />
                      </image>
                   </ImageView>
 
-                  <GridPane fx:id="grid" gridLinesVisible="true" maxHeight="370.0" maxWidth="370.0" prefHeight="370.0" prefWidth="370.0">
+                        <GridPane fx:id="grid" gridLinesVisible="true" maxHeight="370.0" maxWidth="370.0" prefHeight="370.0" prefWidth="370.0">
                      <columnConstraints>
                         <ColumnConstraints maxWidth="37.0" minWidth="37.0" prefWidth="37.0" />
                         <ColumnConstraints maxWidth="37.0" minWidth="37.0" prefWidth="37.0" />
@@ -92,10 +93,10 @@
                      </rowConstraints>
                   </GridPane>
 
-               </children>
+                     </children>
             </StackPane>
          </center>
 
-      </BorderPane>
+            </BorderPane>
    </children>
 </StackPane>
