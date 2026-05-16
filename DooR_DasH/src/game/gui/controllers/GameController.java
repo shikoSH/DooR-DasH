@@ -53,6 +53,9 @@ public class GameController {
     private Label actionLine2;
     private Label actionLine3;
 
+    // === Panel assets ===
+    private Image controlPanelImage;
+
     // === Cell images ===
     private Image normalImage;
     private Image ScarerdoorImage;
@@ -103,6 +106,9 @@ public class GameController {
     // =========================================================
     @FXML
     private void initialize() {
+
+        // --- Panel assets ---
+        controlPanelImage                   = loadImage(IMG + "ControlPanel.png");
 
         // --- Cell / monster images ---
         normalImage                         = loadImage(IMG + "NormalCell.png");
