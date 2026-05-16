@@ -1,42 +1,64 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.StackPane?>
-
-<StackPane styleClass="start-screen" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="game.gui.controllers.StartController">
+<StackPane styleClass="start-screen"
+           xmlns="http://javafx.com/javafx/8"
+           xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="game.gui.controllers.StartController">
    <children>
-      <ImageView fx:id="backgroundImage" fitHeight="720.0" fitWidth="1280.0" pickOnBounds="true" preserveRatio="false">
+      <ImageView fx:id="backgroundImage"
+                 fitHeight="720.0" fitWidth="1280.0"
+                 pickOnBounds="true" preserveRatio="false">
          <image>
             <Image url="@../resources/images/StartScreen_Background.png" />
          </image>
       </ImageView>
-      <ImageView fx:id="logoImage" fitHeight="233.0" fitWidth="405.0" pickOnBounds="true" preserveRatio="true" StackPane.alignment="TOP_CENTER">
+
+      <!-- Logo — exact same size as intro logo -->
+      <ImageView fx:id="logoImage"
+                 fitHeight="233.0" fitWidth="405.0"
+                 pickOnBounds="true" preserveRatio="true"
+                 StackPane.alignment="TOP_CENTER">
          <image>
             <Image url="@../resources/images/DoorDash_Logo.png" />
          </image>
       </ImageView>
+
       <AnchorPane>
          <children>
-            <!-- SCARER button image -->
-            <ImageView fx:id="scarerButton" fitHeight="369.0" fitWidth="205.0" layoutX="367.0" layoutY="206.0" onMouseClicked="#handlePlayAsScarer" pickOnBounds="true">
+            <ImageView fx:id="scarerButton"
+                       fitHeight="369.0" fitWidth="205.0"
+                       layoutX="367.0" layoutY="206.0"
+                       onMouseClicked="#handlePlayAsScarer"
+                       pickOnBounds="true">
                <image>
                   <Image url="@../resources/images/scarer_button.png" />
                </image>
             </ImageView>
 
-            <!-- LAUGHER button image -->
-            <ImageView fx:id="laugherButton" fitHeight="369.0" fitWidth="205.0" layoutX="711.0" layoutY="206.0" onMouseClicked="#handlePlayAsLaugher" pickOnBounds="true">
+            <ImageView fx:id="laugherButton"
+                       fitHeight="369.0" fitWidth="205.0"
+                       layoutX="711.0" layoutY="206.0"
+                       onMouseClicked="#handlePlayAsLaugher"
+                       pickOnBounds="true">
                <image>
                   <Image url="@../resources/images/laugher_button.png" />
                </image>
             </ImageView>
 
-            <!-- Bottom buttons -->
-            <Button fx:id="instructions_button" layoutX="591.0" layoutY="600.0" onAction="#handleInstructions" styleClass="secondary-button" text="INSTRUCTIONS" />
-            <Button fx:id="exit_button" layoutX="621.0" layoutY="643.0" onAction="#handleExit" styleClass="ghost-button" text="EXIT" />
+            <Button fx:id="instructions_button"
+                    layoutX="591.0" layoutY="600.0"
+                    onAction="#handleInstructions"
+                    styleClass="secondary-button"
+                    text="INSTRUCTIONS" />
+            <Button fx:id="exit_button"
+                    layoutX="621.0" layoutY="643.0"
+                    onAction="#handleExit"
+                    styleClass="ghost-button"
+                    text="EXIT" />
          </children>
       </AnchorPane>
    </children>
