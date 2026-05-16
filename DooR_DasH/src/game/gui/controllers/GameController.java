@@ -88,14 +88,14 @@ public class GameController {
         contaminationImage                  = loadImage(IMG + "sock.png");
         cardImage                           = loadImage(IMG + "card.png");
 
-        // --- Set up grid ImageViews (37x37 to match FXML constraints) ---
+     // --- Set up grid ImageViews (dynamic sizing) ---
         cellViews = new ImageView[Constants.BOARD_ROWS][Constants.BOARD_COLS];
         for (int row = 0; row < Constants.BOARD_ROWS; row++) {
             for (int col = 0; col < Constants.BOARD_COLS; col++) {
                 ImageView iv = new ImageView();
-                iv.setFitWidth(37);
-                iv.setFitHeight(37);
                 iv.setPreserveRatio(false);
+                iv.fitWidthProperty().bind(grid.widthProperty().divide(Constants.BOARD_COLS));
+                iv.fitHeightProperty().bind(grid.heightProperty().divide(Constants.BOARD_ROWS));
                 cellViews[row][col] = iv;
                 grid.add(iv, col, row);
             }
@@ -151,7 +151,7 @@ public class GameController {
             (bold ? "-fx-font-weight: bold;" : "")
         );
         l.setWrapText(true);
-        l.setMaxWidth(140);
+        l.setMaxWidth(180);
         return l;
     }
 
@@ -180,11 +180,52 @@ public class GameController {
 
     private void refreshBoard() {
         Cell[][] cells = game.getBoard().getBoardCells();
+
+        // Step 1: draw all base cells
         for (int row = 0; row < Constants.BOARD_ROWS; row++) {
             for (int col = 0; col < Constants.BOARD_COLS; col++) {
                 Cell cell = cells[row][col];
                 if (cell != null) setCellImage(row, col, cell);
+                else cellViews[row][col].setImage(normalImage);
             }
+        }
+
+        // Step 2: overlay player and opponent using the snake pattern
+        drawMonsterOverlay(game.getPlayer());
+        drawMonsterOverlay(game.getOpponent());
+    }
+
+    private void drawMonsterOverlay(Monster m) {
+        if (m == null) return;
+        int[] rc = indexToRowCol(m.getPosition());
+        cellViews[rc[0]][rc[1]].setImage(getMonsterImage(m.getName()));
+    }
+
+    // Mirror the exact same snake logic from Board.java
+    private int[] indexToRowCol(int index) {
+        int cols = Constants.BOARD_COLS;
+        int row = index / cols;
+        int col = index % cols;
+
+        if (row % 2 == 1)
+            col = cols - 1 - col;
+
+        // Flip row so index 0 is at the BOTTOM
+        row = Constants.BOARD_ROWS - 1 - row;
+
+        return new int[]{row, col};
+    }
+    private Image getMonsterImage(String name) {
+        switch (name) {
+            case "Celia Mae":               return monsterImage_celia_mae;
+            case "Fungus":                  return monsterImage_Fungus;
+            case "Henry J. Waternoose III": return monsterImage_Henry_J_Waternoose_III;
+            case "James Sullivan":          return monsterImage_James_sullivan;
+            case "Mike Wazowski":           return monsterImage_Mike_Wazowski;
+            case "Randall":                 return monsterImage_Randall;
+            case "Roz":                     return monsterImage_Roz;
+            case "Yeti":                    return monsterImage_Yeti;
+            default:                        return normalImage;
         }
     }
 

@@ -18,7 +18,7 @@
       <!-- Background image -->
       <ImageView fx:id="backgroundView" fitHeight="600.0" fitWidth="758.0" pickOnBounds="true">
          <image>
-            <Image url="@../resources/images/background%20.png" />
+            <Image url="@../resources/images/background_Game.png" />
          </image></ImageView>
 
       <BorderPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="600.0" prefWidth="700.0">

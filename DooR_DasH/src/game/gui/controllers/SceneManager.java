@@ -25,6 +25,7 @@ public class SceneManager {
     public void initialize(Stage stage) {
         this.primaryStage = stage;
         this.primaryStage.setTitle("DooR DasH: Scare vs Laugh Touchdown");
+        this.primaryStage.setMaximized(true);
     }
 
     public void switchToStartScreen() {
@@ -37,7 +38,7 @@ public class SceneManager {
                 }
                 FXMLLoader loader = new FXMLLoader(fxmlUrl);
                 Parent root = loader.load();
-                Scene scene = new Scene(root, 1280, 720);
+                Scene scene = new Scene(root);
                 addStylesheet(scene, "/game/gui/resources/css/styles.css");
                 addStylesheet(scene, "/game/gui/resources/css/start-screen.css");
                 scenes.put("StartScreen", scene);
@@ -81,7 +82,7 @@ public class SceneManager {
             System.out.println("DEBUG: controller.startGame() called OK");
 
             // 4. Build and switch scene
-            Scene scene = new Scene(root, 1280, 720);
+            Scene scene = new Scene(root);
             addStylesheet(scene, "/game/gui/resources/css/styles.css");
             scenes.put("GameScreen", scene);
             primaryStage.setScene(scene);
@@ -115,7 +116,7 @@ public class SceneManager {
                 }
                 FXMLLoader loader = new FXMLLoader(fxmlUrl);
                 Parent root = loader.load();
-                Scene scene = new Scene(root, 1280, 720);
+                Scene scene = new Scene(root);
                 addStylesheet(scene, "/game/gui/resources/css/styles.css");
                 scenes.put(name, scene);
             }
