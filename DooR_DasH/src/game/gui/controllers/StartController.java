@@ -1,34 +1,73 @@
 package game.gui.controllers;
 
+import javafx.animation.ScaleTransition;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
+import javafx.scene.effect.DropShadow;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.paint.Color;
+import javafx.util.Duration;
 
 public class StartController {
     @FXML private ImageView backgroundImage;
     @FXML private ImageView logoImage;
-    @FXML private ImageView scarerButton;    // replaces scarerRadio
-    @FXML private ImageView laugherButton;   // replaces laugherRadio
+    @FXML private ImageView scarerButton;
+    @FXML private ImageView laugherButton;
     @FXML private Button instructions_button;
     @FXML private Button exit_button;
 
     @FXML
     private void initialize() {
-        System.out.println("DEBUG: StartController.initialize() called");
-        if (scarerButton == null)  System.err.println("ERROR: scarerButton not injected");
-        if (laugherButton == null) System.err.println("ERROR: laugherButton not injected");
+
+    	// --- SCARER glow + grows on hover ---
+    	DropShadow scarerGlow = new DropShadow();
+    	scarerGlow.setColor(Color.RED);
+    	scarerGlow.setRadius(25);
+    	scarerGlow.setSpread(0.6);
+
+    	scarerButton.setOnMouseEntered(e -> {
+    	    scarerButton.setEffect(scarerGlow);
+    	    playScale(scarerButton, 1.0, 1.1, 200); // grow
+    	});
+    	scarerButton.setOnMouseExited(e -> {
+    	    scarerButton.setEffect(null);
+    	    playScale(scarerButton, 1.1, 1.0, 200); // back to normal
+    	});
+
+        // --- LAUGHER glow + grows on hover ---
+        DropShadow laugherGlow = new DropShadow();
+        laugherGlow.setColor(Color.YELLOW);
+        laugherGlow.setRadius(25);
+        laugherGlow.setSpread(0.6);
+
+        laugherButton.setOnMouseEntered(e -> {
+            laugherButton.setEffect(laugherGlow);
+            playScale(laugherButton, 1.0, 1.1, 200); // grow
+        });
+        laugherButton.setOnMouseExited(e -> {
+            laugherButton.setEffect(null);
+            playScale(laugherButton, 1.1, 1.0, 200); // back to normal
+        });
+    }
+
+    // Smooth scale animation helper
+    private void playScale(ImageView target, double from, double to, int durationMs) {
+        ScaleTransition st = new ScaleTransition(Duration.millis(durationMs), target);
+        st.setFromX(from);
+        st.setFromY(from);
+        st.setToX(to);
+        st.setToY(to);
+        st.play();
     }
 
     @FXML
     private void handlePlayAsScarer(MouseEvent event) {
-        System.out.println("DEBUG: SCARER selected");
         SceneManager.getInstance().startGameScreen(game.engine.Role.SCARER);
     }
 
     @FXML
     private void handlePlayAsLaugher(MouseEvent event) {
-        System.out.println("DEBUG: LAUGHER selected");
         SceneManager.getInstance().startGameScreen(game.engine.Role.LAUGHER);
     }
 
