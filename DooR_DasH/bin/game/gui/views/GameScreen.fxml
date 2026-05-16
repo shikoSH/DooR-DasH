@@ -48,8 +48,7 @@
          <bottom>
             <AnchorPane prefHeight="70.0" BorderPane.alignment="CENTER">
                <children>
-                  <Button layoutX="87.0" layoutY="20.0" text="Shuffle CardDeck" />
-                  <Button layoutX="345.0" layoutY="20.0" onAction="#handlePowerUp" text="Power Up" />
+                  <Button layoutX="403.0" layoutY="20.0" onAction="#handlePowerUp" text="Power Up" />
                   <Button layoutX="568.0" layoutY="20.0" onAction="#handleRollDice" text="Roll" />
                </children>
             </AnchorPane>
