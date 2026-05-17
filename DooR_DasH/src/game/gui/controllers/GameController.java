@@ -25,8 +25,8 @@ import game.engine.monsters.Monster;
 import game.engine.Board;
 import game.engine.cards.Card;
 import game.engine.cells.*;
-import javafx.beans.binding.Bindings;
 import javafx.beans.binding.NumberBinding;
+
 
 public class GameController {
 
@@ -60,8 +60,17 @@ public class GameController {
     private Label actionLine2;
     private Label actionLine3;
 
-    // === Panel assets ===
-    private Image controlPanelImage;
+    // === Dice and Card Deck — created programmatically, NOT @FXML ===
+    private ImageView diceImage      = new ImageView();
+    private ImageView activeCardDeck = new ImageView();
+
+    private Image[] diceImages = new Image[6];
+    private javafx.animation.Timeline diceTimeline;
+
+    // === Card deck images ===
+    private Image deckFull;
+    private Image deckMid;
+    private Image deckLeast;
 
     // === Cell images ===
     private Image normalImage;
@@ -80,7 +89,7 @@ public class GameController {
     private Image conveyorImage;
     private Image contaminationImage;
     private Image cardCellImage;
-    
+
     // === Animation Lock ===
     private boolean isAnimating = false;
 
@@ -98,16 +107,16 @@ public class GameController {
 
     private static final String IMG = "/game/gui/resources/images/";
 
- // === Grid cell views (Layered) ===
+    // === Grid cell views (Layered) ===
     private ImageView[][] backgroundViews;
     private ImageView[][] monsterViews;
 
     // === Card overlay (lives inside boardContainer StackPane) ===
-    private VBox    cardOverlay;
+    private VBox      cardOverlay;
     private ImageView cardOverlayBack;
     private ImageView cardOverlayFace;
-    private Label   cardOverlayName;
-    private Label   cardOverlayDesc;
+    private Label     cardOverlayName;
+    private Label     cardOverlayDesc;
 
     // === Game state ===
     private Game game;
@@ -117,37 +126,23 @@ public class GameController {
     // =========================================================
     @FXML
     private void initialize() {
-        
-        
-    	// --- Make background and panel images strictly fill the screen ---
-    	// --- Make background and panel images strictly fill the screen ---
+
+        // --- Background and panel fill screen ---
         backgroundView.fitWidthProperty().bind(backgroundRoot.widthProperty());
         backgroundView.fitHeightProperty().bind(backgroundRoot.heightProperty());
-        
+
         controlPanelView.fitWidthProperty().bind(backgroundRoot.widthProperty());
         controlPanelView.fitHeightProperty().bind(backgroundRoot.heightProperty());
 
-        // --- NEW FIX: Percentage-Based Scaling ---
-        // Force the board to always be exactly 60% of the window's total height.
-        // This guarantees it will never overlap the top or bottom visual borders of the stretched ControlPanel image.
+        // --- Board sizing ---
         NumberBinding boardSize = backgroundRoot.heightProperty().multiply(0.71);
-
-        // Lock the board image to this exact square
         boardImageView.fitWidthProperty().bind(boardSize);
         boardImageView.fitHeightProperty().bind(boardSize);
-
-        // Lock the grid (all 4 dimensions) so it matches the image perfectly
         grid.maxWidthProperty().bind(boardSize);
         grid.maxHeightProperty().bind(boardSize);
         grid.minWidthProperty().bind(boardSize);
         grid.minHeightProperty().bind(boardSize);
-
-     // --- NEW FIX: Shift the board UP ---
-        // A negative value moves it up. A positive value moves it down.
         boardContainer.setTranslateY(-60);
-        
-        // --- Panel assets ---
-        controlPanelImage                   = loadImage(IMG + "ControlPanel.png");
 
         // --- Cell / monster images ---
         normalImage                         = loadImage(IMG + "NormalCell.png");
@@ -167,42 +162,103 @@ public class GameController {
         contaminationImage                  = loadImage(IMG + "sock.png");
         cardCellImage                       = loadImage(IMG + "CardCell.png");
 
-        // --- Card images (exact filenames as requested) ---
-        cardBackImage          = loadImage(IMG + "card_back_design.png");
-        card_2319Alert         = loadImage(IMG + "2319_alert.png");
-        cardContaminationCode  = loadImage(IMG + "contamination_code.png");
-        cardMegaDrain          = loadImage(IMG + "mega_drain.png");
-        cardMindScramble       = loadImage(IMG + "mind_scramble.png");
-        cardPositionSwap       = loadImage(IMG + "position_swap.png");
-        cardSmallSnatcher      = loadImage(IMG + "small_snatcher.png");
-        cardSneakyThief        = loadImage(IMG + "sneaky_theif.png");  // exact filename kept
-        cardSuperShield        = loadImage(IMG + "super_shield.png");
-        cardTotalConfusion     = loadImage(IMG + "total_confusion.png");
+        // --- Card face images ---
+        cardBackImage         = loadImage(IMG + "card_back_design.png");
+        card_2319Alert        = loadImage(IMG + "2319_alert.png");
+        cardContaminationCode = loadImage(IMG + "contamination_code.png");
+        cardMegaDrain         = loadImage(IMG + "mega_drain.png");
+        cardMindScramble      = loadImage(IMG + "mind_scramble.png");
+        cardPositionSwap      = loadImage(IMG + "position_swap.png");
+        cardSmallSnatcher     = loadImage(IMG + "small_snatcher.png");
+        cardSneakyThief       = loadImage(IMG + "sneaky_theif.png");
+        cardSuperShield       = loadImage(IMG + "super_shield.png");
+        cardTotalConfusion    = loadImage(IMG + "total_confusion.png");
 
-     // --- Grid ImageViews (Layered) ---
+        // --- Card deck images ---
+        deckFull  = loadImage(IMG + "CardsDeck_Full.png");
+        deckMid   = loadImage(IMG + "CardsDeck_Mid.png");
+        deckLeast = loadImage(IMG + "CardsDeck_Least.png");
+
+        // --- Dice face images ---
+        for (int i = 1; i <= 6; i++) {
+            diceImages[i - 1] = loadImage(IMG + "Dice_on_" + i + ".png");
+        }
+
+        // =========================================================
+        //  CARD DECK — pinned to the CARDS slot on the panel
+        //  Panel image is 1359x762. Cards slot center ≈ x=310, y=672
+        //  As percentages: x=310/1359≈0.228, y=672/762≈0.882
+        // =========================================================
+        activeCardDeck.setPreserveRatio(true);
+        activeCardDeck.setImage(deckFull);
+        activeCardDeck.fitWidthProperty().bind(
+            backgroundRoot.widthProperty().multiply(0.085));
+        activeCardDeck.fitHeightProperty().bind(
+            backgroundRoot.heightProperty().multiply(0.13));
+        activeCardDeck.translateXProperty().bind(
+            backgroundRoot.widthProperty().multiply(0.228)
+                .subtract(backgroundRoot.widthProperty().divide(2)));
+        activeCardDeck.translateYProperty().bind(
+            backgroundRoot.heightProperty().multiply(0.882)
+                .subtract(backgroundRoot.heightProperty().divide(2)));
+
+        // =========================================================
+        //  DICE — pinned to the center slot on the panel
+        //  Panel image is 1359x762. Dice slot center ≈ x=560, y=668
+        //  As percentages: x=560/1359≈0.412, y=668/762≈0.877
+        // =========================================================
+        diceImage.setPreserveRatio(true);
+        diceImage.setImage(diceImages[0]);
+        diceImage.fitWidthProperty().bind(
+            backgroundRoot.widthProperty().multiply(0.115));
+        diceImage.fitHeightProperty().bind(
+            backgroundRoot.heightProperty().multiply(0.14));
+        diceImage.translateXProperty().bind(
+            backgroundRoot.widthProperty().multiply(0.412)
+                .subtract(backgroundRoot.widthProperty().divide(2)));
+        diceImage.translateYProperty().bind(
+            backgroundRoot.heightProperty().multiply(0.877)
+                .subtract(backgroundRoot.heightProperty().divide(2)));
+
+        // Insert both AFTER controlPanelView (index 1) but BEFORE the BorderPane
+        // index 0 = backgroundView, index 1 = controlPanelView, 2 = activeCardDeck, 3 = diceImage, 4 = BorderPane
+        backgroundRoot.getChildren().add(2, activeCardDeck);
+        backgroundRoot.getChildren().add(3, diceImage);
+
+        // --- Grid ImageViews (Layered) ---
         backgroundViews = new ImageView[Constants.BOARD_ROWS][Constants.BOARD_COLS];
-        monsterViews = new ImageView[Constants.BOARD_ROWS][Constants.BOARD_COLS];
+        monsterViews    = new ImageView[Constants.BOARD_ROWS][Constants.BOARD_COLS];
         for (int row = 0; row < Constants.BOARD_ROWS; row++) {
             for (int col = 0; col < Constants.BOARD_COLS; col++) {
                 StackPane cellStack = new StackPane();
 
-                // Layer 1: The background (Doors, Cards, Normal tiles)
                 ImageView bgView = new ImageView();
                 bgView.setPreserveRatio(false);
                 bgView.fitWidthProperty().bind(grid.widthProperty().divide(Constants.BOARD_COLS));
                 bgView.fitHeightProperty().bind(grid.heightProperty().divide(Constants.BOARD_ROWS));
 
-                // Layer 2: The monster
                 ImageView mView = new ImageView();
-                mView.setPreserveRatio(true); // Keep monster proportions
-                // Make the monster slightly smaller so you can still see the door behind it!
+                mView.setPreserveRatio(true);
                 mView.fitWidthProperty().bind(grid.widthProperty().divide(Constants.BOARD_COLS).multiply(0.8));
                 mView.fitHeightProperty().bind(grid.heightProperty().divide(Constants.BOARD_ROWS).multiply(0.8));
 
                 backgroundViews[row][col] = bgView;
-                monsterViews[row][col] = mView;
+                monsterViews[row][col]    = mView;
 
-                cellStack.getChildren().addAll(bgView, mView);
+                int backendRow = Constants.BOARD_ROWS - 1 - row;
+                int backendCol = (backendRow % 2 == 1) ? Constants.BOARD_COLS - 1 - col : col;
+                int boardIndex = backendRow * Constants.BOARD_COLS + backendCol;
+
+                Label indexLabel = new Label(String.valueOf(boardIndex));
+                indexLabel.setStyle(
+                    "-fx-font-size: 9px;" +
+                    "-fx-text-fill: rgba(255,255,255,0.75);" +
+                    "-fx-font-weight: bold;" +
+                    "-fx-padding: 1 2 0 0;"
+                );
+                StackPane.setAlignment(indexLabel, Pos.TOP_RIGHT);
+
+                cellStack.getChildren().addAll(bgView, mView, indexLabel);
                 grid.add(cellStack, col, row);
             }
         }
@@ -226,10 +282,10 @@ public class GameController {
         opponentPanelContainer.getChildren().addAll(
             oTitle, opponentNameLabel, opponentPosLabel, opponentEnergyLabel);
 
-        // --- Dice panel ---
+        // --- Dice panel (sidebar label only — actual image is pinned to panel) ---
         diceContainer.setStyle("-fx-background-color: rgba(0,0,0,0.6); -fx-padding: 8; -fx-background-radius: 8;");
         Label dTitle = makeLabel("DICE", "#ffcc00", 13, true);
-        diceResultLabel = makeLabel("Press Roll!", "white", 14, true);
+        diceResultLabel = makeLabel("—", "white", 20, true);
         diceContainer.getChildren().addAll(dTitle, diceResultLabel);
 
         // --- Action log ---
@@ -243,7 +299,7 @@ public class GameController {
         actionLine3.setWrapText(true);
         actionLogContainer.getChildren().addAll(aTitle, actionLine1, actionLine2, actionLine3);
 
-        // --- Build card overlay (hidden by default) ---
+        // --- Build card overlay ---
         buildCardOverlay();
 
         System.out.println("DEBUG: GameController.initialize() complete");
@@ -251,12 +307,8 @@ public class GameController {
 
     // =========================================================
     //  CARD OVERLAY CONSTRUCTION
-    //  The overlay sits in the StackPane (boardContainer) so it
-    //  floats directly on top of the board.
     // =========================================================
     private void buildCardOverlay() {
-
-        // Semi-transparent dark backdrop that covers the whole board
         cardOverlay = new VBox(12);
         cardOverlay.setAlignment(Pos.CENTER);
         cardOverlay.setStyle(
@@ -269,21 +321,18 @@ public class GameController {
         cardOverlay.setVisible(false);
         cardOverlay.setOpacity(0);
 
-        // Card back image shown first
         cardOverlayBack = new ImageView();
         cardOverlayBack.setFitWidth(180);
         cardOverlayBack.setFitHeight(220);
         cardOverlayBack.setPreserveRatio(true);
         cardOverlayBack.setImage(cardBackImage);
 
-        // Card face image revealed after flip delay
         cardOverlayFace = new ImageView();
         cardOverlayFace.setFitWidth(180);
         cardOverlayFace.setFitHeight(220);
         cardOverlayFace.setPreserveRatio(true);
         cardOverlayFace.setVisible(false);
 
-        // Card name label
         cardOverlayName = new Label();
         cardOverlayName.setStyle(
             "-fx-text-fill: #ffcc00;" +
@@ -294,7 +343,6 @@ public class GameController {
         cardOverlayName.setMaxWidth(220);
         cardOverlayName.setAlignment(Pos.CENTER);
 
-        // Card description label
         cardOverlayDesc = new Label();
         cardOverlayDesc.setStyle(
             "-fx-text-fill: white;" +
@@ -304,68 +352,47 @@ public class GameController {
         cardOverlayDesc.setMaxWidth(220);
         cardOverlayDesc.setAlignment(Pos.CENTER);
 
-        // "Tap to continue" hint
         Label tapHint = new Label("tap to continue");
         tapHint.setStyle("-fx-text-fill: #aaaaaa; -fx-font-size: 10px; -fx-font-style: italic;");
 
         cardOverlay.getChildren().addAll(
-            cardOverlayBack,
-            cardOverlayFace,
-            cardOverlayName,
-            cardOverlayDesc,
-            tapHint
-        );
+            cardOverlayBack, cardOverlayFace, cardOverlayName, cardOverlayDesc, tapHint);
 
-        // Clicking anywhere on the overlay dismisses it
         cardOverlay.setOnMouseClicked(e -> dismissCardOverlay());
-
-        // Add overlay into the StackPane so it floats over the board
         boardContainer.getChildren().add(cardOverlay);
         StackPane.setAlignment(cardOverlay, Pos.CENTER);
     }
 
     // =========================================================
-    //  SHOW CARD OVERLAY
-    //  Sequence: fade-in back → pause → swap to face → pause →
-    //            player taps to dismiss
+    //  SHOW / DISMISS CARD OVERLAY
     // =========================================================
     private void showCardOverlay(Card card) {
-        // Set content
         cardOverlayName.setText(card.getName());
         cardOverlayDesc.setText(card.getDescription());
         cardOverlayFace.setImage(getCardImage(card.getName()));
-
-        // Reset visibility
         cardOverlayBack.setVisible(true);
         cardOverlayFace.setVisible(false);
         cardOverlay.setVisible(true);
 
-        // --- Animation sequence ---
-        // 1. Fade the whole overlay in
         FadeTransition fadeIn = new FadeTransition(Duration.millis(300), cardOverlay);
         fadeIn.setFromValue(0);
         fadeIn.setToValue(1);
 
-        // 2. Hold the card back for 800 ms so player sees it's a card
         PauseTransition showBack = new PauseTransition(Duration.millis(800));
         showBack.setOnFinished(e -> {
-            // Swap back → face
             cardOverlayBack.setVisible(false);
             cardOverlayFace.setVisible(true);
         });
 
-        SequentialTransition seq = new SequentialTransition(fadeIn, showBack);
-        seq.play();
+        new SequentialTransition(fadeIn, showBack).play();
     }
 
-    // Fade out and hide the overlay, then continue game flow
     private void dismissCardOverlay() {
         FadeTransition fadeOut = new FadeTransition(Duration.millis(200), cardOverlay);
         fadeOut.setFromValue(1);
         fadeOut.setToValue(0);
         fadeOut.setOnFinished(e -> {
             cardOverlay.setVisible(false);
-            // Refresh board + UI after the player acknowledges the card
             refreshBoard();
             updateUI();
         });
@@ -377,16 +404,16 @@ public class GameController {
     // =========================================================
     private Image getCardImage(String cardName) {
         switch (cardName) {
-            case "2319 Alert":          return card_2319Alert;
-            case "Contamination Code":  return cardContaminationCode;
-            case "Mega Drain":          return cardMegaDrain;
-            case "Mind Scramble":       return cardMindScramble;
-            case "Position Swap":       return cardPositionSwap;
-            case "Small Snatcher":      return cardSmallSnatcher;
-            case "Sneaky Thief":        return cardSneakyThief;
-            case "Super Shield":        return cardSuperShield;
-            case "Total Confusion":     return cardTotalConfusion;
-            default:                    return cardBackImage;
+            case "2319 Alert":         return card_2319Alert;
+            case "Contamination Code": return cardContaminationCode;
+            case "Mega Drain":         return cardMegaDrain;
+            case "Mind Scramble":      return cardMindScramble;
+            case "Position Swap":      return cardPositionSwap;
+            case "Small Snatcher":     return cardSmallSnatcher;
+            case "Sneaky Thief":       return cardSneakyThief;
+            case "Super Shield":       return cardSuperShield;
+            case "Total Confusion":    return cardTotalConfusion;
+            default:                   return cardBackImage;
         }
     }
 
@@ -437,46 +464,29 @@ public class GameController {
     private void refreshBoard() {
         Cell[][] cells = game.getBoard().getBoardCells();
 
-        // 1. Clear all monsters first
-        for (int row = 0; row < Constants.BOARD_ROWS; row++) {
-            for (int col = 0; col < Constants.BOARD_COLS; col++) {
+        for (int row = 0; row < Constants.BOARD_ROWS; row++)
+            for (int col = 0; col < Constants.BOARD_COLS; col++)
                 monsterViews[row][col].setImage(null);
-            }
-        }
 
-        // 2. Draw all backgrounds based on their exact index to fix the layout
-        for (int index = 0; index < 100; index++) { // Constants.BOARD_SIZE is 100
-            
-            // A. Find where this index is stored in the backend 2D array
+        for (int index = 0; index < 100; index++) {
             int backendRow = index / Constants.BOARD_COLS;
             int backendCol = index % Constants.BOARD_COLS;
-            if (backendRow % 2 == 1) {
-                backendCol = Constants.BOARD_COLS - 1 - backendCol;
-            }
+            if (backendRow % 2 == 1) backendCol = Constants.BOARD_COLS - 1 - backendCol;
             Cell cell = cells[backendRow][backendCol];
 
-            // B. Find where this index should be drawn in the GUI grid
             int[] guiRC = indexToRowCol(index);
-            int guiRow = guiRC[0];
-            int guiCol = guiRC[1];
-
-            // C. Draw the cell
-            if (cell != null) {
-                setCellImage(guiRow, guiCol, cell);
-            } else {
-                backgroundViews[guiRow][guiCol].setImage(normalImage);
-            }
+            if (cell != null) setCellImage(guiRC[0], guiRC[1], cell);
+            else backgroundViews[guiRC[0]][guiRC[1]].setImage(normalImage);
         }
 
-        // 3. Draw active monsters on top
         drawMonsterOverlay(game.getPlayer());
         drawMonsterOverlay(game.getOpponent());
+        updateDeckImage();
     }
 
     private void drawMonsterOverlay(Monster m) {
         if (m == null) return;
         int[] rc = indexToRowCol(m.getPosition());
-        // Set the image on the top layer, leaving the background intact underneath
         monsterViews[rc[0]][rc[1]].setImage(getMonsterImage(m.getName()));
     }
 
@@ -491,56 +501,40 @@ public class GameController {
 
     private Image getMonsterImage(String name) {
         if (name == null) return null;
-        
-        // Convert to lowercase to avoid case-sensitivity issues
-        String lowerName = name.trim().toLowerCase();
-        
-        switch (lowerName) {
-            case "celia mae":
-                return monsterImage_celia_mae;
-            case "fungus":
-                return monsterImage_Fungus;
-            case "henry j. waternoose":      // Added to match CSV
-            case "henry j. waternoose iii": 
-                return monsterImage_Henry_J_Waternoose_III;
-            case "james p. sullivan":        // Added to match CSV
-            case "james sullivan":
-                return monsterImage_James_sullivan;
-            case "mike wazowski":
-                return monsterImage_Mike_Wazowski;
-            case "randall boggs":            // Added to match CSV
-            case "randall":
-                return monsterImage_Randall;
-            case "roz":
-                return monsterImage_Roz;
-            case "yeti":
-                return monsterImage_Yeti;
+        switch (name.trim().toLowerCase()) {
+            case "celia mae":             return monsterImage_celia_mae;
+            case "fungus":                return monsterImage_Fungus;
+            case "henry j. waternoose":
+            case "henry j. waternoose iii": return monsterImage_Henry_J_Waternoose_III;
+            case "james p. sullivan":
+            case "james sullivan":        return monsterImage_James_sullivan;
+            case "mike wazowski":         return monsterImage_Mike_Wazowski;
+            case "randall boggs":
+            case "randall":               return monsterImage_Randall;
+            case "roz":                   return monsterImage_Roz;
+            case "yeti":                  return monsterImage_Yeti;
             default:
-                System.err.println("WARNING: No image mapped for monster name: '" + name + "'");
-                return null; 
+                System.err.println("WARNING: No image for monster: '" + name + "'");
+                return null;
         }
     }
 
     private void setCellImage(int row, int col, Cell cell) {
         if (cell instanceof MonsterCell) {
-            // FIX: Don't draw the monster on the background layer!
-            // The floating monsterViews layer handles the character avatars now.
-            // Just draw a normal tile for the background.
             backgroundViews[row][col].setImage(normalImage);
         } else if (cell instanceof DoorCell) {
             DoorCell door = (DoorCell) cell;
             Role role = door.getRole();
-            if (door.isActivated()) {
+            if (door.isActivated())
                 backgroundViews[row][col].setImage(role == Role.SCARER ? scarerOpenDoorImage : laugherOpenDoorImage);
-            } else {
+            else
                 backgroundViews[row][col].setImage(role == Role.SCARER ? ScarerdoorImage : laugherdoorImage);
-            }
         } else if (cell instanceof ConveyorBelt) {
             backgroundViews[row][col].setImage(conveyorImage);
         } else if (cell instanceof ContaminationSock) {
             backgroundViews[row][col].setImage(contaminationImage);
         } else if (cell instanceof CardCell) {
-            backgroundViews[row][col].setImage(cardCellImage);   
+            backgroundViews[row][col].setImage(cardCellImage);
         } else {
             backgroundViews[row][col].setImage(normalImage);
         }
@@ -571,17 +565,32 @@ public class GameController {
     }
 
     // =========================================================
+    //  DECK IMAGE UPDATE
+    // =========================================================
+    private void updateDeckImage() {
+        int remaining = Board.cards.size();
+        int total     = Board.getOriginalCards().size();
+        if (total == 0) return;
+
+        double ratio = (double) remaining / total;
+        if (ratio > 0.60)
+            activeCardDeck.setImage(deckFull);
+        else if (ratio > 0.25)
+            activeCardDeck.setImage(deckMid);
+        else
+            activeCardDeck.setImage(deckLeast);
+    }
+
+    // =========================================================
     //  ROLL DICE HANDLER
     // =========================================================
     @FXML
     private void handleRollDice() {
         if (game == null) return;
-
-        // Block rolling while a card is showing OR an animation is playing
         if (cardOverlay.isVisible() || isAnimating) return;
 
         try {
-            isAnimating = true; // Lock controls during animation
+            isAnimating = true;
 
             Monster current  = game.getCurrent();
             Monster opponent = current == game.getPlayer() ? game.getOpponent() : game.getPlayer();
@@ -590,7 +599,6 @@ public class GameController {
             int oldEnergy    = current.getEnergy();
             int oldOppEnergy = opponent.getEnergy();
 
-            // Snapshot top card BEFORE the turn
             Card topCard = Board.cards.isEmpty() ? null : Board.cards.get(0);
             if (Board.cards.isEmpty()) Board.reloadCards();
 
@@ -600,24 +608,21 @@ public class GameController {
             int newEnergy    = current.getEnergy();
             int newOppEnergy = opponent.getEnergy();
 
-            // Detect if a card was drawn this turn
             boolean cardWasDrawn = topCard != null &&
                 (Board.cards.isEmpty() || Board.cards.get(0) != topCard);
 
-            int moved = newPos - oldPos;
+            int moved   = newPos - oldPos;
             if (moved < 0) moved += 100;
+            int diceFace = Math.max(1, Math.min(6, moved));
 
-            diceResultLabel.setText("🎲 " + moved);
-
-            // --- Action log lines ---
             String line1 = current.getName() + " moved " + moved + " spaces.";
             String line2 = "";
             String line3 = "";
 
             if (newPos == 0 && oldPos != 0 && moved != 0)
-                line2 = "⚠ SENT BACK TO START!";
+                line2 = "SENT BACK TO START!";
             else if (cardWasDrawn && topCard != null)
-                line2 = "🃏 Drew: " + topCard.getName();
+                line2 = "Drew: " + topCard.getName();
 
             if (newEnergy != oldEnergy)
                 line3 = current.getName() + " energy: " + oldEnergy + "→" + newEnergy;
@@ -628,30 +633,28 @@ public class GameController {
             actionLine2.setText(line2);
             actionLine3.setText(line3);
 
-            // --- Animation Callback ---
-            // This code runs AFTER the monster finishes its visual movement
-            Runnable onAnimationFinished = () -> {
-                if (cardWasDrawn && topCard != null) {
-                    refreshBoard(); 
-                    updateUI();
-                    showCardOverlay(topCard);
-                } else {
-                    refreshBoard();
-                    updateUI();
-                }
+            animateDiceRoll(diceFace, () -> {
+                Runnable onAnimationFinished = () -> {
+                    if (cardWasDrawn && topCard != null) {
+                        refreshBoard();
+                        updateUI();
+                        showCardOverlay(topCard);
+                    } else {
+                        refreshBoard();
+                        updateUI();
+                    }
 
-                // Check for winner
-                if (game.getWinner() != null) {
-                    myLabel.setText(game.getWinner().getName() + " WINS! 🎉");
-                    myLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #ffcc00;");
-                    SceneManager.getInstance().switchToGameOverScreen();
-                }
+                    if (game.getWinner() != null) {
+                        myLabel.setText(game.getWinner().getName() + " WINS!");
+                        myLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #ffcc00;");
+                        SceneManager.getInstance().switchToGameOverScreen();
+                    }
 
-                isAnimating = false; // Unlock controls
-            };
+                    isAnimating = false;
+                };
 
-            // Start the smooth movement!
-            animateMonsterMove(current, opponent, oldPos, newPos, onAnimationFinished);
+                animateMonsterMove(current, opponent, oldPos, newPos, onAnimationFinished);
+            });
 
         } catch (game.engine.exceptions.InvalidMoveException e) {
             actionLine1.setText("⚠ " + e.getMessage());
@@ -667,12 +670,47 @@ public class GameController {
             isAnimating = false;
         }
     }
-    
+
     // =========================================================
-    //  ANIMATION LOGIC
+    //  DICE ANIMATION
     // =========================================================
-    private void animateMonsterMove(Monster currentMonster, Monster opponentMonster, int oldPos, int newPos, Runnable onFinished) {
-        // 1. Clear all monster views to prepare for animation
+    private void animateDiceRoll(int finalFace, Runnable onFinished) {
+        if (diceTimeline != null) diceTimeline.stop();
+
+        diceTimeline = new javafx.animation.Timeline();
+        java.util.Random rand = new java.util.Random();
+
+        int[] delays = {60, 80, 100, 130, 160, 200, 250, 320, 400};
+        int elapsed  = 0;
+
+        for (int delay : delays) {
+            elapsed += delay;
+            final int face = rand.nextInt(6);
+            diceTimeline.getKeyFrames().add(
+                new javafx.animation.KeyFrame(Duration.millis(elapsed),
+                    e -> diceImage.setImage(diceImages[face]))
+            );
+        }
+
+        elapsed += 300;
+        final int totalMs = elapsed;
+        diceTimeline.getKeyFrames().add(
+            new javafx.animation.KeyFrame(Duration.millis(totalMs),
+                e -> {
+                    diceImage.setImage(diceImages[finalFace - 1]);
+                    diceResultLabel.setText("Rolled: " + finalFace);
+                    if (onFinished != null) onFinished.run();
+                })
+        );
+
+        diceTimeline.play();
+    }
+
+    // =========================================================
+    //  MONSTER MOVEMENT ANIMATION
+    // =========================================================
+    private void animateMonsterMove(Monster currentMonster, Monster opponentMonster,
+                                    int oldPos, int newPos, Runnable onFinished) {
         for (int r = 0; r < Constants.BOARD_ROWS; r++) {
             for (int c = 0; c < Constants.BOARD_COLS; c++) {
                 monsterViews[r][c].setImage(null);
@@ -680,43 +718,34 @@ public class GameController {
                 monsterViews[r][c].setTranslateY(0);
             }
         }
-        
-        // 2. Draw opponent statically at their current position
+
         drawMonsterOverlay(opponentMonster);
 
-        // 3. Draw moving monster at starting position
         int[] startRC = indexToRowCol(oldPos);
         monsterViews[startRC[0]][startRC[1]].setImage(getMonsterImage(currentMonster.getName()));
 
-        // 4. Build animation sequence
         SequentialTransition seq = new SequentialTransition();
         int distance = Math.abs(newPos - oldPos);
 
         if (distance > 12 || oldPos == newPos) {
-            // Teleport (e.g. back to start): animate directly across the board
             seq.getChildren().add(createHop(currentMonster, opponentMonster, oldPos, newPos, 600));
         } else {
-            // Normal move: hop smoothly cell-by-cell following the path
             int step = (newPos > oldPos) ? 1 : -1;
-            for (int pos = oldPos; pos != newPos; pos += step) {
-                // Pass the opponentMonster down to createHop
-                seq.getChildren().add(createHop(currentMonster, opponentMonster, pos, pos + step, 250)); 
-            }
+            for (int pos = oldPos; pos != newPos; pos += step)
+                seq.getChildren().add(createHop(currentMonster, opponentMonster, pos, pos + step, 250));
         }
 
-        // When all hops are done, trigger the callback
         seq.setOnFinished(e -> onFinished.run());
         seq.play();
     }
-    
-    private javafx.animation.Animation createHop(Monster moving, Monster stationary, int fromPos, int toPos, int durationMillis) {
+
+    private javafx.animation.Animation createHop(Monster moving, Monster stationary,
+                                                   int fromPos, int toPos, int durationMillis) {
         int[] fromRC = indexToRowCol(fromPos);
-        int[] toRC = indexToRowCol(toPos);
+        int[] toRC   = indexToRowCol(toPos);
 
-        // Calculate exact pixel distance between cells dynamically
-        double cellWidth = grid.getWidth() / Constants.BOARD_COLS;
+        double cellWidth  = grid.getWidth()  / Constants.BOARD_COLS;
         double cellHeight = grid.getHeight() / Constants.BOARD_ROWS;
-
         double dx = (toRC[1] - fromRC[1]) * cellWidth;
         double dy = (toRC[0] - fromRC[0]) * cellHeight;
 
@@ -725,38 +754,28 @@ public class GameController {
         TranslateTransition tt = new TranslateTransition(Duration.millis(durationMillis), movingView);
         tt.setByX(dx);
         tt.setByY(dy);
-
         tt.setOnFinished(e -> {
             movingView.setTranslateX(0);
             movingView.setTranslateY(0);
-            
-            // Clear the cell we just left
             movingView.setImage(null);
-            
-            // FIX: If we just walked off the cell where the opponent is standing,
-            // restore the opponent's image so they don't disappear!
-            if (stationary.getPosition() == fromPos) {
+            if (stationary.getPosition() == fromPos)
                 movingView.setImage(getMonsterImage(stationary.getName()));
-            }
-
-            // Draw the moving monster at its new position
             monsterViews[toRC[0]][toRC[1]].setImage(getMonsterImage(moving.getName()));
         });
 
-        // Bring the moving cell's container to the front of the screen 
         PauseTransition bringToFront = new PauseTransition(Duration.millis(1));
         bringToFront.setOnFinished(e -> movingView.getParent().toFront());
 
         return new SequentialTransition(bringToFront, tt);
     }
-    
+
     // =========================================================
     //  POWER-UP HANDLER
     // =========================================================
     @FXML
     private void handlePowerUp() {
         if (game == null) return;
-        if (cardOverlay.isVisible()) return;   // block while card is showing
+        if (cardOverlay.isVisible()) return;
 
         boolean confirmed = showConfirmDialog("Use Powerup", "Activate Powerup?",
                 "This will consume energy. Do you want to proceed?");

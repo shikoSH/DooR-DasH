@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
@@ -11,7 +13,6 @@
 <?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.geometry.Insets?>
 
 <StackPane fx:id="backgroundRoot" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="game.gui.controllers.GameController">
    <children>
@@ -20,12 +21,15 @@
             <Image url="@../resources/images/background_Game.png" />
          </image>
       </ImageView>
-      
+
       <ImageView fx:id="controlPanelView" pickOnBounds="true" preserveRatio="false">
          <image>
             <Image url="@../resources/images/ControlPanel.png" />
          </image>
       </ImageView>
+
+      <!-- dice and card deck ImageViews are gone from here -->
+      <!-- they are added programmatically in GameController.initialize() -->
 
       <BorderPane>
          <left>
@@ -54,12 +58,16 @@
          </top>
 
          <bottom>
-            <HBox alignment="CENTER" prefHeight="80.0" spacing="40.0" BorderPane.alignment="CENTER">
+            <AnchorPane prefHeight="127.0" prefWidth="1379.0" BorderPane.alignment="CENTER">
                <children>
-                  <Button onAction="#handlePowerUp" prefHeight="45.0" prefWidth="130.0" style="-fx-font-size: 16px; -fx-font-weight: bold;" text="Power Up" />
-                  <Button onAction="#handleRollDice" prefHeight="45.0" prefWidth="130.0" style="-fx-font-size: 16px; -fx-font-weight: bold;" text="Roll" />
+                  <HBox alignment="CENTER" layoutX="849.0" layoutY="24.0" prefHeight="80.0" spacing="40.0">
+                     <children>
+                        <Button onAction="#handlePowerUp" prefHeight="45.0" prefWidth="130.0" style="-fx-font-size: 16px; -fx-font-weight: bold;" text="Power Up" />
+                        <Button onAction="#handleRollDice" prefHeight="45.0" prefWidth="130.0" style="-fx-font-size: 16px; -fx-font-weight: bold;" text="Roll" />
+                     </children>
+                  </HBox>
                </children>
-            </HBox>
+            </AnchorPane>
          </bottom>
 
          <center>
