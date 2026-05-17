@@ -2,11 +2,11 @@ package game.gui.controllers;
 
 import javafx.animation.FadeTransition;
 import javafx.fxml.FXMLLoader;
-import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
+import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import java.io.IOException;
@@ -84,6 +84,7 @@ public class SceneManager {
             FXMLLoader loader = new FXMLLoader(fxmlUrl);
             Parent root = loader.load();
             Scene scene = new Scene(root);
+            scene.setFill(Color.BLACK);
             scenes.put("IntroScreen", scene);
             primaryStage.setScene(scene);
             if (!primaryStage.isShowing()) {
@@ -96,49 +97,6 @@ public class SceneManager {
         }
     }
 
-    // Called from IntroController after logo moves up
-    // Fades intro out, loads start screen, fades it in — no white flash
-    public void crossfadeToStartScreen(Node introPane) {
-        try {
-            URL fxmlUrl = getClass().getResource("/game/gui/views/StartScreen.fxml");
-            if (fxmlUrl == null) {
-                System.err.println("ERROR: StartScreen.fxml not found");
-                switchToStartScreen();
-                return;
-            }
-            FXMLLoader loader = new FXMLLoader(fxmlUrl);
-            Parent startRoot = loader.load();
-            Scene startScene = new Scene(startRoot);
-            addStylesheet(startScene, "/game/gui/resources/css/styles.css");
-            addStylesheet(startScene, "/game/gui/resources/css/start-screen.css");
-            scenes.put("StartScreen", startScene);
-
-            // Step 1: fade out intro pane to black
-            FadeTransition fadeOut = new FadeTransition(Duration.millis(800), introPane);
-            fadeOut.setFromValue(1);
-            fadeOut.setToValue(0);
-
-            fadeOut.setOnFinished(e -> {
-                // Step 2: switch scene while screen is black
-                startRoot.setOpacity(0);
-                primaryStage.setScene(startScene);
-
-                // Step 3: fade start screen in from black
-                FadeTransition fadeIn = new FadeTransition(Duration.millis(800), startRoot);
-                fadeIn.setFromValue(0);
-                fadeIn.setToValue(1);
-                fadeIn.play();
-            });
-
-            fadeOut.play();
-
-        } catch (Exception e) {
-            System.err.println("ERROR: crossfadeToStartScreen failed");
-            e.printStackTrace();
-            switchToStartScreen(); // fallback
-        }
-    }
-
     public void switchToStartScreen() {
         try {
             URL fxmlUrl = getClass().getResource("/game/gui/views/StartScreen.fxml");
@@ -148,11 +106,21 @@ public class SceneManager {
             }
             FXMLLoader loader = new FXMLLoader(fxmlUrl);
             Parent root = loader.load();
+
+            root.setOpacity(0);
             Scene scene = new Scene(root);
+            scene.setFill(Color.BLACK); // black background so no white flash
             addStylesheet(scene, "/game/gui/resources/css/styles.css");
             addStylesheet(scene, "/game/gui/resources/css/start-screen.css");
             scenes.put("StartScreen", scene);
             primaryStage.setScene(scene);
+
+            // Fade in from black
+            FadeTransition fadeIn = new FadeTransition(Duration.millis(600), root);
+            fadeIn.setFromValue(0);
+            fadeIn.setToValue(1);
+            fadeIn.play();
+
             if (!primaryStage.isShowing()) {
                 primaryStage.show();
             }
@@ -187,6 +155,7 @@ public class SceneManager {
             System.out.println("DEBUG: controller.startGame() called OK");
 
             Scene scene = new Scene(root);
+            scene.setFill(Color.BLACK);
             addStylesheet(scene, "/game/gui/resources/css/styles.css");
             scenes.put("GameScreen", scene);
             primaryStage.setScene(scene);
@@ -220,6 +189,7 @@ public class SceneManager {
                 FXMLLoader loader = new FXMLLoader(fxmlUrl);
                 Parent root = loader.load();
                 Scene scene = new Scene(root);
+                scene.setFill(Color.BLACK);
                 addStylesheet(scene, "/game/gui/resources/css/styles.css");
                 scenes.put(name, scene);
             }
