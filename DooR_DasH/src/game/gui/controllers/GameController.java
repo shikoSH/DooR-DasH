@@ -192,16 +192,15 @@ public class GameController {
         activeCardDeck.setPreserveRatio(true);
         activeCardDeck.setImage(deckFull);
         activeCardDeck.fitWidthProperty().bind(
-            backgroundRoot.widthProperty().multiply(0.085));
+            backgroundRoot.widthProperty().multiply(0.5));
         activeCardDeck.fitHeightProperty().bind(
-            backgroundRoot.heightProperty().multiply(0.13));
+            backgroundRoot.heightProperty().multiply(0.15));
         activeCardDeck.translateXProperty().bind(
-            backgroundRoot.widthProperty().multiply(0.228)
+            backgroundRoot.widthProperty().multiply(0.330)
                 .subtract(backgroundRoot.widthProperty().divide(2)));
         activeCardDeck.translateYProperty().bind(
             backgroundRoot.heightProperty().multiply(0.882)
                 .subtract(backgroundRoot.heightProperty().divide(2)));
-
         // =========================================================
         //  DICE — pinned to the center slot on the panel
         //  Panel image is 1359x762. Dice slot center ≈ x=560, y=668
@@ -214,7 +213,7 @@ public class GameController {
         diceImage.fitHeightProperty().bind(
             backgroundRoot.heightProperty().multiply(0.14));
         diceImage.translateXProperty().bind(
-            backgroundRoot.widthProperty().multiply(0.412)
+            backgroundRoot.widthProperty().multiply(0.500)
                 .subtract(backgroundRoot.widthProperty().divide(2)));
         diceImage.translateYProperty().bind(
             backgroundRoot.heightProperty().multiply(0.877)
