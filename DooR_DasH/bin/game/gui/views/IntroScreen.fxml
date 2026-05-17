@@ -15,7 +15,7 @@
         <!-- Team credit + disclaimer -->
         <VBox alignment="CENTER" spacing="16">
             <Text fx:id="teamText"
-                  text="A GAME BY TEAM 86"
+                  text="A GAME BY TEAM 85"
                   style="-fx-fill: white; -fx-font-size: 58px; -fx-font-family: 'Georgia'; -fx-font-weight: bold;"
                   opacity="0" />
             <Text fx:id="disclaimerText"
