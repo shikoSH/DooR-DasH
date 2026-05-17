@@ -33,7 +33,7 @@ public class SceneManager {
         this.primaryStage = stage;
         this.primaryStage.setTitle("DooR DasH: Scare vs Laugh Touchdown");
         this.primaryStage.setWidth(1280);
-        this.primaryStage.setHeight(920);
+        this.primaryStage.setHeight(720);
         this.primaryStage.setResizable(true);
         this.primaryStage.centerOnScreen();
     }

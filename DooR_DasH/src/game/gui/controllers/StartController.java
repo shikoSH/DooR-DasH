@@ -6,7 +6,6 @@ import javafx.scene.control.Button;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.util.Duration;
 
@@ -17,16 +16,10 @@ public class StartController {
     @FXML private ImageView laugherButton;
     @FXML private Button instructions_button;
     @FXML private Button exit_button;
-    @FXML private StackPane rootPane; // Add this line
-    @FXML private ImageView backgroundImage1;
 
     @FXML
     private void initialize() {
-        // --- Make background fill the screen ---
-        backgroundImage.fitWidthProperty().bind(rootPane.widthProperty());
-        backgroundImage.fitHeightProperty().bind(rootPane.heightProperty());
 
-        // ... Keep all your existing glow/hover code below this! ...
     	// --- SCARER glow + grows on hover ---
     	DropShadow scarerGlow = new DropShadow();
     	scarerGlow.setColor(Color.RED);

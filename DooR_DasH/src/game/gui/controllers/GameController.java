@@ -16,7 +16,6 @@ import javafx.geometry.Pos;
 import javafx.animation.FadeTransition;
 import javafx.animation.PauseTransition;
 import javafx.animation.SequentialTransition;
-import javafx.animation.TranslateTransition;
 import javafx.util.Duration;
 import game.engine.Constants;
 import game.engine.Game;
@@ -25,8 +24,6 @@ import game.engine.monsters.Monster;
 import game.engine.Board;
 import game.engine.cards.Card;
 import game.engine.cells.*;
-import javafx.beans.binding.Bindings;
-import javafx.beans.binding.NumberBinding;
 
 public class GameController {
 
@@ -38,10 +35,6 @@ public class GameController {
     @FXML private VBox actionLogContainer;
     @FXML private VBox diceContainer;
     @FXML private Label myLabel;
-    @FXML private StackPane backgroundRoot;
-    @FXML private ImageView backgroundView;
-    @FXML private ImageView controlPanelView;
-    @FXML private ImageView boardImageView;
 
     // === Player panel labels ===
     private Label playerNameLabel;
@@ -80,9 +73,6 @@ public class GameController {
     private Image conveyorImage;
     private Image contaminationImage;
     private Image cardCellImage;
-    
-    // === Animation Lock ===
-    private boolean isAnimating = false;
 
     // === Card face images ===
     private Image cardBackImage;
@@ -98,9 +88,8 @@ public class GameController {
 
     private static final String IMG = "/game/gui/resources/images/";
 
- // === Grid cell views (Layered) ===
-    private ImageView[][] backgroundViews;
-    private ImageView[][] monsterViews;
+    // === Grid cell views ===
+    private ImageView[][] cellViews;
 
     // === Card overlay (lives inside boardContainer StackPane) ===
     private VBox    cardOverlay;
@@ -117,35 +106,7 @@ public class GameController {
     // =========================================================
     @FXML
     private void initialize() {
-        
-        
-    	// --- Make background and panel images strictly fill the screen ---
-    	// --- Make background and panel images strictly fill the screen ---
-        backgroundView.fitWidthProperty().bind(backgroundRoot.widthProperty());
-        backgroundView.fitHeightProperty().bind(backgroundRoot.heightProperty());
-        
-        controlPanelView.fitWidthProperty().bind(backgroundRoot.widthProperty());
-        controlPanelView.fitHeightProperty().bind(backgroundRoot.heightProperty());
 
-        // --- NEW FIX: Percentage-Based Scaling ---
-        // Force the board to always be exactly 60% of the window's total height.
-        // This guarantees it will never overlap the top or bottom visual borders of the stretched ControlPanel image.
-        NumberBinding boardSize = backgroundRoot.heightProperty().multiply(0.71);
-
-        // Lock the board image to this exact square
-        boardImageView.fitWidthProperty().bind(boardSize);
-        boardImageView.fitHeightProperty().bind(boardSize);
-
-        // Lock the grid (all 4 dimensions) so it matches the image perfectly
-        grid.maxWidthProperty().bind(boardSize);
-        grid.maxHeightProperty().bind(boardSize);
-        grid.minWidthProperty().bind(boardSize);
-        grid.minHeightProperty().bind(boardSize);
-
-     // --- NEW FIX: Shift the board UP ---
-        // A negative value moves it up. A positive value moves it down.
-        boardContainer.setTranslateY(-60);
-        
         // --- Panel assets ---
         controlPanelImage                   = loadImage(IMG + "ControlPanel.png");
 
@@ -179,31 +140,16 @@ public class GameController {
         cardSuperShield        = loadImage(IMG + "super_shield.png");
         cardTotalConfusion     = loadImage(IMG + "total_confusion.png");
 
-     // --- Grid ImageViews (Layered) ---
-        backgroundViews = new ImageView[Constants.BOARD_ROWS][Constants.BOARD_COLS];
-        monsterViews = new ImageView[Constants.BOARD_ROWS][Constants.BOARD_COLS];
+        // --- Grid ImageViews ---
+        cellViews = new ImageView[Constants.BOARD_ROWS][Constants.BOARD_COLS];
         for (int row = 0; row < Constants.BOARD_ROWS; row++) {
             for (int col = 0; col < Constants.BOARD_COLS; col++) {
-                StackPane cellStack = new StackPane();
-
-                // Layer 1: The background (Doors, Cards, Normal tiles)
-                ImageView bgView = new ImageView();
-                bgView.setPreserveRatio(false);
-                bgView.fitWidthProperty().bind(grid.widthProperty().divide(Constants.BOARD_COLS));
-                bgView.fitHeightProperty().bind(grid.heightProperty().divide(Constants.BOARD_ROWS));
-
-                // Layer 2: The monster
-                ImageView mView = new ImageView();
-                mView.setPreserveRatio(true); // Keep monster proportions
-                // Make the monster slightly smaller so you can still see the door behind it!
-                mView.fitWidthProperty().bind(grid.widthProperty().divide(Constants.BOARD_COLS).multiply(0.8));
-                mView.fitHeightProperty().bind(grid.heightProperty().divide(Constants.BOARD_ROWS).multiply(0.8));
-
-                backgroundViews[row][col] = bgView;
-                monsterViews[row][col] = mView;
-
-                cellStack.getChildren().addAll(bgView, mView);
-                grid.add(cellStack, col, row);
+                ImageView iv = new ImageView();
+                iv.setPreserveRatio(false);
+                iv.fitWidthProperty().bind(grid.widthProperty().divide(Constants.BOARD_COLS));
+                iv.fitHeightProperty().bind(grid.heightProperty().divide(Constants.BOARD_ROWS));
+                cellViews[row][col] = iv;
+                grid.add(iv, col, row);
             }
         }
 
@@ -437,38 +383,14 @@ public class GameController {
     private void refreshBoard() {
         Cell[][] cells = game.getBoard().getBoardCells();
 
-        // 1. Clear all monsters first
         for (int row = 0; row < Constants.BOARD_ROWS; row++) {
             for (int col = 0; col < Constants.BOARD_COLS; col++) {
-                monsterViews[row][col].setImage(null);
+                Cell cell = cells[row][col];
+                if (cell != null) setCellImage(row, col, cell);
+                else cellViews[row][col].setImage(normalImage);
             }
         }
 
-        // 2. Draw all backgrounds based on their exact index to fix the layout
-        for (int index = 0; index < 100; index++) { // Constants.BOARD_SIZE is 100
-            
-            // A. Find where this index is stored in the backend 2D array
-            int backendRow = index / Constants.BOARD_COLS;
-            int backendCol = index % Constants.BOARD_COLS;
-            if (backendRow % 2 == 1) {
-                backendCol = Constants.BOARD_COLS - 1 - backendCol;
-            }
-            Cell cell = cells[backendRow][backendCol];
-
-            // B. Find where this index should be drawn in the GUI grid
-            int[] guiRC = indexToRowCol(index);
-            int guiRow = guiRC[0];
-            int guiCol = guiRC[1];
-
-            // C. Draw the cell
-            if (cell != null) {
-                setCellImage(guiRow, guiCol, cell);
-            } else {
-                backgroundViews[guiRow][guiCol].setImage(normalImage);
-            }
-        }
-
-        // 3. Draw active monsters on top
         drawMonsterOverlay(game.getPlayer());
         drawMonsterOverlay(game.getOpponent());
     }
@@ -476,8 +398,7 @@ public class GameController {
     private void drawMonsterOverlay(Monster m) {
         if (m == null) return;
         int[] rc = indexToRowCol(m.getPosition());
-        // Set the image on the top layer, leaving the background intact underneath
-        monsterViews[rc[0]][rc[1]].setImage(getMonsterImage(m.getName()));
+        cellViews[rc[0]][rc[1]].setImage(getMonsterImage(m.getName()));
     }
 
     private int[] indexToRowCol(int index) {
@@ -490,59 +411,50 @@ public class GameController {
     }
 
     private Image getMonsterImage(String name) {
-        if (name == null) return null;
-        
-        // Convert to lowercase to avoid case-sensitivity issues
-        String lowerName = name.trim().toLowerCase();
-        
-        switch (lowerName) {
-            case "celia mae":
-                return monsterImage_celia_mae;
-            case "fungus":
-                return monsterImage_Fungus;
-            case "henry j. waternoose":      // Added to match CSV
-            case "henry j. waternoose iii": 
-                return monsterImage_Henry_J_Waternoose_III;
-            case "james p. sullivan":        // Added to match CSV
-            case "james sullivan":
-                return monsterImage_James_sullivan;
-            case "mike wazowski":
-                return monsterImage_Mike_Wazowski;
-            case "randall boggs":            // Added to match CSV
-            case "randall":
-                return monsterImage_Randall;
-            case "roz":
-                return monsterImage_Roz;
-            case "yeti":
-                return monsterImage_Yeti;
-            default:
-                System.err.println("WARNING: No image mapped for monster name: '" + name + "'");
-                return null; 
+        switch (name) {
+            case "Celia Mae":               return monsterImage_celia_mae;
+            case "Fungus":                  return monsterImage_Fungus;
+            case "Henry J. Waternoose III": return monsterImage_Henry_J_Waternoose_III;
+            case "James Sullivan":          return monsterImage_James_sullivan;
+            case "Mike Wazowski":           return monsterImage_Mike_Wazowski;
+            case "Randall":                 return monsterImage_Randall;
+            case "Roz":                     return monsterImage_Roz;
+            case "Yeti":                    return monsterImage_Yeti;
+            default:                        return normalImage;
         }
     }
 
     private void setCellImage(int row, int col, Cell cell) {
         if (cell instanceof MonsterCell) {
-            // FIX: Don't draw the monster on the background layer!
-            // The floating monsterViews layer handles the character avatars now.
-            // Just draw a normal tile for the background.
-            backgroundViews[row][col].setImage(normalImage);
+            Monster m = ((MonsterCell) cell).getMonster();
+            if (m == null) { cellViews[row][col].setImage(normalImage); return; }
+            switch (m.getName()) {
+                case "Celia Mae":                cellViews[row][col].setImage(monsterImage_celia_mae); break;
+                case "Fungus":                   cellViews[row][col].setImage(monsterImage_Fungus); break;
+                case "Henry J. Waternoose III":  cellViews[row][col].setImage(monsterImage_Henry_J_Waternoose_III); break;
+                case "James Sullivan":           cellViews[row][col].setImage(monsterImage_James_sullivan); break;
+                case "Mike Wazowski":            cellViews[row][col].setImage(monsterImage_Mike_Wazowski); break;
+                case "Randall":                  cellViews[row][col].setImage(monsterImage_Randall); break;
+                case "Roz":                      cellViews[row][col].setImage(monsterImage_Roz); break;
+                case "Yeti":                     cellViews[row][col].setImage(monsterImage_Yeti); break;
+                default:                         cellViews[row][col].setImage(normalImage); break;
+            }
         } else if (cell instanceof DoorCell) {
             DoorCell door = (DoorCell) cell;
             Role role = door.getRole();
             if (door.isActivated()) {
-                backgroundViews[row][col].setImage(role == Role.SCARER ? scarerOpenDoorImage : laugherOpenDoorImage);
+                cellViews[row][col].setImage(role == Role.SCARER ? scarerOpenDoorImage : laugherOpenDoorImage);
             } else {
-                backgroundViews[row][col].setImage(role == Role.SCARER ? ScarerdoorImage : laugherdoorImage);
+                cellViews[row][col].setImage(role == Role.SCARER ? ScarerdoorImage : laugherdoorImage);
             }
         } else if (cell instanceof ConveyorBelt) {
-            backgroundViews[row][col].setImage(conveyorImage);
+            cellViews[row][col].setImage(conveyorImage);
         } else if (cell instanceof ContaminationSock) {
-            backgroundViews[row][col].setImage(contaminationImage);
+            cellViews[row][col].setImage(contaminationImage);
         } else if (cell instanceof CardCell) {
-            backgroundViews[row][col].setImage(cardCellImage);   
+            cellViews[row][col].setImage(cardCellImage);   // ← now uses CardCell.png
         } else {
-            backgroundViews[row][col].setImage(normalImage);
+            cellViews[row][col].setImage(normalImage);
         }
     }
 
@@ -577,12 +489,10 @@ public class GameController {
     private void handleRollDice() {
         if (game == null) return;
 
-        // Block rolling while a card is showing OR an animation is playing
-        if (cardOverlay.isVisible() || isAnimating) return;
+        // Block rolling while the card overlay is showing
+        if (cardOverlay.isVisible()) return;
 
         try {
-            isAnimating = true; // Lock controls during animation
-
             Monster current  = game.getCurrent();
             Monster opponent = current == game.getPlayer() ? game.getOpponent() : game.getPlayer();
 
@@ -590,7 +500,7 @@ public class GameController {
             int oldEnergy    = current.getEnergy();
             int oldOppEnergy = opponent.getEnergy();
 
-            // Snapshot top card BEFORE the turn
+            // Snapshot top card BEFORE the turn so we can detect if one was drawn
             Card topCard = Board.cards.isEmpty() ? null : Board.cards.get(0);
             if (Board.cards.isEmpty()) Board.reloadCards();
 
@@ -600,7 +510,7 @@ public class GameController {
             int newEnergy    = current.getEnergy();
             int newOppEnergy = opponent.getEnergy();
 
-            // Detect if a card was drawn this turn
+            // Detect whether a card was drawn this turn
             boolean cardWasDrawn = topCard != null &&
                 (Board.cards.isEmpty() || Board.cards.get(0) != topCard);
 
@@ -628,30 +538,25 @@ public class GameController {
             actionLine2.setText(line2);
             actionLine3.setText(line3);
 
-            // --- Animation Callback ---
-            // This code runs AFTER the monster finishes its visual movement
-            Runnable onAnimationFinished = () -> {
-                if (cardWasDrawn && topCard != null) {
-                    refreshBoard(); 
-                    updateUI();
-                    showCardOverlay(topCard);
-                } else {
-                    refreshBoard();
-                    updateUI();
-                }
+            // --- Show card overlay if a card was drawn ---
+            if (cardWasDrawn && topCard != null) {
+                // Refresh board first so the board state is correct behind the overlay
+                refreshBoard();
+                updateUI();
+                showCardOverlay(topCard);
+                // dismissCardOverlay() calls refreshBoard()+updateUI() again on tap,
+                // so no duplicate call needed here.
+            } else {
+                refreshBoard();
+                updateUI();
+            }
 
-                // Check for winner
-                if (game.getWinner() != null) {
-                    myLabel.setText(game.getWinner().getName() + " WINS! 🎉");
-                    myLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #ffcc00;");
-                    SceneManager.getInstance().switchToGameOverScreen();
-                }
-
-                isAnimating = false; // Unlock controls
-            };
-
-            // Start the smooth movement!
-            animateMonsterMove(current, opponent, oldPos, newPos, onAnimationFinished);
+            // --- Check for winner ---
+            if (game.getWinner() != null) {
+                myLabel.setText(game.getWinner().getName() + " WINS! 🎉");
+                myLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #ffcc00;");
+                SceneManager.getInstance().switchToGameOverScreen();
+            }
 
         } catch (game.engine.exceptions.InvalidMoveException e) {
             actionLine1.setText("⚠ " + e.getMessage());
@@ -659,97 +564,13 @@ public class GameController {
             actionLine3.setText("");
             refreshBoard();
             updateUI();
-            isAnimating = false;
         } catch (Exception e) {
             actionLine1.setText("Error: " + e.getMessage());
             System.err.println("ERROR in handleRollDice: " + e.getMessage());
             e.printStackTrace();
-            isAnimating = false;
         }
     }
-    
-    // =========================================================
-    //  ANIMATION LOGIC
-    // =========================================================
-    private void animateMonsterMove(Monster currentMonster, Monster opponentMonster, int oldPos, int newPos, Runnable onFinished) {
-        // 1. Clear all monster views to prepare for animation
-        for (int r = 0; r < Constants.BOARD_ROWS; r++) {
-            for (int c = 0; c < Constants.BOARD_COLS; c++) {
-                monsterViews[r][c].setImage(null);
-                monsterViews[r][c].setTranslateX(0);
-                monsterViews[r][c].setTranslateY(0);
-            }
-        }
-        
-        // 2. Draw opponent statically at their current position
-        drawMonsterOverlay(opponentMonster);
 
-        // 3. Draw moving monster at starting position
-        int[] startRC = indexToRowCol(oldPos);
-        monsterViews[startRC[0]][startRC[1]].setImage(getMonsterImage(currentMonster.getName()));
-
-        // 4. Build animation sequence
-        SequentialTransition seq = new SequentialTransition();
-        int distance = Math.abs(newPos - oldPos);
-
-        if (distance > 12 || oldPos == newPos) {
-            // Teleport (e.g. back to start): animate directly across the board
-            seq.getChildren().add(createHop(currentMonster, opponentMonster, oldPos, newPos, 600));
-        } else {
-            // Normal move: hop smoothly cell-by-cell following the path
-            int step = (newPos > oldPos) ? 1 : -1;
-            for (int pos = oldPos; pos != newPos; pos += step) {
-                // Pass the opponentMonster down to createHop
-                seq.getChildren().add(createHop(currentMonster, opponentMonster, pos, pos + step, 250)); 
-            }
-        }
-
-        // When all hops are done, trigger the callback
-        seq.setOnFinished(e -> onFinished.run());
-        seq.play();
-    }
-    
-    private javafx.animation.Animation createHop(Monster moving, Monster stationary, int fromPos, int toPos, int durationMillis) {
-        int[] fromRC = indexToRowCol(fromPos);
-        int[] toRC = indexToRowCol(toPos);
-
-        // Calculate exact pixel distance between cells dynamically
-        double cellWidth = grid.getWidth() / Constants.BOARD_COLS;
-        double cellHeight = grid.getHeight() / Constants.BOARD_ROWS;
-
-        double dx = (toRC[1] - fromRC[1]) * cellWidth;
-        double dy = (toRC[0] - fromRC[0]) * cellHeight;
-
-        ImageView movingView = monsterViews[fromRC[0]][fromRC[1]];
-
-        TranslateTransition tt = new TranslateTransition(Duration.millis(durationMillis), movingView);
-        tt.setByX(dx);
-        tt.setByY(dy);
-
-        tt.setOnFinished(e -> {
-            movingView.setTranslateX(0);
-            movingView.setTranslateY(0);
-            
-            // Clear the cell we just left
-            movingView.setImage(null);
-            
-            // FIX: If we just walked off the cell where the opponent is standing,
-            // restore the opponent's image so they don't disappear!
-            if (stationary.getPosition() == fromPos) {
-                movingView.setImage(getMonsterImage(stationary.getName()));
-            }
-
-            // Draw the moving monster at its new position
-            monsterViews[toRC[0]][toRC[1]].setImage(getMonsterImage(moving.getName()));
-        });
-
-        // Bring the moving cell's container to the front of the screen 
-        PauseTransition bringToFront = new PauseTransition(Duration.millis(1));
-        bringToFront.setOnFinished(e -> movingView.getParent().toFront());
-
-        return new SequentialTransition(bringToFront, tt);
-    }
-    
     // =========================================================
     //  POWER-UP HANDLER
     // =========================================================

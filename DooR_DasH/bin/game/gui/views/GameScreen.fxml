@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<StackPane fx:id="backgroundRoot" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="game.gui.controllers.GameController">
+   <children>
+
+      <ImageView fx:id="backgroundView" fitHeight="600.0" fitWidth="758.0" pickOnBounds="true">
+         <image>
+            <Image url="@../resources/images/background_Game.png" />
+         </image>
+      </ImageView>
+      
+      <ImageView fitHeight="600.0" fitWidth="758.0" pickOnBounds="true" preserveRatio="false">
+         <image>
+            <Image url="@../resources/images/ControlPanel.png" />
+         </image>
+      </ImageView>
+
+            <BorderPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="600.0" prefWidth="700.0">
+
+               <left>
+            <VBox fx:id="playerPanelContainer" prefWidth="150.0" spacing="8.0" BorderPane.alignment="CENTER" />
+         </left>
+
+               <right>
+            <VBox prefWidth="150.0" spacing="8.0" BorderPane.alignment="CENTER">
+               <children>
+                  <VBox fx:id="opponentPanelContainer" spacing="4.0" />
+                  <VBox fx:id="actionLogContainer" spacing="4.0" />
+                  <VBox fx:id="diceContainer" spacing="4.0" />
+               </children>
+            </VBox>
+         </right>
+
+               <top>
+            <Label fx:id="myLabel" style="-fx-font-size: 16px; -fx-padding: 8 0 8 0;" text="Messages" textFill="#fc0808" BorderPane.alignment="CENTER" />
+         </top>
+
+               <bottom>
+            <AnchorPane prefHeight="70.0" BorderPane.alignment="CENTER">
+               <children>
+                  <Button layoutX="403.0" layoutY="20.0" onAction="#handlePowerUp" text="Power Up" />
+                  <Button layoutX="568.0" layoutY="20.0" onAction="#handleRollDice" text="Roll" />
+               </children>
+            </AnchorPane>
+         </bottom>
+
+               <center>
+            <StackPane fx:id="boardContainer" maxHeight="370.0" maxWidth="370.0" prefHeight="370.0" prefWidth="370.0" BorderPane.alignment="CENTER">
+               <children>
+
+                        <ImageView fitHeight="370.0" fitWidth="370.0" pickOnBounds="true" preserveRatio="false">
+                     <image>
+                        <Image url="@../resources/images/images.png" />
+                     </image>
+                  </ImageView>
+
+                        <GridPane fx:id="grid" gridLinesVisible="true" maxHeight="370.0" maxWidth="370.0" prefHeight="370.0" prefWidth="370.0">
+                     <columnConstraints>
+                        <ColumnConstraints maxWidth="37.0" minWidth="37.0" prefWidth="37.0" />
+                        <ColumnConstraints maxWidth="37.0" minWidth="37.0" prefWidth="37.0" />
+                        <ColumnConstraints maxWidth="37.0" minWidth="37.0" prefWidth="37.0" />
+                        <ColumnConstraints maxWidth="37.0" minWidth="37.0" prefWidth="37.0" />
+                        <ColumnConstraints maxWidth="37.0" minWidth="37.0" prefWidth="37.0" />
+                        <ColumnConstraints maxWidth="37.0" minWidth="37.0" prefWidth="37.0" />
+                        <ColumnConstraints maxWidth="37.0" minWidth="37.0" prefWidth="37.0" />
+                        <ColumnConstraints maxWidth="37.0" minWidth="37.0" prefWidth="37.0" />
+                        <ColumnConstraints maxWidth="37.0" minWidth="37.0" prefWidth="37.0" />
+                        <ColumnConstraints maxWidth="37.0" minWidth="37.0" prefWidth="37.0" />
+                     </columnConstraints>
+                     <rowConstraints>
+                        <RowConstraints maxHeight="37.0" minHeight="37.0" prefHeight="37.0" />
+                        <RowConstraints maxHeight="37.0" minHeight="37.0" prefHeight="37.0" />
+                        <RowConstraints maxHeight="37.0" minHeight="37.0" prefHeight="37.0" />
+                        <RowConstraints maxHeight="37.0" minHeight="37.0" prefHeight="37.0" />
+                        <RowConstraints maxHeight="37.0" minHeight="37.0" prefHeight="37.0" />
+                        <RowConstraints maxHeight="37.0" minHeight="37.0" prefHeight="37.0" />
+                        <RowConstraints maxHeight="37.0" minHeight="37.0" prefHeight="37.0" />
+                        <RowConstraints maxHeight="37.0" minHeight="37.0" prefHeight="37.0" />
+                        <RowConstraints maxHeight="37.0" minHeight="37.0" prefHeight="37.0" />
+                        <RowConstraints maxHeight="37.0" minHeight="37.0" prefHeight="37.0" />
+                     </rowConstraints>
+                  </GridPane>
+
+                     </children>
+            </StackPane>
+         </center>
+
+            </BorderPane>
+   </children>
+</StackPane>
