@@ -105,6 +105,7 @@ public class GameController {
     private Image conveyorImage;
     private Image contaminationImage;
     private Image cardCellImage;
+    private Image monsterCellGreyImage;
     
  // === Monster Screen Images ===
     private Image screenImage_celia_mae;
@@ -186,8 +187,8 @@ public class GameController {
         conveyorImage                       = loadImage(IMG + "conveyor.png");
         contaminationImage                  = loadImage(IMG + "sock.png");
         cardCellImage                       = loadImage(IMG + "CardCell.png");
-        
-     // --- Monster Screen images ---
+
+        // --- Monster Screen images ---
         screenImage_celia_mae = loadImage(IMG + "Celia_Mae_Screen.png");
         screenImage_Fungus    = loadImage(IMG + "FungusScreen.png");
         screenImage_Henry     = loadImage(IMG + "Henry_Screen.png");
@@ -195,8 +196,8 @@ public class GameController {
         screenImage_Randall   = loadImage(IMG + "Randal_Screen.png");
         screenImage_Roz       = loadImage(IMG + "Rose_Screen.png");
         screenImage_Yeti      = loadImage(IMG + "Yeti_Screen.png");
-        
-     // --- Energy Bar images ---
+
+        // --- Energy Bar images ---
         energy0   = loadImage(IMG + "0_Energy_Player.png");
         energy25  = loadImage(IMG + "25_Energy_Player.png");
         energy50  = loadImage(IMG + "50_Energy_Player.png");
@@ -204,7 +205,7 @@ public class GameController {
         energy100 = loadImage(IMG + "100_Energy_Player.png");
 
         // --- Card face images ---
-        cardBackImage         = loadImage(IMG + "card_back_design.png");
+        cardBackImage         = loadImage(IMG + "card_back_design.jpg");
         card_2319Alert        = loadImage(IMG + "2319_alert.png");
         cardContaminationCode = loadImage(IMG + "contamination_code.png");
         cardMegaDrain         = loadImage(IMG + "mega_drain.png");
@@ -225,10 +226,10 @@ public class GameController {
             diceImages[i - 1] = loadImage(IMG + "Dice_on_" + i + ".png");
         }
 
+        // --- Generate grey image for monster cell backgrounds (no PNG needed) ---
+        monsterCellGreyImage = loadImage(IMG + "MonsterCell_Grey.png");
         // =========================================================
         //  CARD DECK — pinned to the CARDS slot on the panel
-        //  Panel image is 1359x762. Cards slot center ≈ x=310, y=672
-        //  As percentages: x=310/1359≈0.228, y=672/762≈0.882
         // =========================================================
         activeCardDeck.setPreserveRatio(true);
         activeCardDeck.setImage(deckFull);
@@ -242,10 +243,9 @@ public class GameController {
         activeCardDeck.translateYProperty().bind(
             backgroundRoot.heightProperty().multiply(0.882)
                 .subtract(backgroundRoot.heightProperty().divide(2)));
+
         // =========================================================
         //  DICE — pinned to the center slot on the panel
-        //  Panel image is 1359x762. Dice slot center ≈ x=560, y=668
-        //  As percentages: x=560/1359≈0.412, y=668/762≈0.877
         // =========================================================
         diceImage.setPreserveRatio(true);
         diceImage.setImage(diceImages[0]);
@@ -260,14 +260,16 @@ public class GameController {
             backgroundRoot.heightProperty().multiply(0.877)
                 .subtract(backgroundRoot.heightProperty().divide(2)));
 
-        // Insert both AFTER controlPanelView (index 1) but BEFORE the BorderPane
         // index 0 = backgroundView, index 1 = controlPanelView, 2 = activeCardDeck, 3 = diceImage, 4 = BorderPane
         backgroundRoot.getChildren().add(2, activeCardDeck);
         backgroundRoot.getChildren().add(3, diceImage);
 
-        // --- Grid ImageViews (Layered) ---
+        // =========================================================
+        //  GRID CELL VIEWS (Layered)
+        // =========================================================
         backgroundViews = new ImageView[Constants.BOARD_ROWS][Constants.BOARD_COLS];
         monsterViews    = new ImageView[Constants.BOARD_ROWS][Constants.BOARD_COLS];
+
         for (int row = 0; row < Constants.BOARD_ROWS; row++) {
             for (int col = 0; col < Constants.BOARD_COLS; col++) {
                 StackPane cellStack = new StackPane();
@@ -277,17 +279,34 @@ public class GameController {
                 bgView.fitWidthProperty().bind(grid.widthProperty().divide(Constants.BOARD_COLS));
                 bgView.fitHeightProperty().bind(grid.heightProperty().divide(Constants.BOARD_ROWS));
 
-                ImageView mView = new ImageView();
-                mView.setPreserveRatio(true);
-                mView.fitWidthProperty().bind(grid.widthProperty().divide(Constants.BOARD_COLS).multiply(0.8));
-                mView.fitHeightProperty().bind(grid.heightProperty().divide(Constants.BOARD_ROWS).multiply(0.8));
-
-                backgroundViews[row][col] = bgView;
-                monsterViews[row][col]    = mView;
-
+                // --- Determine backend index for this GUI cell ---
                 int backendRow = Constants.BOARD_ROWS - 1 - row;
                 int backendCol = (backendRow % 2 == 1) ? Constants.BOARD_COLS - 1 - col : col;
                 int boardIndex = backendRow * Constants.BOARD_COLS + backendCol;
+
+                // --- Check if this cell is a stationed monster slot ---
+                boolean isMonsterSlot = false;
+                for (int mi : Constants.MONSTER_CELL_INDICES) {
+                    if (mi == boardIndex) {
+                        isMonsterSlot = true;
+                        break;
+                    }
+                }
+
+                // --- Monster image view: zoomed in for monster slots, normal for others ---
+                ImageView mView = new ImageView();
+                mView.setPreserveRatio(true);
+                if (isMonsterSlot) {
+                    // Fill the full cell so the stationed monster portrait is zoomed in
+                    mView.fitWidthProperty().bind(grid.widthProperty().divide(Constants.BOARD_COLS).multiply(1.0));
+                    mView.fitHeightProperty().bind(grid.heightProperty().divide(Constants.BOARD_ROWS).multiply(1.0));
+                } else {
+                    mView.fitWidthProperty().bind(grid.widthProperty().divide(Constants.BOARD_COLS).multiply(0.8));
+                    mView.fitHeightProperty().bind(grid.heightProperty().divide(Constants.BOARD_ROWS).multiply(0.8));
+                }
+
+                backgroundViews[row][col] = bgView;
+                monsterViews[row][col]    = mView;
 
                 Label indexLabel = new Label(String.valueOf(boardIndex));
                 indexLabel.setStyle(
@@ -303,56 +322,56 @@ public class GameController {
             }
         }
 
-     // --- Player panel ---
+        // --- Player panel ---
         playerPanelContainer.setStyle("-fx-background-color: rgba(0,0,0,0.6); -fx-padding: 10; -fx-background-radius: 8;");
         playerPanelContainer.setAlignment(Pos.TOP_CENTER);
-        
+
         playerPortrait.setFitWidth(200);
         playerPortrait.setPreserveRatio(true);
         playerEnergyBar.setFitWidth(200);
         playerEnergyBar.setPreserveRatio(true);
 
         Label pTitle = makeLabel("YOUR MONSTER", "#ffcc00", 16, true);
-        playerNameLabel   = makeLabel("-", "white", 14, true);
-        playerTypeLabel   = makeLabel("Type: -", "#aaaaaa", 11, false);
+        playerNameLabel     = makeLabel("-", "white", 14, true);
+        playerTypeLabel     = makeLabel("Type: -", "#aaaaaa", 11, false);
         playerOrigRoleLabel = makeLabel("Original Role: -", "white", 11, false);
         playerCurrRoleLabel = makeLabel("Current Role: -", "white", 11, false);
-        playerPosLabel    = makeLabel("Position: -", "white", 12, true);
-        playerEnergyLabel = makeLabel("Energy: -", "white", 12, true);
-        playerStatusLabel = makeLabel("Status: Normal", "#00ffff", 11, false);
-        playerTurnLabel   = makeLabel("", "#00ff88", 14, true);
-        
+        playerPosLabel      = makeLabel("Position: -", "white", 12, true);
+        playerEnergyLabel   = makeLabel("Energy: -", "white", 12, true);
+        playerStatusLabel   = makeLabel("Status: Normal", "#00ffff", 11, false);
+        playerTurnLabel     = makeLabel("", "#00ff88", 14, true);
+
         playerPanelContainer.getChildren().addAll(
-            pTitle, playerPortrait, playerNameLabel, playerTypeLabel, 
-            playerOrigRoleLabel, playerCurrRoleLabel, playerPosLabel, 
+            pTitle, playerPortrait, playerNameLabel, playerTypeLabel,
+            playerOrigRoleLabel, playerCurrRoleLabel, playerPosLabel,
             playerEnergyLabel, playerEnergyBar, playerStatusLabel, playerTurnLabel
         );
 
         // --- Opponent panel ---
         opponentPanelContainer.setStyle("-fx-background-color: rgba(0,0,0,0.6); -fx-padding: 10; -fx-background-radius: 8;");
         opponentPanelContainer.setAlignment(Pos.TOP_CENTER);
-        
+
         opponentPortrait.setFitWidth(200);
         opponentPortrait.setPreserveRatio(true);
         opponentEnergyBar.setFitWidth(200);
         opponentEnergyBar.setPreserveRatio(true);
 
         Label oTitle = makeLabel("OPPONENT", "#ff6666", 16, true);
-        opponentNameLabel   = makeLabel("-", "white", 14, true);
-        opponentTypeLabel   = makeLabel("Type: -", "#aaaaaa", 11, false);
+        opponentNameLabel     = makeLabel("-", "white", 14, true);
+        opponentTypeLabel     = makeLabel("Type: -", "#aaaaaa", 11, false);
         opponentOrigRoleLabel = makeLabel("Original Role: -", "white", 11, false);
         opponentCurrRoleLabel = makeLabel("Current Role: -", "white", 11, false);
-        opponentPosLabel    = makeLabel("Position: -", "white", 12, true);
-        opponentEnergyLabel = makeLabel("Energy: -", "white", 12, true);
-        opponentStatusLabel = makeLabel("Status: Normal", "#00ffff", 11, false);
+        opponentPosLabel      = makeLabel("Position: -", "white", 12, true);
+        opponentEnergyLabel   = makeLabel("Energy: -", "white", 12, true);
+        opponentStatusLabel   = makeLabel("Status: Normal", "#00ffff", 11, false);
 
         opponentPanelContainer.getChildren().addAll(
-            oTitle, opponentPortrait, opponentNameLabel, opponentTypeLabel, 
-            opponentOrigRoleLabel, opponentCurrRoleLabel, opponentPosLabel, 
+            oTitle, opponentPortrait, opponentNameLabel, opponentTypeLabel,
+            opponentOrigRoleLabel, opponentCurrRoleLabel, opponentPosLabel,
             opponentEnergyLabel, opponentEnergyBar, opponentStatusLabel
         );
 
-        // --- Dice panel (sidebar label only — actual image is pinned to panel) ---
+        // --- Dice panel ---
         diceContainer.setStyle("-fx-background-color: rgba(0,0,0,0.6); -fx-padding: 8; -fx-background-radius: 8;");
         Label dTitle = makeLabel("DICE", "#ffcc00", 13, true);
         diceResultLabel = makeLabel("—", "white", 20, true);
@@ -371,7 +390,7 @@ public class GameController {
 
         // --- Build card overlay ---
         buildCardOverlay();
-     
+
         // --- Activate keyboard listeners for evaluation cheats ---
         setupCheatCodes();
 
@@ -553,6 +572,12 @@ public class GameController {
             else backgroundViews[guiRC[0]][guiRC[1]].setImage(normalImage);
         }
 
+        // --- Draw stationed monsters on their MonsterCell slots ---
+        for (Monster stationed : Board.getStationedMonsters()) {
+            int[] rc = indexToRowCol(stationed.getPosition());
+            monsterViews[rc[0]][rc[1]].setImage(getMonsterImage(stationed.getName()));
+        }
+
         drawMonsterOverlay(game.getPlayer());
         drawMonsterOverlay(game.getOpponent());
         updateDeckImage();
@@ -595,7 +620,7 @@ public class GameController {
 
     private void setCellImage(int row, int col, Cell cell) {
         if (cell instanceof MonsterCell) {
-            backgroundViews[row][col].setImage(normalImage);
+            backgroundViews[row][col].setImage(monsterCellGreyImage);
         } else if (cell instanceof DoorCell) {
             DoorCell door = (DoorCell) cell;
             Role role = door.getRole();
@@ -1056,4 +1081,5 @@ public class GameController {
             updateUI();
         }
     }
+    
 }
