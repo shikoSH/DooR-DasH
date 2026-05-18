@@ -43,16 +43,31 @@ public class GameController {
     @FXML private ImageView controlPanelView;
     @FXML private ImageView boardImageView;
 
-    // === Player panel labels ===
+ // === Player panel UI elements ===
+    private ImageView playerPortrait = new ImageView();
+    private ImageView playerEnergyBar = new ImageView();
     private Label playerNameLabel;
+    private Label playerTypeLabel;
+    private Label playerOrigRoleLabel;
+    private Label playerCurrRoleLabel;
     private Label playerPosLabel;
     private Label playerEnergyLabel;
+    private Label playerStatusLabel;
     private Label playerTurnLabel;
 
-    // === Opponent panel labels ===
+    // === Opponent panel UI elements ===
+    private ImageView opponentPortrait = new ImageView();
+    private ImageView opponentEnergyBar = new ImageView();
     private Label opponentNameLabel;
+    private Label opponentTypeLabel;
+    private Label opponentOrigRoleLabel;
+    private Label opponentCurrRoleLabel;
     private Label opponentPosLabel;
     private Label opponentEnergyLabel;
+    private Label opponentStatusLabel;
+
+    // === Energy Bar Images ===
+    private Image energy0, energy25, energy50, energy75, energy100;
 
     // === Dice / action log labels ===
     private Label diceResultLabel;
@@ -89,6 +104,15 @@ public class GameController {
     private Image conveyorImage;
     private Image contaminationImage;
     private Image cardCellImage;
+    
+ // === Monster Screen Images ===
+    private Image screenImage_celia_mae;
+    private Image screenImage_Fungus;
+    private Image screenImage_Henry;
+    private Image screenImage_Mike;
+    private Image screenImage_Randall;
+    private Image screenImage_Roz;
+    private Image screenImage_Yeti;
 
     // === Animation Lock ===
     private boolean isAnimating = false;
@@ -161,6 +185,22 @@ public class GameController {
         conveyorImage                       = loadImage(IMG + "conveyor.png");
         contaminationImage                  = loadImage(IMG + "sock.png");
         cardCellImage                       = loadImage(IMG + "CardCell.png");
+        
+     // --- Monster Screen images ---
+        screenImage_celia_mae = loadImage(IMG + "Celia_Mae_Screen.png");
+        screenImage_Fungus    = loadImage(IMG + "FungusScreen.png");
+        screenImage_Henry     = loadImage(IMG + "Henry_Screen.png");
+        screenImage_Mike      = loadImage(IMG + "Mike_Screen.png");
+        screenImage_Randall   = loadImage(IMG + "Randal_Screen.png");
+        screenImage_Roz       = loadImage(IMG + "Rose_Screen.png");
+        screenImage_Yeti      = loadImage(IMG + "Yeti_Screen.png");
+        
+     // --- Energy Bar images ---
+        energy0   = loadImage(IMG + "0_Energy_Player.png");
+        energy25  = loadImage(IMG + "25_Energy_Player.png");
+        energy50  = loadImage(IMG + "50_Energy_Player.png");
+        energy75  = loadImage(IMG + "75_Energy_Player.png");
+        energy100 = loadImage(IMG + "100_Energy_Player.png");
 
         // --- Card face images ---
         cardBackImage         = loadImage(IMG + "card_back_design.png");
@@ -262,24 +302,54 @@ public class GameController {
             }
         }
 
-        // --- Player panel ---
-        playerPanelContainer.setStyle("-fx-background-color: rgba(0,0,0,0.6); -fx-padding: 8; -fx-background-radius: 8;");
-        Label pTitle = makeLabel("YOUR MONSTER", "#ffcc00", 13, true);
-        playerNameLabel   = makeLabel("-", "white", 12, false);
-        playerPosLabel    = makeLabel("Pos: -", "white", 11, false);
-        playerEnergyLabel = makeLabel("Energy: -", "white", 11, false);
-        playerTurnLabel   = makeLabel("", "#00ff88", 12, true);
+     // --- Player panel ---
+        playerPanelContainer.setStyle("-fx-background-color: rgba(0,0,0,0.6); -fx-padding: 10; -fx-background-radius: 8;");
+        playerPanelContainer.setAlignment(Pos.TOP_CENTER);
+        
+        playerPortrait.setFitWidth(200);
+        playerPortrait.setPreserveRatio(true);
+        playerEnergyBar.setFitWidth(200);
+        playerEnergyBar.setPreserveRatio(true);
+
+        Label pTitle = makeLabel("YOUR MONSTER", "#ffcc00", 16, true);
+        playerNameLabel   = makeLabel("-", "white", 14, true);
+        playerTypeLabel   = makeLabel("Type: -", "#aaaaaa", 11, false);
+        playerOrigRoleLabel = makeLabel("Original Role: -", "white", 11, false);
+        playerCurrRoleLabel = makeLabel("Current Role: -", "white", 11, false);
+        playerPosLabel    = makeLabel("Position: -", "white", 12, true);
+        playerEnergyLabel = makeLabel("Energy: -", "white", 12, true);
+        playerStatusLabel = makeLabel("Status: Normal", "#00ffff", 11, false);
+        playerTurnLabel   = makeLabel("", "#00ff88", 14, true);
+        
         playerPanelContainer.getChildren().addAll(
-            pTitle, playerNameLabel, playerPosLabel, playerEnergyLabel, playerTurnLabel);
+            pTitle, playerPortrait, playerNameLabel, playerTypeLabel, 
+            playerOrigRoleLabel, playerCurrRoleLabel, playerPosLabel, 
+            playerEnergyLabel, playerEnergyBar, playerStatusLabel, playerTurnLabel
+        );
 
         // --- Opponent panel ---
-        opponentPanelContainer.setStyle("-fx-background-color: rgba(0,0,0,0.6); -fx-padding: 8; -fx-background-radius: 8;");
-        Label oTitle = makeLabel("OPPONENT", "#ff6666", 13, true);
-        opponentNameLabel   = makeLabel("-", "white", 12, false);
-        opponentPosLabel    = makeLabel("Pos: -", "white", 11, false);
-        opponentEnergyLabel = makeLabel("Energy: -", "white", 11, false);
+        opponentPanelContainer.setStyle("-fx-background-color: rgba(0,0,0,0.6); -fx-padding: 10; -fx-background-radius: 8;");
+        opponentPanelContainer.setAlignment(Pos.TOP_CENTER);
+        
+        opponentPortrait.setFitWidth(200);
+        opponentPortrait.setPreserveRatio(true);
+        opponentEnergyBar.setFitWidth(200);
+        opponentEnergyBar.setPreserveRatio(true);
+
+        Label oTitle = makeLabel("OPPONENT", "#ff6666", 16, true);
+        opponentNameLabel   = makeLabel("-", "white", 14, true);
+        opponentTypeLabel   = makeLabel("Type: -", "#aaaaaa", 11, false);
+        opponentOrigRoleLabel = makeLabel("Original Role: -", "white", 11, false);
+        opponentCurrRoleLabel = makeLabel("Current Role: -", "white", 11, false);
+        opponentPosLabel    = makeLabel("Position: -", "white", 12, true);
+        opponentEnergyLabel = makeLabel("Energy: -", "white", 12, true);
+        opponentStatusLabel = makeLabel("Status: Normal", "#00ffff", 11, false);
+
         opponentPanelContainer.getChildren().addAll(
-            oTitle, opponentNameLabel, opponentPosLabel, opponentEnergyLabel);
+            oTitle, opponentPortrait, opponentNameLabel, opponentTypeLabel, 
+            opponentOrigRoleLabel, opponentCurrRoleLabel, opponentPosLabel, 
+            opponentEnergyLabel, opponentEnergyBar, opponentStatusLabel
+        );
 
         // --- Dice panel (sidebar label only — actual image is pinned to panel) ---
         diceContainer.setStyle("-fx-background-color: rgba(0,0,0,0.6); -fx-padding: 8; -fx-background-radius: 8;");
@@ -542,6 +612,26 @@ public class GameController {
     // =========================================================
     //  UI UPDATE
     // =========================================================
+    private Image getMonsterScreenImage(String name) {
+        if (name == null) return null;
+        switch (name.trim().toLowerCase()) {
+            case "celia mae":               return screenImage_celia_mae;
+            case "fungus":                  return screenImage_Fungus;
+            case "henry j. waternoose":
+            case "henry j. waternoose iii": return screenImage_Henry;
+            case "mike wazowski":           return screenImage_Mike;
+            case "randall boggs":
+            case "randall":                 return screenImage_Randall;
+            case "roz":                     return screenImage_Roz;
+            case "yeti":                    return screenImage_Yeti;
+            case "james p. sullivan":
+            case "james sullivan":          return monsterImage_James_sullivan; // Fallback to normal portrait if no screen exists
+            default:                        return getMonsterImage(name); // Ultimate fallback
+        }
+    }
+ // =========================================================
+    //  UI UPDATE
+    // =========================================================
     private void updateUI() {
         if (game == null) return;
 
@@ -549,18 +639,73 @@ public class GameController {
         Monster opponent = game.getOpponent();
         Monster current  = game.getCurrent();
 
-        playerNameLabel.setText(player.getName());
-        playerPosLabel.setText("Pos: " + player.getPosition());
+        // --- Update Player Info ---
+        playerPortrait.setImage(getMonsterScreenImage(player.getName()));        playerNameLabel.setText(player.getName());
+        playerTypeLabel.setText("Type: " + player.getClass().getSimpleName());
+        // Note: Assuming your Game engine Role enum is available. 
+        // If your engine handles original vs current role differently, adjust these calls!
+        // We are using a generic fallback check here just in case.
+        playerOrigRoleLabel.setText("Original Role: " + (game.getPlayer().getOriginalRole() != null ? game.getPlayer().getOriginalRole().toString() : "-"));
+        playerCurrRoleLabel.setText("Current Role: " + (player.getRole() != null ? player.getRole().toString() : "-"));
+        
+        // Highlight current role in pink if it doesn't match original (Confusion)
+        if (!playerOrigRoleLabel.getText().replace("Original Role: ", "").equals(playerCurrRoleLabel.getText().replace("Current Role: ", ""))) {
+            playerCurrRoleLabel.setStyle("-fx-text-fill: #ff00ff; -fx-font-size: 11px; -fx-font-weight: bold;");
+        } else {
+            playerCurrRoleLabel.setStyle("-fx-text-fill: white; -fx-font-size: 11px;");
+        }
+
+        playerPosLabel.setText("Position: " + player.getPosition());
         playerEnergyLabel.setText("Energy: " + player.getEnergy());
+        updateEnergyBar(playerEnergyBar, player.getEnergy());
+        
+        // Status Effects compilation
+        String pStatus = "";
+        // You may need to change these method names depending on what you named them in your engine!
+        // e.g., player.hasShield(), player.getConfusionTurns(), player.isFrozen()
+        // If these getters don't exist yet, you can comment them out until the backend logic is ready.
+        // pStatus += player.hasShield() ? "[Shield Active] " : "";
+        pStatus += pStatus.isEmpty() ? "Normal" : pStatus;
+        playerStatusLabel.setText("Status: " + pStatus);
+
         playerTurnLabel.setText(current == player ? "▶ YOUR TURN" : "");
 
-        opponentNameLabel.setText(opponent.getName());
-        opponentPosLabel.setText("Pos: " + opponent.getPosition());
-        opponentEnergyLabel.setText("Energy: " + opponent.getEnergy());
 
+        // --- Update Opponent Info ---
+        opponentPortrait.setImage(getMonsterScreenImage(opponent.getName()));        opponentNameLabel.setText(opponent.getName());
+        opponentTypeLabel.setText("Type: " + opponent.getClass().getSimpleName());
+        opponentOrigRoleLabel.setText("Original Role: " + (game.getOpponent().getOriginalRole() != null ? game.getOpponent().getOriginalRole().toString() : "-"));
+        opponentCurrRoleLabel.setText("Current Role: " + (opponent.getRole() != null ? opponent.getRole().toString() : "-"));
+
+        if (!opponentOrigRoleLabel.getText().replace("Original Role: ", "").equals(opponentCurrRoleLabel.getText().replace("Current Role: ", ""))) {
+            opponentCurrRoleLabel.setStyle("-fx-text-fill: #ff00ff; -fx-font-size: 11px; -fx-font-weight: bold;");
+        } else {
+            opponentCurrRoleLabel.setStyle("-fx-text-fill: white; -fx-font-size: 11px;");
+        }
+
+        opponentPosLabel.setText("Position: " + opponent.getPosition());
+        opponentEnergyLabel.setText("Energy: " + opponent.getEnergy());
+        updateEnergyBar(opponentEnergyBar, opponent.getEnergy());
+
+        String oStatus = "";
+        // oStatus += opponent.hasShield() ? "[Shield Active] " : "";
+        oStatus += oStatus.isEmpty() ? "Normal" : oStatus;
+        opponentStatusLabel.setText("Status: " + oStatus);
+
+
+        // --- Update Main Prompt ---
         myLabel.setText(current == player ? "Your turn — press Roll!" : "Opponent's turn — press Roll!");
         myLabel.setStyle("-fx-font-size: 16px; -fx-padding: 8 0 8 0; -fx-text-fill: "
             + (current == player ? "#00ff88" : "#ff6666") + ";");
+    }
+
+    // Helper method to set the visual energy bar image based on current energy
+    private void updateEnergyBar(ImageView bar, int energy) {
+        if (energy >= 100) bar.setImage(energy100);
+        else if (energy >= 75) bar.setImage(energy75);
+        else if (energy >= 50) bar.setImage(energy50);
+        else if (energy >= 25) bar.setImage(energy25);
+        else bar.setImage(energy0);
     }
 
     // =========================================================
