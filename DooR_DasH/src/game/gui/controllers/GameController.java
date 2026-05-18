@@ -794,9 +794,14 @@ public class GameController {
                     }
 
                     if (game.getWinner() != null) {
-                        myLabel.setText(game.getWinner().getName() + " WINS!");
+                        Monster winner = game.getWinner();
+                        myLabel.setText(winner.getName() + " WINS!");
                         myLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #ffcc00;");
-                        SceneManager.getInstance().switchToGameOverScreen();
+                        SceneManager.getInstance().switchToGameOverScreen(
+                            winner.getName(),
+                            winner.getRole().toString(),
+                            game.getPlayer().getRole()   // the human player's original role for retry
+                        );
                     }
 
                     isAnimating = false;
@@ -1024,9 +1029,16 @@ public class GameController {
             // 4. Force the win condition screen 
             // (If your engine automatically sets the winner when position == 99, 
             // you can just check game.getWinner() != null instead)
-            myLabel.setText(current.getName() + " WINS!");
-            myLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #ffcc00;");
-            SceneManager.getInstance().switchToGameOverScreen();
+            if (game.getWinner() != null) {
+                Monster winner = game.getWinner();
+                myLabel.setText(winner.getName() + " WINS!");
+                myLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #ffcc00;");
+                SceneManager.getInstance().switchToGameOverScreen(
+                    winner.getName(),
+                    winner.getRole().toString(),
+                    game.getPlayer().getRole()   // the human player's original role for retry
+                );
+            }
 
         } else if (event.getCode() == KeyCode.E) {
             System.out.println("CHEAT ACTIVATED: Energy boost!");

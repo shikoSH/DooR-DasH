@@ -174,8 +174,32 @@ public class SceneManager {
         }
     }
 
-    public void switchToGameOverScreen() {
-        loadScene("GameOverScreen", "/game/gui/views/GameOverScreen.fxml");
+    public void switchToGameOverScreen(String winnerName, String winnerRole, game.engine.Role playerRole) {
+        try {
+            URL fxmlUrl = getClass().getResource("/game/gui/views/GameOverScreen.fxml");
+            if (fxmlUrl == null) {
+                System.err.println("ERROR: GameOverScreen.fxml not found!");
+                return;
+            }
+            FXMLLoader loader = new FXMLLoader(fxmlUrl);
+            Parent root = loader.load();
+
+            GameOverController controller = loader.getController();
+            controller.setWinner(winnerName, winnerRole, playerRole);
+
+            Scene scene = new Scene(root);
+            scene.setFill(javafx.scene.paint.Color.BLACK);
+            addStylesheet(scene, "/game/gui/resources/css/styles.css");
+            scenes.put("GameOverScreen", scene);
+            primaryStage.setScene(scene);
+
+            if (!primaryStage.isShowing()) {
+                primaryStage.show();
+            }
+        } catch (Exception e) {
+            System.err.println("ERROR: Failed to load GameOverScreen");
+            e.printStackTrace();
+        }
     }
 
     private void loadScene(String name, String fxmlPath) {
