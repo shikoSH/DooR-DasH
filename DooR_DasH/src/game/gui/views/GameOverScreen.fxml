@@ -16,7 +16,7 @@
          </image>
       </ImageView>
 <AnchorPane fx:id="overlayPane" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="920.0" prefWidth="1280.0" style="-fx-background-color: transparent;">         <children>
-            <Label fx:id="winsLabel" alignment="CENTER" layoutX="194.0" layoutY="633.0" prefHeight="70.0" prefWidth="980.0" text="WINS" textAlignment="CENTER" textFill="#e5fa03" wrapText="true">
+            <Label fx:id="winsLabel" alignment="CENTER" layoutX="214.0" layoutY="419.0" prefHeight="70.0" prefWidth="980.0" text="WINS" textAlignment="CENTER" textFill="#e5fa03" wrapText="true">
                <font>
                   <Font name="Book Antiqua" size="36.0" />
                </font>

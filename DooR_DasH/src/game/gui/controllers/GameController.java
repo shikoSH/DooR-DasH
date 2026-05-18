@@ -914,18 +914,23 @@ public class GameController {
     private void checkWinner() {
         Monster winner = game.getWinner();
         if (winner == null) return;
-        
+
         myLabel.setText(winner.getName() + " WINS! 🏆");
         myLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;" +
             "-fx-font-family: " + LED + "; -fx-text-fill: #ffcc00;");
         isAnimating = false;
-        
+
+        Monster player   = game.getPlayer();
+        Monster opponent = game.getOpponent();
+
         PauseTransition delay = new PauseTransition(Duration.millis(1500));
         delay.setOnFinished(e ->
             SceneManager.getInstance().switchToGameOverScreen(
                 winner.getName(),
                 winner.getRole().toString(),
-                game.getPlayer().getRole()
+                game.getPlayer().getRole(),
+                player.getName(),   player.getRole().toString(),   player.getEnergy(),
+                opponent.getName(), opponent.getRole().toString(), opponent.getEnergy()
             )
         );
         delay.play();
@@ -1085,21 +1090,74 @@ public class GameController {
             if (scene != null) scene.setOnKeyPressed(this::handleCheatKeys);
         });
     }
-
     private void handleCheatKeys(KeyEvent e) {
-        if (game == null || isAnimating || cardOverlay.isVisible()) return;
+
+        if (game == null)
+            return;
+
         Monster current = game.getCurrent();
+
+        // ─────────────────────────────────────────────
+        // W = teleport to 99
+        // ─────────────────────────────────────────────
         if (e.getCode() == KeyCode.W) {
+
             current.setPosition(99);
-            current.setEnergy(Constants.WINNING_ENERGY);  // add this line
-            actionLine1.setText("CHEAT: warped!");
-            actionLine2.setText(""); actionLine3.setText("");
-            refreshBoard(); updateUI(); checkWinner();
-        } else if (e.getCode() == KeyCode.E) {
-            current.setEnergy(current.getEnergy() + 50);
-            actionLine1.setText("CHEAT: +50 energy!");
-            actionLine2.setText(""); actionLine3.setText("");
-            refreshBoard(); updateUI();
+
+            actionLine1.setText("CHEAT: moved to cell 99!");
+            actionLine2.setText("");
+            actionLine3.setText("");
+
+            refreshBoard();
+            updateUI();
+        }
+
+        // ─────────────────────────────────────────────
+        // E = gain energy
+        // ─────────────────────────────────────────────
+        else if (e.getCode() == KeyCode.E) {
+
+            current.setEnergy(current.getEnergy() + 500);
+
+            actionLine1.setText("CHEAT: +500 energy!");
+            actionLine2.setText("");
+            actionLine3.setText("");
+
+            refreshBoard();
+            updateUI();
+        }
+
+        // ─────────────────────────────────────────────
+        // MANUAL WIN CHECK
+        // ─────────────────────────────────────────────
+        if (current.getPosition() == 99 && current.getEnergy() >= 1000) {
+
+            Monster player = game.getPlayer();
+            Monster opponent = game.getOpponent();
+
+            myLabel.setText(current.getName() + " WINS! 🏆");
+
+            PauseTransition delay = new PauseTransition(Duration.seconds(1));
+
+            delay.setOnFinished(event -> {
+
+                SceneManager.getInstance().switchToGameOverScreen(
+
+                    current.getName(),
+                    current.getRole().toString(),
+                    game.getPlayer().getRole(),
+
+                    player.getName(),
+                    player.getRole().toString(),
+                    player.getEnergy(),
+
+                    opponent.getName(),
+                    opponent.getRole().toString(),
+                    opponent.getEnergy()
+                );
+            });
+
+            delay.play();
         }
     }
 
