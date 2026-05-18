@@ -326,7 +326,7 @@ public class GameOverController {
             case "henry j. waternoose":
             case "henry j. waternoose iii": return "Henry_Screen.png";
             case "james p. sullivan":
-            case "james sullivan":          return "Mike_Screen.png";
+            case "james sullivan":          return "James_Screen.png";
             case "mike wazowski":           return "Mike_Screen.png";
             case "randall boggs":
             case "randall":                 return "Randal_Screen.png";
