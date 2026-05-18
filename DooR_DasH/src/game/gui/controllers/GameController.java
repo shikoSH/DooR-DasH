@@ -26,7 +26,8 @@ import game.engine.Board;
 import game.engine.cards.Card;
 import game.engine.cells.*;
 import javafx.beans.binding.NumberBinding;
-
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 
 public class GameController {
 
@@ -370,6 +371,9 @@ public class GameController {
 
         // --- Build card overlay ---
         buildCardOverlay();
+     
+        // --- Activate keyboard listeners for evaluation cheats ---
+        setupCheatCodes();
 
         System.out.println("DEBUG: GameController.initialize() complete");
     }
@@ -432,6 +436,7 @@ public class GameController {
         StackPane.setAlignment(cardOverlay, Pos.CENTER);
     }
 
+    
     // =========================================================
     //  SHOW / DISMISS CARD OVERLAY
     // =========================================================
@@ -981,5 +986,62 @@ public class GameController {
         layout.setAlignment(Pos.CENTER);
         dialog.setScene(new Scene(layout, 320, 140));
         dialog.showAndWait();
+    }
+ // =========================================================
+    //  CHEAT CODES (EVALUATION)
+    // =========================================================
+    private void setupCheatCodes() {
+        // We must wait for the Scene to be fully built and attached to our root node
+        backgroundRoot.sceneProperty().addListener((obs, oldScene, newScene) -> {
+            if (newScene != null) {
+                // Attach the key press listener to the entire screen
+                newScene.setOnKeyPressed(this::handleCheatKeys);
+            }
+        });
+    }
+
+    private void handleCheatKeys(KeyEvent event) {
+        // Do nothing if the game hasn't started or an animation is blocking the screen
+        if (game == null || isAnimating || cardOverlay.isVisible()) return;
+
+        Monster current = game.getCurrent();
+
+        if (event.getCode() == KeyCode.W) {
+            System.out.println("CHEAT ACTIVATED: Jumping to cell 99!");
+            
+            // 1. Force the current monster to the final cell
+            current.setPosition(99); 
+            
+            // 2. Update the action log visually
+            actionLine1.setText("CHEAT: " + current.getName() + " warped to finish!");
+            actionLine2.setText("");
+            actionLine3.setText("");
+
+            // 3. Refresh the visuals
+            refreshBoard();
+            updateUI();
+
+            // 4. Force the win condition screen 
+            // (If your engine automatically sets the winner when position == 99, 
+            // you can just check game.getWinner() != null instead)
+            myLabel.setText(current.getName() + " WINS!");
+            myLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #ffcc00;");
+            SceneManager.getInstance().switchToGameOverScreen();
+
+        } else if (event.getCode() == KeyCode.E) {
+            System.out.println("CHEAT ACTIVATED: Energy boost!");
+            
+            // 1. Add 50 energy to the current monster
+            current.setEnergy(current.getEnergy() + 50); 
+
+            // 2. Update the action log visually
+            actionLine1.setText("CHEAT: " + current.getName() + " gained 50 Energy!");
+            actionLine2.setText("");
+            actionLine3.setText("");
+
+            // 3. Refresh the visuals
+            refreshBoard();
+            updateUI();
+        }
     }
 }
