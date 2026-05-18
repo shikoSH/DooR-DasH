@@ -460,11 +460,13 @@ public class GameController {
 
                 Label energyLabel = new Label("");
                 energyLabel.setStyle(
-                    "-fx-font-family: " + LED + ";" +
-                    "-fx-font-size: 7px;" +
-                    "-fx-text-fill: #FFD700;" +
-                    "-fx-font-weight: bold;" +
-                    "-fx-padding: 0 0 1 0;");
+                	    "-fx-font-family: " + LED + ";" +
+                	    "-fx-font-size: 8px;" +
+                	    "-fx-text-fill: #FFD700;" +
+                	    "-fx-font-weight: bold;" +
+                	    "-fx-alignment: center;" +
+                	    "-fx-text-alignment: center;" +
+                	    "-fx-padding: 0 0 1 0;");
                 energyLabel.setVisible(false);
                 StackPane.setAlignment(energyLabel, Pos.BOTTOM_CENTER);
 
@@ -700,10 +702,20 @@ public class GameController {
                 setCellImage(rc[0], rc[1], cell);
                 if (cell instanceof DoorCell) {
                     DoorCell door = (DoorCell) cell;
+
+                    String roleText = (door.getRole() == Role.SCARER)
+                        ? "SCARER"
+                        : "LAUGHER";
+
                     if (!door.isActivated()) {
-                        energyLabels[rc[0]][rc[1]].setText("⚡" + door.getEnergy());
-                        energyLabels[rc[0]][rc[1]].setVisible(true);
+                        energyLabels[rc[0]][rc[1]].setText(
+                            roleText + "\n⚡" + door.getEnergy()
+                        );
+                    } else {
+                        energyLabels[rc[0]][rc[1]].setText(roleText);
                     }
+
+                    energyLabels[rc[0]][rc[1]].setVisible(true);
                 }
             } else {
                 backgroundViews[rc[0]][rc[1]].setImage(normalImage);
@@ -734,8 +746,18 @@ public class GameController {
     }
 
     private void setCellImage(int row, int col, Cell cell) {
-        if (cell instanceof MonsterCell)
-            backgroundViews[row][col].setImage(monsterCellGreyImage);
+    	if (cell instanceof MonsterCell) {
+    	    backgroundViews[row][col].setImage(monsterCellGreyImage);
+
+    	    MonsterCell monsterCell = (MonsterCell) cell;
+
+    	    String roleText = (monsterCell.getCellMonster().getRole() == Role.SCARER)
+    	        ? "SCARER"
+    	        : "LAUGHER";
+
+    	    energyLabels[row][col].setText(roleText);
+    	    energyLabels[row][col].setVisible(true);
+    	}
         else if (cell instanceof DoorCell) {
             DoorCell door = (DoorCell) cell;
             backgroundViews[row][col].setImage(door.isActivated()
