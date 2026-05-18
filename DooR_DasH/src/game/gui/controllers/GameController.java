@@ -912,14 +912,23 @@ public class GameController {
     }
 
     private void checkWinner() {
-        if (game.getWinner() == null) return;
         Monster winner = game.getWinner();
+        if (winner == null) return;
+        
         myLabel.setText(winner.getName() + " WINS! 🏆");
         myLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;" +
             "-fx-font-family: " + LED + "; -fx-text-fill: #ffcc00;");
-        SceneManager.getInstance().switchToGameOverScreen(
-            winner.getName(), winner.getRole().toString(),
-            game.getPlayer().getRole());
+        isAnimating = false;
+        
+        PauseTransition delay = new PauseTransition(Duration.millis(1500));
+        delay.setOnFinished(e ->
+            SceneManager.getInstance().switchToGameOverScreen(
+                winner.getName(),
+                winner.getRole().toString(),
+                game.getPlayer().getRole()
+            )
+        );
+        delay.play();
     }
 
     // =========================================================
@@ -1082,6 +1091,7 @@ public class GameController {
         Monster current = game.getCurrent();
         if (e.getCode() == KeyCode.W) {
             current.setPosition(99);
+            current.setEnergy(Constants.WINNING_ENERGY);  // add this line
             actionLine1.setText("CHEAT: warped!");
             actionLine2.setText(""); actionLine3.setText("");
             refreshBoard(); updateUI(); checkWinner();
