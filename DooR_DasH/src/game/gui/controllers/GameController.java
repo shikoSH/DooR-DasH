@@ -118,26 +118,26 @@ public class GameController {
 
     // TOP PADDING of panels: push content down below panel image text
     // Increase to push labels further down
-    private static final double PANEL_TOP_PAD_MULT = 0.06;
+    private static final double PANEL_TOP_PAD_MULT = 0.12;
 
     // ── CONTROL BAR items ────────────────────────────────────
 
     // CARD DECK position and size
-    private static final double DECK_LEFT_MULT     = 0.055; // from left edge
-    private static final double DECK_TOP_MULT      = 0.02;  // from top of bar
-    private static final double DECK_W_MULT        = 0.045; // width
-    private static final double DECK_H_MULT        = 0.09;  // height
+    private static final double DECK_LEFT_MULT     = 0.245; // from left edge
+    private static final double DECK_TOP_MULT      = -0.125;  // from top of bar
+    private static final double DECK_W_MULT        = 0.162; // width
+    private static final double DECK_H_MULT        = 0.324;  // height
 
     // DICE size (square — width == height)
-    private static final double DICE_SIZE_MULT     = 0.09;  // of screen height
-    private static final double DICE_TOP_MULT      = 0.01;  // from top of bar
+    private static final double DICE_SIZE_MULT     = 0.27;  // of screen height
+    private static final double DICE_TOP_MULT      = -0.15;  // from top of bar
 
     // BUTTONS size and position
-    private static final double BTN_W_MULT         = 0.09;  // width of each button
-    private static final double BTN_H_MULT         = 0.09;  // height of each button
-    private static final double BTN_TOP_MULT       = 0.02;  // from top of bar
-    private static final double ROLL_RIGHT_MULT    = 0.01;  // distance from right edge
-    private static final double POWERUP_RIGHT_MULT = 0.105; // distance from right edge
+    private static final double BTN_W_MULT         = 0.13;  // width of each button
+    private static final double BTN_H_MULT         = 0.13;  // height of each button
+    private static final double BTN_TOP_MULT       = -0.05;  // from top of bar
+    private static final double ROLL_RIGHT_MULT    = 0.189;  // distance from right edge
+    private static final double POWERUP_RIGHT_MULT = 0.287; // distance from right edge
 
     // =========================================================
     //  INITIALIZE
@@ -224,8 +224,8 @@ public class GameController {
         // Energy bar heights
         backgroundRoot.heightProperty().addListener((obs, old, h) -> {
             double barH = h.doubleValue() * ENERGY_BAR_H_MULT;
-            playerEnergyBar.setFitHeight(barH);
-            opponentEnergyBar.setFitHeight(barH);
+            playerEnergyBar.setFitHeight(barH*1.8);
+            opponentEnergyBar.setFitHeight(barH*1.8);
         });
 
         // Panel top padding
@@ -265,8 +265,8 @@ public class GameController {
         double diceSize = H * DICE_SIZE_MULT;
         diceView.setFitWidth(diceSize);
         diceView.setFitHeight(diceSize);
-        AnchorPane.setLeftAnchor(diceView,   (W / 2) - (diceSize / 2));
-        AnchorPane.setTopAnchor(diceView,    H * CONTROL_BAR_MULT * DICE_TOP_MULT * 6);
+        AnchorPane.setLeftAnchor(diceView,   (W / 2) - (diceSize / 2) + 6);
+        AnchorPane.setTopAnchor(diceView,    H * CONTROL_BAR_MULT * DICE_TOP_MULT * 5);
         AnchorPane.setRightAnchor(diceView,  null);
         AnchorPane.setBottomAnchor(diceView, null);
 
@@ -466,6 +466,8 @@ public class GameController {
 
         playerPortrait.setPreserveRatio(true);
         playerEnergyBar.setPreserveRatio(true);
+        VBox.setMargin(playerEnergyBar, new Insets(0, -30, 0, 0));
+        VBox.setMargin(playerPortrait, new Insets(11, -30, 0, 0));
 
         playerNameLabel     = ledLabel("-", "white", 12, true);
         playerTypeLabel     = ledLabel("Type: -", "#aaaaaa", 10, false);
@@ -912,28 +914,14 @@ public class GameController {
     }
 
     private void checkWinner() {
+        if (game.getWinner() == null) return;
         Monster winner = game.getWinner();
-        if (winner == null) return;
-
         myLabel.setText(winner.getName() + " WINS! 🏆");
         myLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;" +
             "-fx-font-family: " + LED + "; -fx-text-fill: #ffcc00;");
-        isAnimating = false;
-
-        Monster player   = game.getPlayer();
-        Monster opponent = game.getOpponent();
-
-        PauseTransition delay = new PauseTransition(Duration.millis(1500));
-        delay.setOnFinished(e ->
-            SceneManager.getInstance().switchToGameOverScreen(
-                winner.getName(),
-                winner.getRole().toString(),
-                game.getPlayer().getRole(),
-                player.getName(),   player.getRole().toString(),   player.getEnergy(),
-                opponent.getName(), opponent.getRole().toString(), opponent.getEnergy()
-            )
-        );
-        delay.play();
+        SceneManager.getInstance().switchToGameOverScreen(
+            winner.getName(), winner.getRole().toString(),
+            game.getPlayer().getRole());
     }
 
     // =========================================================
@@ -1090,74 +1078,20 @@ public class GameController {
             if (scene != null) scene.setOnKeyPressed(this::handleCheatKeys);
         });
     }
+
     private void handleCheatKeys(KeyEvent e) {
-
-        if (game == null)
-            return;
-
+        if (game == null || isAnimating || cardOverlay.isVisible()) return;
         Monster current = game.getCurrent();
-
-        // ─────────────────────────────────────────────
-        // W = teleport to 99
-        // ─────────────────────────────────────────────
         if (e.getCode() == KeyCode.W) {
-
             current.setPosition(99);
-
-            actionLine1.setText("CHEAT: moved to cell 99!");
-            actionLine2.setText("");
-            actionLine3.setText("");
-
-            refreshBoard();
-            updateUI();
-        }
-
-        // ─────────────────────────────────────────────
-        // E = gain energy
-        // ─────────────────────────────────────────────
-        else if (e.getCode() == KeyCode.E) {
-
-            current.setEnergy(current.getEnergy() + 500);
-
-            actionLine1.setText("CHEAT: +500 energy!");
-            actionLine2.setText("");
-            actionLine3.setText("");
-
-            refreshBoard();
-            updateUI();
-        }
-
-        // ─────────────────────────────────────────────
-        // MANUAL WIN CHECK
-        // ─────────────────────────────────────────────
-        if (current.getPosition() == 99 && current.getEnergy() >= 1000) {
-
-            Monster player = game.getPlayer();
-            Monster opponent = game.getOpponent();
-
-            myLabel.setText(current.getName() + " WINS! 🏆");
-
-            PauseTransition delay = new PauseTransition(Duration.seconds(1));
-
-            delay.setOnFinished(event -> {
-
-                SceneManager.getInstance().switchToGameOverScreen(
-
-                    current.getName(),
-                    current.getRole().toString(),
-                    game.getPlayer().getRole(),
-
-                    player.getName(),
-                    player.getRole().toString(),
-                    player.getEnergy(),
-
-                    opponent.getName(),
-                    opponent.getRole().toString(),
-                    opponent.getEnergy()
-                );
-            });
-
-            delay.play();
+            actionLine1.setText("CHEAT: warped!");
+            actionLine2.setText(""); actionLine3.setText("");
+            refreshBoard(); updateUI(); checkWinner();
+        } else if (e.getCode() == KeyCode.E) {
+            current.setEnergy(current.getEnergy() + 50);
+            actionLine1.setText("CHEAT: +50 energy!");
+            actionLine2.setText(""); actionLine3.setText("");
+            refreshBoard(); updateUI();
         }
     }
 
