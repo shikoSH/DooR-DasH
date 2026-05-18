@@ -1,6 +1,7 @@
 package game.gui.controllers;
 
 import javafx.animation.*;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -43,8 +44,16 @@ public class GameController {
     @FXML private AnchorPane controlBar;
     @FXML private BorderPane masterLayout;
 
+    // Change font: "\"Courier New\", monospace" = LED, "\"Arial\", sans-serif" = modern
     private static final String LED = "\"Courier New\", monospace";
+
+    // Change this to scale ALL text: 1.0 = normal, 1.4 = 40% bigger
+    private static final double TEXT_SCALE = 1.4;
+
     private static final String IMG = "/game/gui/resources/images/";
+
+    // Image cache — avoids reloading the same file multiple times
+    private static final java.util.HashMap<String, Image> IMAGE_CACHE = new java.util.HashMap<>();
 
     // ── Grid views ────────────────────────────────────────────
     private ImageView[][] backgroundViews;
@@ -60,6 +69,7 @@ public class GameController {
     private Image monsterImage_Mike_Wazowski, monsterImage_Randall, monsterImage_Roz, monsterImage_Yeti;
     private Image screenImage_celia_mae, screenImage_Fungus, screenImage_Henry;
     private Image screenImage_Mike, screenImage_Randall, screenImage_Roz, screenImage_Yeti;
+    private Image screenImage_James;   // James P. Sullivan screen portrait
     private Image energy0, energy25, energy50, energy75, energy100;
     private Image deckFull, deckMid, deckLeast;
     private Image[] diceImages = new Image[6];
@@ -100,44 +110,54 @@ public class GameController {
 
     // BOARD: how much of the screen height the board takes up
     // Increase = bigger board, Decrease = smaller board
-    private static final double BOARD_SIZE_MULT    = 0.66;
+    private static final double BOARD_SIZE_MULT     = 0.66;
 
     // BOTTOM BAR: how much of screen height the control bar takes
     // Increase = taller bar, more room for buttons
-    private static final double CONTROL_BAR_MULT   = 0.16;
+    private static final double CONTROL_BAR_MULT    = 0.16;
 
     // SIDE PANELS: how much of screen width each side panel takes
     // Increase = wider panels
-    private static final double SIDE_PANEL_WIDTH   = 0.16;
+    private static final double SIDE_PANEL_WIDTH    = 0.16;
 
     // PORTRAIT: how wide the monster portrait is as fraction of panel width
     private static final double PORTRAIT_WIDTH_MULT = 0.85;
 
     // ENERGY BAR: height as fraction of screen height
-    private static final double ENERGY_BAR_H_MULT  = 0.13;
+    private static final double ENERGY_BAR_H_MULT   = 0.13;
 
     // TOP PADDING of panels: push content down below panel image text
     // Increase to push labels further down
-    private static final double PANEL_TOP_PAD_MULT = 0.12;
+    private static final double PANEL_TOP_PAD_MULT  = 0.12;
 
     // ── CONTROL BAR items ────────────────────────────────────
 
     // CARD DECK position and size
-    private static final double DECK_LEFT_MULT     = 0.245; // from left edge
-    private static final double DECK_TOP_MULT      = -0.125;  // from top of bar
-    private static final double DECK_W_MULT        = 0.162; // width
-    private static final double DECK_H_MULT        = 0.324;  // height
+    // DECK_LEFT_MULT: from left (0.05=near left, 0.30=center)
+    // DECK_TOP_MULT:  from top of bar (0.05=top, 0.30=lower)
+    // DECK_W_MULT:    width fraction of screen width
+    // DECK_H_MULT:    height fraction of screen height
+    private static final double DECK_LEFT_MULT      = 0.245;
+    private static final double DECK_TOP_MULT       = 0.05;
+    private static final double DECK_W_MULT         = 0.055;
+    private static final double DECK_H_MULT         = 0.12;
 
     // DICE size (square — width == height)
-    private static final double DICE_SIZE_MULT     = 0.27;  // of screen height
-    private static final double DICE_TOP_MULT      = -0.15;  // from top of bar
+    // DICE_SIZE_MULT: size fraction of screen HEIGHT (square)
+    // DICE_TOP_MULT:  from top of bar fraction of bar height
+    private static final double DICE_SIZE_MULT      = 0.14;
+    private static final double DICE_TOP_MULT       = 0.05;
 
     // BUTTONS size and position
-    private static final double BTN_W_MULT         = 0.13;  // width of each button
-    private static final double BTN_H_MULT         = 0.13;  // height of each button
-    private static final double BTN_TOP_MULT       = -0.05;  // from top of bar
-    private static final double ROLL_RIGHT_MULT    = 0.189;  // distance from right edge
-    private static final double POWERUP_RIGHT_MULT = 0.287; // distance from right edge
+    // BTN_W_MULT/BTN_H_MULT: size fractions of screen
+    // BTN_TOP_MULT:          from top of bar
+    // ROLL_RIGHT_MULT:       distance from right edge
+    // POWERUP_RIGHT_MULT:    distance from right edge (must > ROLL + btnW)
+    private static final double BTN_W_MULT          = 0.13;
+    private static final double BTN_H_MULT          = 0.13;
+    private static final double BTN_TOP_MULT        = 0.05;
+    private static final double ROLL_RIGHT_MULT     = 0.189;
+    private static final double POWERUP_RIGHT_MULT  = 0.287;
 
     // =========================================================
     //  INITIALIZE
@@ -157,9 +177,12 @@ public class GameController {
             buildDicePanel();
             buildCardOverlay();
             setupCheatCodes();
-
-            // Bind all sizes and positions responsively
             setupResponsiveLayout();
+
+            // Fire layout once scene is fully attached
+            backgroundRoot.sceneProperty().addListener((obs, old, scene) -> {
+                if (scene != null) Platform.runLater(this::applyAllLayout);
+            });
 
             System.out.println("DEBUG: GameController.initialize() done");
         } catch (Exception e) {
@@ -184,8 +207,10 @@ public class GameController {
         // Board holder slightly bigger than board
         javafx.beans.binding.NumberBinding boardSize =
             backgroundRoot.heightProperty().multiply(BOARD_SIZE_MULT);
-        boardHolderView.fitWidthProperty().bind(boardSize.multiply(1.06));
-        boardHolderView.fitHeightProperty().bind(boardSize.multiply(1.06));
+
+        boardHolderView.fitWidthProperty().bind(boardSize.multiply(1.12));
+        boardHolderView.fitHeightProperty().bind(boardSize.multiply(1.12));
+        boardHolderView.setImage(loadImage(IMG + "Board_Holder.png"));
 
         // Board grid
         boardImageView.fitWidthProperty().bind(boardSize);
@@ -195,66 +220,60 @@ public class GameController {
         grid.minWidthProperty().bind(boardSize);
         grid.minHeightProperty().bind(boardSize);
 
-        // Board container margin — bottom reserves space for control bar
-        backgroundRoot.heightProperty().addListener((obs, old, h) -> {
-            double barH = h.doubleValue() * CONTROL_BAR_MULT;
-            BorderPane.setMargin(boardContainer,
-                new Insets(6, 6, barH + 6, 6));
-            controlBar.setPrefHeight(barH);
-            applyControlBarLayout();
-        });
-
-        // Side panel widths
-        backgroundRoot.widthProperty().addListener((obs, old, w) -> {
-            double panelW = w.doubleValue() * SIDE_PANEL_WIDTH;
-            playerPanelContainer.setPrefWidth(panelW);
-            if (masterLayout.getRight() != null)
-                ((VBox) masterLayout.getRight()).setPrefWidth(panelW);
-
-            // Portrait and energy bar widths
-            double portraitW = panelW * PORTRAIT_WIDTH_MULT;
-            playerPortrait.setFitWidth(portraitW);
-            opponentPortrait.setFitWidth(portraitW);
-            playerEnergyBar.setFitWidth(portraitW);
-            opponentEnergyBar.setFitWidth(portraitW);
-
-            applyControlBarLayout();
-        });
-
-        // Energy bar heights
-        backgroundRoot.heightProperty().addListener((obs, old, h) -> {
-            double barH = h.doubleValue() * ENERGY_BAR_H_MULT;
-            playerEnergyBar.setFitHeight(barH*1.8);
-            opponentEnergyBar.setFitHeight(barH*1.8);
-        });
-
-        // Panel top padding
-        backgroundRoot.heightProperty().addListener((obs, old, h) -> {
-            double pad = h.doubleValue() * PANEL_TOP_PAD_MULT;
-            playerPanelContainer.setStyle(
-                "-fx-padding: " + pad + " 6 6 6;");
-            opponentPanelContainer.setStyle(
-                "-fx-padding: " + pad + " 6 6 6;");
-        });
+        // Re-apply full layout on any resize
+        javafx.beans.value.ChangeListener<Number> onResize =
+            (obs, old, val) -> applyAllLayout();
+        backgroundRoot.widthProperty().addListener(onResize);
+        backgroundRoot.heightProperty().addListener(onResize);
     }
 
-    // Positions items inside the control bar proportionally
-    private void applyControlBarLayout() {
+    /**
+     * Single method that repositions and resizes every element in the control
+     * bar (and side panels) using the multiplier constants above.
+     * Called on every resize event and once after the scene attaches.
+     */
+    private void applyAllLayout() {
         double W = backgroundRoot.getWidth();
         double H = backgroundRoot.getHeight();
         if (W == 0 || H == 0) return;
+
+        // ── BOARD CONTAINER margin ────────────────────────────
+        double barH = H * CONTROL_BAR_MULT;
+        BorderPane.setMargin(boardContainer, new Insets(6, 6, barH + 6, 6));
+        controlBar.setPrefHeight(barH);
+
+        // ── SIDE PANELS ───────────────────────────────────────
+        double panelW = W * SIDE_PANEL_WIDTH;
+        playerPanelContainer.setPrefWidth(panelW);
+        if (masterLayout.getRight() != null)
+            ((VBox) masterLayout.getRight()).setPrefWidth(panelW);
+
+        // Portrait and energy bar widths
+        double portraitW = panelW * PORTRAIT_WIDTH_MULT;
+        playerPortrait.setFitWidth(portraitW);
+        opponentPortrait.setFitWidth(portraitW);
+        playerEnergyBar.setFitWidth(portraitW);
+        opponentEnergyBar.setFitWidth(portraitW);
+
+        // Energy bar heights
+        double energyH = H * ENERGY_BAR_H_MULT * 1.8;
+        playerEnergyBar.setFitHeight(energyH);
+        opponentEnergyBar.setFitHeight(energyH);
+
+        // Panel top padding
+        double pad = H * PANEL_TOP_PAD_MULT;
+        playerPanelContainer.setStyle("-fx-padding: " + pad + " 6 6 6;");
+        opponentPanelContainer.setStyle("-fx-padding: " + pad + " 6 6 6;");
 
         // ── CARD DECK ──────────────────────────────────────────
         // DECK_LEFT_MULT  = how far from left (0.0 = left edge, 0.5 = center)
         // DECK_TOP_MULT   = how far from top of control bar
         // DECK_W_MULT     = width as fraction of screen width
         // DECK_H_MULT     = height as fraction of screen height
-        double deckW = W * DECK_W_MULT;
-        double deckH = H * DECK_H_MULT;
-        cardDeckView.setFitWidth(deckW);
-        cardDeckView.setFitHeight(deckH);
+        cardDeckView.setFitWidth(W * DECK_W_MULT);
+        cardDeckView.setFitHeight(H * DECK_H_MULT);
         AnchorPane.setLeftAnchor(cardDeckView,   W * DECK_LEFT_MULT);
-        AnchorPane.setTopAnchor(cardDeckView,    H * CONTROL_BAR_MULT * DECK_TOP_MULT * 6);
+        AnchorPane.setTopAnchor(cardDeckView,    barH * DECK_TOP_MULT);
         AnchorPane.setRightAnchor(cardDeckView,  null);
         AnchorPane.setBottomAnchor(cardDeckView, null);
 
@@ -266,7 +285,7 @@ public class GameController {
         diceView.setFitWidth(diceSize);
         diceView.setFitHeight(diceSize);
         AnchorPane.setLeftAnchor(diceView,   (W / 2) - (diceSize / 2) + 6);
-        AnchorPane.setTopAnchor(diceView,    H * CONTROL_BAR_MULT * DICE_TOP_MULT * 5);
+        AnchorPane.setTopAnchor(diceView,    barH * DICE_TOP_MULT);
         AnchorPane.setRightAnchor(diceView,  null);
         AnchorPane.setBottomAnchor(diceView, null);
 
@@ -276,26 +295,26 @@ public class GameController {
         AnchorPane.setRightAnchor(diceResultLabel,  null);
         AnchorPane.setTopAnchor(diceResultLabel,    null);
 
-        // ── POWER UP BUTTON ────────────────────────────────────
+        // ── BUTTONS ────────────────────────────────────────────
         // BTN_W_MULT      = button width as fraction of screen width
         // BTN_H_MULT      = button height as fraction of screen height
         // BTN_TOP_MULT    = from top of control bar
         // POWERUP_RIGHT_MULT = distance from right edge as fraction of screen width
+        // ROLL_RIGHT_MULT    = distance from right edge as fraction of screen width
         double btnW = W * BTN_W_MULT;
         double btnH = H * BTN_H_MULT;
+
         powerUpImageBtn.setFitWidth(btnW);
         powerUpImageBtn.setFitHeight(btnH);
         AnchorPane.setRightAnchor(powerUpImageBtn,  W * POWERUP_RIGHT_MULT);
-        AnchorPane.setTopAnchor(powerUpImageBtn,    H * CONTROL_BAR_MULT * BTN_TOP_MULT * 6);
+        AnchorPane.setTopAnchor(powerUpImageBtn,    barH * BTN_TOP_MULT);
         AnchorPane.setLeftAnchor(powerUpImageBtn,   null);
         AnchorPane.setBottomAnchor(powerUpImageBtn, null);
 
-        // ── ROLL BUTTON ────────────────────────────────────────
-        // ROLL_RIGHT_MULT = distance from right edge as fraction of screen width
         rollImageBtn.setFitWidth(btnW);
         rollImageBtn.setFitHeight(btnH);
         AnchorPane.setRightAnchor(rollImageBtn,  W * ROLL_RIGHT_MULT);
-        AnchorPane.setTopAnchor(rollImageBtn,    H * CONTROL_BAR_MULT * BTN_TOP_MULT * 6);
+        AnchorPane.setTopAnchor(rollImageBtn,    barH * BTN_TOP_MULT);
         AnchorPane.setLeftAnchor(rollImageBtn,   null);
         AnchorPane.setBottomAnchor(rollImageBtn, null);
     }
@@ -325,6 +344,11 @@ public class GameController {
         });
     }
 
+    /** Stop parallax timer when leaving this screen to avoid memory leaks. */
+    public void stopParallax() {
+        if (parallaxTimer != null) parallaxTimer.stop();
+    }
+
     // =========================================================
     //  LOAD IMAGES
     // =========================================================
@@ -347,9 +371,11 @@ public class GameController {
         cardCellImage                       = loadImage(IMG + "CardCell.png");
         monsterCellGreyImage                = loadImage(IMG + "MonsterCell_Grey.png");
 
+        // Screen images
+        screenImage_James     = loadImage(IMG + "Henry_Screen.png");   // James uses Henry_Screen
         screenImage_celia_mae = loadImage(IMG + "Celia_Mae_Screen.png");
         screenImage_Fungus    = loadImage(IMG + "FungusScreen.png");
-        screenImage_Henry     = loadImage(IMG + "Henry_Screen.png");
+        screenImage_Henry     = loadImage(IMG + "Henry_J._Waternoose_III.png");
         screenImage_Mike      = loadImage(IMG + "Mike_Screen.png");
         screenImage_Randall   = loadImage(IMG + "Randal_Screen.png");
         screenImage_Roz       = loadImage(IMG + "Rose_Screen.png");
@@ -463,20 +489,19 @@ public class GameController {
     // =========================================================
     private void buildPlayerPanel() {
         playerPanelContainer.setAlignment(Pos.TOP_CENTER);
-
         playerPortrait.setPreserveRatio(true);
         playerEnergyBar.setPreserveRatio(true);
-        VBox.setMargin(playerEnergyBar, new Insets(0, -30, 0, 0));
-        VBox.setMargin(playerPortrait, new Insets(11, -30, 0, 0));
+        VBox.setMargin(playerPortrait,  new Insets(11, -30, 0, 0));
+        VBox.setMargin(playerEnergyBar, new Insets(0,  -30, 0, 0));
 
-        playerNameLabel     = ledLabel("-", "white", 12, true);
-        playerTypeLabel     = ledLabel("Type: -", "#aaaaaa", 10, false);
-        playerOrigRoleLabel = ledLabel("Orig: -", "white", 10, false);
-        playerCurrRoleLabel = ledLabel("Curr: -", "white", 10, false);
-        playerPosLabel      = ledLabel("Pos: -", "#00ffff", 11, true);
+        playerNameLabel     = ledLabel("-",              "white",   12, true);
+        playerTypeLabel     = ledLabel("Type: -",        "#aaaaaa", 10, false);
+        playerOrigRoleLabel = ledLabel("Orig: -",        "white",   10, false);
+        playerCurrRoleLabel = ledLabel("Curr: -",        "white",   10, false);
+        playerPosLabel      = ledLabel("Pos: -",         "#00ffff", 11, true);
         playerEnergyLabel   = ledLabel("Energy: -/1000", "#00ff88", 11, true);
-        playerStatusLabel   = ledLabel("Normal", "#aaaaaa", 10, false);
-        playerTurnLabel     = ledLabel("", "#ffcc00", 12, true);
+        playerStatusLabel   = ledLabel("Normal",         "#aaaaaa", 10, false);
+        playerTurnLabel     = ledLabel("",               "#ffcc00", 12, true);
 
         playerPanelContainer.getChildren().addAll(
             playerPortrait, playerNameLabel, playerTypeLabel,
@@ -491,17 +516,16 @@ public class GameController {
     // =========================================================
     private void buildOpponentPanel() {
         opponentPanelContainer.setAlignment(Pos.TOP_CENTER);
-
         opponentPortrait.setPreserveRatio(true);
         opponentEnergyBar.setPreserveRatio(true);
 
-        opponentNameLabel     = ledLabel("-", "white", 12, true);
-        opponentTypeLabel     = ledLabel("Type: -", "#aaaaaa", 10, false);
-        opponentOrigRoleLabel = ledLabel("Orig: -", "white", 10, false);
-        opponentCurrRoleLabel = ledLabel("Curr: -", "white", 10, false);
-        opponentPosLabel      = ledLabel("Pos: -", "#00ffff", 11, true);
+        opponentNameLabel     = ledLabel("-",              "white",   12, true);
+        opponentTypeLabel     = ledLabel("Type: -",        "#aaaaaa", 10, false);
+        opponentOrigRoleLabel = ledLabel("Orig: -",        "white",   10, false);
+        opponentCurrRoleLabel = ledLabel("Curr: -",        "white",   10, false);
+        opponentPosLabel      = ledLabel("Pos: -",         "#00ffff", 11, true);
         opponentEnergyLabel   = ledLabel("Energy: -/1000", "#ff6666", 11, true);
-        opponentStatusLabel   = ledLabel("Normal", "#aaaaaa", 10, false);
+        opponentStatusLabel   = ledLabel("Normal",         "#aaaaaa", 10, false);
 
         opponentPanelContainer.getChildren().addAll(
             opponentPortrait, opponentNameLabel, opponentTypeLabel,
@@ -517,7 +541,7 @@ public class GameController {
     private void buildActionLog() {
         actionLogContainer.setStyle("-fx-padding: 6;");
         Label title = ledLabel("ACTION LOG", "#ffcc00", 10, true);
-        actionLine1 = ledLabel("", "white", 10, false);
+        actionLine1 = ledLabel("", "white",   10, false);
         actionLine2 = ledLabel("", "#aaffaa", 10, false);
         actionLine3 = ledLabel("", "#aaaaff", 10, false);
         for (Label l : new Label[]{actionLine1, actionLine2, actionLine3}) {
@@ -588,14 +612,12 @@ public class GameController {
         cardOverlayEffect.setAlignment(Pos.CENTER);
 
         Label hint = new Label("tap to continue");
-        hint.setStyle(
-            "-fx-text-fill: #666; -fx-font-size: 10px; -fx-font-style: italic;");
+        hint.setStyle("-fx-text-fill: #666; -fx-font-size: 10px; -fx-font-style: italic;");
 
         cardOverlay.getChildren().addAll(
             cardOverlayBack, cardOverlayFace,
             cardOverlayName, cardOverlayDesc, cardOverlayEffect, hint);
         cardOverlay.setOnMouseClicked(e -> dismissCardOverlay());
-
         boardContainer.getChildren().add(cardOverlay);
         StackPane.setAlignment(cardOverlay, Pos.CENTER);
     }
@@ -752,7 +774,8 @@ public class GameController {
         boolean pConfused = !player.getOriginalRole().equals(player.getRole());
         playerCurrRoleLabel.setStyle(
             "-fx-text-fill: " + (pConfused ? "#ff00ff" : "white") + ";" +
-            "-fx-font-size: 10px; -fx-font-family: " + LED + ";" +
+            "-fx-font-size: " + (int)(10 * TEXT_SCALE) + "px;" +
+            "-fx-font-family: " + LED + ";" +
             (pConfused ? "-fx-font-weight: bold;" : ""));
         playerPosLabel.setText("Pos: " + player.getPosition());
         playerEnergyLabel.setText("Energy: " + player.getEnergy() + "/1000");
@@ -768,7 +791,8 @@ public class GameController {
         boolean oConfused = !opponent.getOriginalRole().equals(opponent.getRole());
         opponentCurrRoleLabel.setStyle(
             "-fx-text-fill: " + (oConfused ? "#ff00ff" : "white") + ";" +
-            "-fx-font-size: 10px; -fx-font-family: " + LED + ";" +
+            "-fx-font-size: " + (int)(10 * TEXT_SCALE) + "px;" +
+            "-fx-font-family: " + LED + ";" +
             (oConfused ? "-fx-font-weight: bold;" : ""));
         opponentPosLabel.setText("Pos: " + opponent.getPosition());
         opponentEnergyLabel.setText("Energy: " + opponent.getEnergy() + "/1000");
@@ -913,15 +937,34 @@ public class GameController {
         }
     }
 
+    // =========================================================
+    //  CHECK WINNER
+    // =========================================================
     private void checkWinner() {
         if (game.getWinner() == null) return;
-        Monster winner = game.getWinner();
+
+        Monster winner   = game.getWinner();
+        Monster player   = game.getPlayer();
+        Monster opponent = game.getOpponent();
+
+        // Stop parallax so it doesn't keep running after we leave
+        if (parallaxTimer != null) parallaxTimer.stop();
+
         myLabel.setText(winner.getName() + " WINS! 🏆");
         myLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;" +
             "-fx-font-family: " + LED + "; -fx-text-fill: #ffcc00;");
+
         SceneManager.getInstance().switchToGameOverScreen(
-            winner.getName(), winner.getRole().toString(),
-            game.getPlayer().getRole());
+            winner.getName(),
+            winner.getRole().toString(),
+            player.getRole(),
+            player.getName(),
+            player.getRole().toString(),
+            player.getEnergy(),
+            opponent.getName(),
+            opponent.getRole().toString(),
+            opponent.getEnergy()
+        );
     }
 
     // =========================================================
@@ -1098,10 +1141,40 @@ public class GameController {
     // =========================================================
     //  HELPERS
     // =========================================================
+
+    /**
+     * Loads an image from the classpath, caching the result so each file is
+     * read from disk only once.  Large background/panel images are capped at
+     * 1280×920 to reduce heap usage; all other images are loaded at full size.
+     * Add {@code -Xmx512m} to VM args if you still see OutOfMemoryErrors.
+     */
     private Image loadImage(String path) {
+        if (IMAGE_CACHE.containsKey(path))
+            return IMAGE_CACHE.get(path);
+
         java.io.InputStream s = getClass().getResourceAsStream(path);
-        if (s == null) { System.err.println("WARNING: not found: " + path); return null; }
-        return new Image(s);
+        if (s == null) {
+            System.err.println("WARNING: not found: " + path);
+            IMAGE_CACHE.put(path, null);
+            return null;
+        }
+        try {
+            boolean isBackground = path.contains("background") || path.contains("ControlPanel")
+                || path.contains("BoardHolder") || path.contains("Board.png");
+            Image img = isBackground
+                ? new Image(s, 1280, 920, false, true)
+                : new Image(s);
+            IMAGE_CACHE.put(path, img);
+            return img;
+        } catch (OutOfMemoryError oom) {
+            System.err.println("OOM loading: " + path + " — add -Xmx512m to VM args");
+            IMAGE_CACHE.put(path, null);
+            return null;
+        } catch (Exception e) {
+            System.err.println("ERROR loading image: " + path + " — " + e.getMessage());
+            IMAGE_CACHE.put(path, null);
+            return null;
+        }
     }
 
     private Image getMonsterImage(String name) {
@@ -1118,7 +1191,7 @@ public class GameController {
             case "randall":                 return monsterImage_Randall;
             case "roz":                     return monsterImage_Roz;
             case "yeti":                    return monsterImage_Yeti;
-            default: return null;
+            default:                        return null;
         }
     }
 
@@ -1134,6 +1207,8 @@ public class GameController {
             case "randall":                 return screenImage_Randall;
             case "roz":                     return screenImage_Roz;
             case "yeti":                    return screenImage_Yeti;
+            case "james p. sullivan":
+            case "james sullivan":          return screenImage_James;
             default:                        return getMonsterImage(name);
         }
     }
@@ -1153,15 +1228,20 @@ public class GameController {
         }
     }
 
+    /**
+     * Creates a styled label using the LED font.
+     * TEXT_SCALE at the top of the file resizes all labels uniformly.
+     */
     private Label ledLabel(String text, String color, int size, boolean bold) {
         Label l = new Label(text);
+        int scaledSize = (int)(size * TEXT_SCALE);
         l.setStyle(
             "-fx-text-fill: " + color + ";" +
-            "-fx-font-size: " + size + "px;" +
+            "-fx-font-size: " + scaledSize + "px;" +
             "-fx-font-family: " + LED + ";" +
             (bold ? "-fx-font-weight: bold;" : ""));
         l.setWrapText(true);
-        l.setMaxWidth(190);
+        l.setMaxWidth(200);
         return l;
     }
 }
