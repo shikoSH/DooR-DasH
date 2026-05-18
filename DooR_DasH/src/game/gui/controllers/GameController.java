@@ -137,27 +137,21 @@ public class GameController {
     // DECK_TOP_MULT:  from top of bar (0.05=top, 0.30=lower)
     // DECK_W_MULT:    width fraction of screen width
     // DECK_H_MULT:    height fraction of screen height
-    private static final double DECK_LEFT_MULT      = 0.245;
-    private static final double DECK_TOP_MULT       = 0.05;
-    private static final double DECK_W_MULT         = 0.055;
-    private static final double DECK_H_MULT         = 0.12;
+    private static final double DECK_LEFT_MULT     = 0.245; // from left edge
+    private static final double DECK_TOP_MULT      = -0.8;  // from top of bar
+    private static final double DECK_W_MULT        = 0.162; // width
+    private static final double DECK_H_MULT        = 0.324;  // height
 
     // DICE size (square — width == height)
-    // DICE_SIZE_MULT: size fraction of screen HEIGHT (square)
-    // DICE_TOP_MULT:  from top of bar fraction of bar height
-    private static final double DICE_SIZE_MULT      = 0.14;
-    private static final double DICE_TOP_MULT       = 0.05;
+    private static final double DICE_SIZE_MULT     = 0.27;  // of screen height
+    private static final double DICE_TOP_MULT      = -0.8;  // from top of bar
 
     // BUTTONS size and position
-    // BTN_W_MULT/BTN_H_MULT: size fractions of screen
-    // BTN_TOP_MULT:          from top of bar
-    // ROLL_RIGHT_MULT:       distance from right edge
-    // POWERUP_RIGHT_MULT:    distance from right edge (must > ROLL + btnW)
-    private static final double BTN_W_MULT          = 0.13;
-    private static final double BTN_H_MULT          = 0.13;
-    private static final double BTN_TOP_MULT        = 0.05;
-    private static final double ROLL_RIGHT_MULT     = 0.189;
-    private static final double POWERUP_RIGHT_MULT  = 0.287;
+    private static final double BTN_W_MULT         = 0.15;  // width of each button
+    private static final double BTN_H_MULT         = 0.15;  // height of each button
+    private static final double BTN_TOP_MULT       = -0.55;  // from top of bar
+    private static final double ROLL_RIGHT_MULT    = 0.175;  // distance from right edge
+    private static final double POWERUP_RIGHT_MULT = 0.28; // distance from right edge
 
     // =========================================================
     //  INITIALIZE
@@ -372,10 +366,10 @@ public class GameController {
         monsterCellGreyImage                = loadImage(IMG + "MonsterCell_Grey.png");
 
         // Screen images
-        screenImage_James     = loadImage(IMG + "Henry_Screen.png");   // James uses Henry_Screen
+        screenImage_James     = loadImage(IMG + "James_Screen.png");   // James uses Henry_Screen
         screenImage_celia_mae = loadImage(IMG + "Celia_Mae_Screen.png");
         screenImage_Fungus    = loadImage(IMG + "FungusScreen.png");
-        screenImage_Henry     = loadImage(IMG + "Henry_J._Waternoose_III.png");
+        screenImage_Henry     = loadImage(IMG + "Henry_Screen.png");
         screenImage_Mike      = loadImage(IMG + "Mike_Screen.png");
         screenImage_Randall   = loadImage(IMG + "Randal_Screen.png");
         screenImage_Roz       = loadImage(IMG + "Rose_Screen.png");
