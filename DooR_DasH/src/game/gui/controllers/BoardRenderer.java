@@ -28,7 +28,9 @@ public class BoardRenderer {
 
     // ── Font constant (shared style) ──────────────────────────
     private static final String LED = PanelBuilder.LED;
-
+    private javafx.beans.property.DoubleProperty cellSize = 
+        new javafx.beans.property.SimpleDoubleProperty(40);
+    
     // ── Dependencies ──────────────────────────────────────────
     private final ImageLoader images;
 
@@ -58,6 +60,7 @@ public class BoardRenderer {
      */
     public void buildGrid(GridPane grid) {
         this.grid = grid;
+        cellSize.bind(grid.heightProperty().divide(Constants.BOARD_ROWS));
         backgroundViews = new ImageView[Constants.BOARD_ROWS][Constants.BOARD_COLS];
         monsterViews    = new ImageView[Constants.BOARD_ROWS][Constants.BOARD_COLS];
         energyLabels    = new Label[Constants.BOARD_ROWS][Constants.BOARD_COLS];
@@ -90,24 +93,25 @@ public class BoardRenderer {
                 mView.fitHeightProperty().bind(
                     grid.heightProperty().divide(Constants.BOARD_ROWS).multiply(mScale));
 
+             // Replace the static style block with:
                 Label indexLabel = new Label(String.valueOf(boardIndex));
-                indexLabel.setStyle(
+                cellSize.addListener((obs, old, val) -> indexLabel.setStyle(
                     "-fx-font-family: " + LED + ";" +
-                    "-fx-font-size: 7px;" +
+                    "-fx-font-size: " + Math.max(6, val.doubleValue() * 0.18) + "px;" +
                     "-fx-text-fill: rgba(255,255,255,0.65);" +
                     "-fx-font-weight: bold;" +
-                    "-fx-padding: 1 2 0 0;");
+                    "-fx-padding: 1 2 0 0;"));
                 StackPane.setAlignment(indexLabel, Pos.TOP_RIGHT);
 
                 Label energyLabel = new Label("");
-                energyLabel.setStyle(
+                cellSize.addListener((obs, old, val) -> energyLabel.setStyle(
                     "-fx-font-family: " + LED + ";" +
-                    "-fx-font-size: 8px;" +
+                    "-fx-font-size: " + Math.max(5, val.doubleValue() * 0.16) + "px;" +
                     "-fx-text-fill: #FFD700;" +
                     "-fx-font-weight: bold;" +
                     "-fx-alignment: center;" +
                     "-fx-text-alignment: center;" +
-                    "-fx-padding: 0 0 1 0;");
+                    "-fx-padding: 0 0 1 0;"));
                 energyLabel.setVisible(false);
                 StackPane.setAlignment(energyLabel, Pos.BOTTOM_CENTER);
 

@@ -35,7 +35,9 @@ public class PanelBuilder {
 
     // ── Shared image loader ───────────────────────────────────
     private final ImageLoader images;
+    private double panelWidth = 120;
 
+    
     // ── Player panel widgets (read by UIUpdater / GameController) ─
     public final ImageView playerPortrait    = new ImageView();
     public final ImageView playerEnergyBar   = new ImageView();
@@ -58,6 +60,7 @@ public class PanelBuilder {
     public ImageView cardOverlayBack, cardOverlayFace;
     public Label     cardOverlayName, cardOverlayDesc, cardOverlayEffect;
 
+    
     // =========================================================
     //  CONSTRUCTOR
     // =========================================================
@@ -298,4 +301,36 @@ public class PanelBuilder {
         l.setMaxWidth(200);
         return l;
     }
+    
+    public void applyPanelFontSize(double newPanelWidth) {
+        this.panelWidth = newPanelWidth;
+        int base = (int) Math.max(8, newPanelWidth * 0.09);
+        applyStyle(playerNameLabel,      "white",   base + 2, true);
+        applyStyle(playerTypeLabel,      "#aaaaaa", base,     false);
+        applyStyle(playerOrigRoleLabel,  "white",   base,     false);
+        applyStyle(playerCurrRoleLabel,  "white",   base,     false);
+        applyStyle(playerPosLabel,       "#00ffff", base + 1, true);
+        applyStyle(playerEnergyLabel,    "#00ff88", base + 1, true);
+        applyStyle(playerStatusLabel,    "#aaaaaa", base,     false);
+        applyStyle(playerTurnLabel,      "#ffcc00", base + 2, true);
+        applyStyle(opponentNameLabel,    "white",   base + 2, true);
+        applyStyle(opponentTypeLabel,    "#aaaaaa", base,     false);
+        applyStyle(opponentOrigRoleLabel,"white",   base,     false);
+        applyStyle(opponentCurrRoleLabel,"white",   base,     false);
+        applyStyle(opponentPosLabel,     "#00ffff", base + 1, true);
+        applyStyle(opponentEnergyLabel,  "#ff6666", base + 1, true);
+        applyStyle(opponentStatusLabel,  "#aaaaaa", base,     false);
+    }
+
+    private void applyStyle(Label l, String color, int size, boolean bold) {
+        if (l == null) return;
+        l.setStyle(
+            "-fx-text-fill: " + color + ";" +
+            "-fx-font-size: " + size + "px;" +
+            "-fx-font-family: " + LED + ";" +
+            (bold ? "-fx-font-weight: bold;" : ""));
+    }
+    
+    
+    
 }

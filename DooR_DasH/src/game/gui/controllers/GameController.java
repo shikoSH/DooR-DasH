@@ -64,9 +64,9 @@ public class GameController {
     //  LAYOUT MULTIPLIERS — edit these to move/resize elements
     // =========================================================
 
-    private static final double BOARD_SIZE_MULT     = 0.66;
+    private static final double BOARD_SIZE_MULT = 0.88;
     private static final double CONTROL_BAR_MULT    = 0.16;
-    private static final double SIDE_PANEL_WIDTH    = 0.16;
+    private static final double SIDE_PANEL_WIDTH = 0.10;
     private static final double PORTRAIT_WIDTH_MULT = 0.85;
     private static final double ENERGY_BAR_H_MULT   = 0.13;
     private static final double PANEL_TOP_PAD_MULT  = 0.12;
@@ -229,7 +229,9 @@ public class GameController {
         playerPanelContainer.setPrefWidth(panelW);
         if (masterLayout.getRight() != null)
             ((VBox) masterLayout.getRight()).setPrefWidth(panelW);
-
+        
+        panelBuilder.applyPanelFontSize(panelW); // ← ADD THIS LINE
+        
         double portraitW = panelW * PORTRAIT_WIDTH_MULT;
         panelBuilder.playerPortrait.setFitWidth(portraitW);
         panelBuilder.opponentPortrait.setFitWidth(portraitW);
