@@ -99,11 +99,11 @@ public class GameController {
     //  STATE
     // =========================================================
 
-    private Game    game;
+    private Game   game;
     private boolean isAnimating = false;
 
     // ── Parallax ──────────────────────────────────────────────
-    private double        targetX = 0, targetY = 0;
+    private double         targetX = 0, targetY = 0;
     private AnimationTimer parallaxTimer;
 
     // =========================================================
@@ -230,7 +230,7 @@ public class GameController {
         if (masterLayout.getRight() != null)
             ((VBox) masterLayout.getRight()).setPrefWidth(panelW);
         
-        panelBuilder.applyPanelFontSize(panelW); // ← ADD THIS LINE
+        panelBuilder.applyPanelFontSize(panelW);
         
         double portraitW = panelW * PORTRAIT_WIDTH_MULT;
         panelBuilder.playerPortrait.setFitWidth(portraitW);
@@ -398,6 +398,9 @@ public class GameController {
                 int diff = newEnergy - oldEnergy;
                 panelBuilder.actionLine3.setText(current.getName() + " energy "
                     + (diff > 0 ? "+" : "") + diff + " → " + newEnergy);
+                
+                // FIXED: Forward true/false along with the absolute math difference value
+                animMgr.animateStationedMonsterPopups(grid, game, diff > 0, Math.abs(diff));
             } else if (newOppEnergy != oldOppEnergy) {
                 int diff = newOppEnergy - oldOppEnergy;
                 panelBuilder.actionLine3.setText(opponent.getName() + " energy "
@@ -484,11 +487,16 @@ public class GameController {
             "Costs " + Constants.POWERUP_COST + " energy. Proceed?");
         if (ok) {
             try {
-                String name = game.getCurrent().getName();
+                Monster current = game.getCurrent();
+                String name = current.getName();
+                
                 game.usePowerup();
+                
                 panelBuilder.actionLine1.setText("⚡ " + name + " activated powerup!");
                 panelBuilder.actionLine2.setText("");
                 panelBuilder.actionLine3.setText("");
+                
+                animMgr.animateStationedMonsterPopups(grid, game, false, Constants.POWERUP_COST);                
                 refreshBoard(); updateUI();
             } catch (Exception ex) {
                 showErrorAlert("Powerup Failed", ex.getMessage());
@@ -520,6 +528,8 @@ public class GameController {
             panelBuilder.actionLine1.setText("CHEAT: +50 energy!");
             panelBuilder.actionLine2.setText("");
             panelBuilder.actionLine3.setText("");
+            
+            animMgr.animateStationedMonsterPopups(grid, game, true, 50);            
             refreshBoard(); updateUI();
         }
     }

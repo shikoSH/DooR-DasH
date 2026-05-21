@@ -1,10 +1,20 @@
 package game.gui.controllers;
 
 import javafx.animation.*;
+import javafx.application.Platform;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
+import javafx.scene.control.Label;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.StackPane;
 import javafx.util.Duration;
 import game.engine.Board;
 import game.engine.Constants;
+import game.engine.Game;
+import game.engine.Role;
+import game.engine.cells.Cell;
+import game.engine.cells.MonsterCell;
 import game.engine.monsters.Monster;
 
 /**
@@ -44,10 +54,10 @@ public class AnimationManager {
      * Plays a shuffle animation on {@code diceView}, landing on
      * {@code finalFace} (1-based), then calls {@code onFinished}.
      *
-     * @param diceView       the ImageView showing the die
+     * @param diceView        the ImageView showing the die
      * @param diceResultLabel label to update with "Rolled: N"
      * @param finalFace      the face the die should end on (1..6)
-     * @param onFinished     callback invoked once the animation ends
+     * @param onFinished      callback invoked once the animation ends
      */
     public void animateDiceRoll(ImageView diceView, javafx.scene.control.Label diceResultLabel,
                                 int finalFace, Runnable onFinished) {
@@ -178,5 +188,103 @@ public class AnimationManager {
         PauseTransition front = new PauseTransition(Duration.millis(1));
         front.setOnFinished(e -> mv.getParent().toFront());
         return new SequentialTransition(front, tt);
+    }
+    
+    //--- Energy of stationed monster change pop up 
+    // FIXED: Added 'int amount' parameters here to forward value to the popup text builder
+    public void animateStationedMonsterPopups(GridPane grid, Game game, boolean isIncrease, int amount) {
+        if (game == null || game.getCurrent() == null) return;
+        
+        Role activeRole = game.getCurrent().getRole();
+        Cell[][] boardCells = game.getBoard().getBoardCells();
+
+        // Check all 100 cells on the board
+        for (int index = 0; index < 100; index++) {
+            // Translate the flat index to backend rows/cols to inspect the cell data structure
+            int bRow = index / 10; // Assuming Constants.BOARD_COLS is 10 based on standard 100-size grid
+            int bCol = index % 10;
+            if (bRow % 2 == 1) bCol = 10 - 1 - bCol;
+
+            Cell cell = boardCells[bRow][bCol];
+
+            if (cell instanceof MonsterCell) {
+                MonsterCell mCell = (MonsterCell) cell;
+                Monster cellMonster = mCell.getCellMonster();
+
+                // Process only if the stationed cell monster matches our active monster's role type
+                if (cellMonster != null && cellMonster.getRole() == activeRole) {
+                    
+                    // Translate flat index into actual JavaFX visual UI Grid row/col positioning
+                    int[] visualRC = board.indexToRowCol(index);
+                    int visualRow = visualRC[0];
+                    int visualCol = visualRC[1];
+
+                    // Find the StackPane container matching this specific cell coordinate inside the GridPane
+                    StackPane cellPane = null;
+                    for (Node child : grid.getChildren()) {
+                        Integer cIndex = GridPane.getColumnIndex(child);
+                        Integer rIndex = GridPane.getRowIndex(child);
+                        
+                        int colCoord = (cIndex == null) ? 0 : cIndex;
+                        int rowCoord = (rIndex == null) ? 0 : rIndex;
+
+                        if (colCoord == visualCol && rowCoord == visualRow && child instanceof StackPane) {
+                            cellPane = (StackPane) child;
+                            break;
+                        }
+                    }
+
+                    // Kick off the floating layout node if found
+                    if (cellPane != null) {
+                        createFloatingPopup(cellPane, isIncrease, amount);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Generates, styles, layouts, and triggers the animation sequences for the popup label node.
+     */
+    // FIXED: Added 'int amount' here to inject the numerical difference into the string creation
+    private void createFloatingPopup(StackPane cellPane, boolean isIncrease, int amount) {
+        // Build styling properties based on the action type
+        String text = isIncrease ? "+" + amount + "⚡" : "-" + amount + "⚡";
+        String color = isIncrease ? "#00FF00" : "#FF3333"; // Vibrant Green or Deep Warning Red
+
+        Label popupLabel = new Label(text);
+        popupLabel.setStyle(
+            "-fx-font-family: 'Arial';" + 
+            "-fx-font-weight: bold;" +
+            "-fx-font-size: 13px;" +
+            "-fx-text-fill: " + color + ";" +
+            "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.8), 3, 0, 0, 0);" +
+            "-fx-padding: 2 0 0 4;"
+        );
+
+        // Position explicitly inside the Top-Left quadrant requested
+        StackPane.setAlignment(popupLabel, Pos.TOP_LEFT);
+        
+        // Ensure UI processing safely registers layout generation additions
+        Platform.runLater(() -> {
+            cellPane.getChildren().add(popupLabel);
+
+            // Animate moving subtly upward over time
+            TranslateTransition moveUp = new TranslateTransition(Duration.millis(1200), popupLabel);
+            moveUp.setFromY(0);
+            moveUp.setToY(-15);
+
+            // Animate fading smooth cleanly out of visual view
+            FadeTransition fadeOut = new FadeTransition(Duration.millis(1200), popupLabel);
+            fadeOut.setFromValue(1.0);
+            fadeOut.setToValue(0.0);
+
+            // Bundle transitions simultaneously
+            ParallelTransition sequence = new ParallelTransition(moveUp, fadeOut);
+            
+            // Clean memory references by trimming node allocations upon task completion
+            sequence.setOnFinished(event -> cellPane.getChildren().remove(popupLabel));
+            sequence.play();
+        });
     }
 }
