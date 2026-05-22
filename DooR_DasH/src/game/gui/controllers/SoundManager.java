@@ -35,25 +35,27 @@ public class SoundManager {
                 return;
             }
 
-            // Duck the background music
             MediaPlayer music = SceneManager.getInstance().getMediaPlayer();
-            if (music != null) music.setVolume(DUCK_VOLUME);
+            final double volumeBeforeSfx = (music != null) ? music.getVolume() : NORMAL_VOLUME;
+            final boolean musicWasAudible = volumeBeforeSfx > 0;
 
-            // Play the sound effect
+            if (music != null && musicWasAudible) {
+                music.setVolume(DUCK_VOLUME);
+            }
+
             Media media = new Media(url.toString());
             MediaPlayer sfx = new MediaPlayer(media);
             sfx.play();
 
-            // Restore music volume when SFX finishes
-            sfx.setOnEndOfMedia(() -> {
-                if (music != null) music.setVolume(NORMAL_VOLUME);
+            Runnable restoreMusic = () -> {
+                if (music != null && musicWasAudible) {
+                    music.setVolume(volumeBeforeSfx);
+                }
                 sfx.dispose();
-            });
+            };
 
-            // Safety fallback — restore after 5 seconds in case onEndOfMedia doesn't fire
-            sfx.setOnError(() -> {
-                if (music != null) music.setVolume(NORMAL_VOLUME);
-            });
+            sfx.setOnEndOfMedia(restoreMusic::run);
+            sfx.setOnError(restoreMusic::run);
 
         } catch (Exception e) {
             System.err.println("Failed to play SFX: " + fileName + " — " + e.getMessage());
