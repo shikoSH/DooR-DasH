@@ -57,18 +57,18 @@ public class GameController {
     // =========================================================
     //  TEXT SIZES — change any number to resize that text
     // =========================================================
-    private static final int TXT_PLAYER_NAME   = 13;
-    private static final int TXT_PLAYER_TYPE   = 10;
-    private static final int TXT_PLAYER_ROLE   = 10;
-    private static final int TXT_PLAYER_POS    = 11;
-    private static final int TXT_PLAYER_ENERGY = 13;
-    private static final int TXT_PLAYER_STATUS = 10;
-    private static final int TXT_PLAYER_TURN   = 12;
-    private static final int TXT_ACTION_LOG    = 10;
+    private static final int TXT_PLAYER_NAME   = 20;
+    private static final int TXT_PLAYER_TYPE   = 18;
+    private static final int TXT_PLAYER_ROLE   = 18;
+    private static final int TXT_PLAYER_POS    = 20;
+    private static final int TXT_PLAYER_ENERGY = 20;
+    private static final int TXT_PLAYER_STATUS = 20;
+    private static final int TXT_PLAYER_TURN   = 15;
+    private static final int TXT_ACTION_LOG    = 20;
     private static final int TXT_TOP_LABEL     = 14;
-    private static final int TXT_DICE_RESULT   = 16;
-    private static final int TXT_CARD_NAME     = 16;
-    private static final int TXT_CARD_BODY     = 12;
+    private static final int TXT_DICE_RESULT   = 20;
+    private static final int TXT_CARD_NAME     = 20;
+    private static final int TXT_CARD_BODY     = 16;
     private static final int TXT_CELL_INDEX    =  7;
     private static final int TXT_DOOR_ENERGY   =  7;
 
@@ -78,16 +78,16 @@ public class GameController {
     private static final double BOARD_SIZE_MULT   = 0.66;
     private static final double SIDE_PANEL_W      = 0.155;
     private static final double PORTRAIT_W_MULT   = 0.88;
-    private static final double ENERGY_BAR_W_MULT = 0.4; // fraction of panel width (width only — height auto)
+    private static final double ENERGY_BAR_W_MULT = 0.2; // fraction of panel width (width only — height auto)
     private static final double PANEL_TOP_PAD     = 0.08;
     private static final double LIGHT_SIZE_MULT   = 0.16; // fraction of panel width
     private static final double PROFILE_W_MULT    = 0.90; // fraction of panel width (width only — height auto)
     private static final double ACTION_LOG_W_MULT = 0.90; // fraction of panel width (width only — height auto)
     private static final double CONTROL_BAR_H     = 0.16;
-    private static final double DECK_LEFT         = 0.245;
-    private static final double DECK_TOP_FRAC     = 0.05;
-    private static final double DECK_W            = 0.055;
-    private static final double DECK_H            = 0.12;
+    private static final double DECK_LEFT         = 0.26;
+    private static final double DECK_TOP_FRAC     = -1.7;
+    private static final double DECK_W            = 0.1584;
+    private static final double DECK_H            = 0.3456;
     private static final double DICE_SIZE         = 0.25;
     private static final double DICE_TOP_FRAC     = -1.4;
     private static final double BTN_W             = 0.17;
@@ -474,37 +474,59 @@ public class GameController {
         playerPortrait.setPreserveRatio(true);
         addDropShadow(playerPortrait, 12, Color.BLACK);
 
-        // Position badge — NO background on the badge text
+        // Position badge
         playerPosLbl = makeLbl("0", "#00ff88", TXT_PLAYER_POS, true);
         StackPane portraitPane = new StackPane(playerPortrait, playerPosLbl);
         StackPane.setAlignment(playerPosLbl, Pos.BOTTOM_LEFT);
         StackPane.setMargin(playerPosLbl, new Insets(0, 0, 6, 6));
 
-        // Profile image — preserveRatio TRUE so it never stretches
+        // Profile background
         playerProfileBg = new ImageView(img(IMG_PROFILE));
         playerProfileBg.setPreserveRatio(true);
-        playerNameLbl = makeLbl("-",       "white",   TXT_PLAYER_NAME, true);
+        
+        // TEXT LABELS - Adjust these numbers to move each text
+        playerNameLbl = makeLbl("-", "white", TXT_PLAYER_NAME, true);
+        playerNameLbl.setTranslateX(20);   // Move right (positive = right, negative = left)
+        playerNameLbl.setTranslateY(100);    // Move down (positive = down, negative = up)
+        
         playerTypeLbl = makeLbl("Type: -", "#aaaaaa", TXT_PLAYER_TYPE, false);
-        playerRoleLbl = makeLbl("Role: -", "white",   TXT_PLAYER_ROLE, false);
+        playerTypeLbl.setTranslateX(90);
+        playerTypeLbl.setTranslateY(120);
+        
+        playerRoleLbl = makeLbl("Role: -", "white", TXT_PLAYER_ROLE, false);
+        playerRoleLbl.setTranslateX(90);
+        playerRoleLbl.setTranslateY(160);
+        
         VBox profileText = new VBox(2, playerNameLbl, playerTypeLbl, playerRoleLbl);
         profileText.setPadding(new Insets(10, 6, 6, 10));
         profileText.setAlignment(Pos.TOP_LEFT);
         StackPane profilePane = new StackPane(playerProfileBg, profileText);
         StackPane.setAlignment(profileText, Pos.TOP_LEFT);
 
-        // Energy label with glow
+        // Energy label
         playerEnergyLbl = makeLbl("-", "#00ff88", TXT_PLAYER_ENERGY, true);
         addGlow(playerEnergyLbl, Color.web("#00ff88"), 16, 0.6);
+        playerEnergyLbl.setTranslateX(10);
+        playerEnergyLbl.setTranslateY(0);
 
-        // Energy bar — preserveRatio TRUE, wrapped in StackPane for overlay animation
+        // Energy bar
         playerEnergyBar.setPreserveRatio(true);
         playerEnergyBar.setImage(en100);
         playerEnergyBarCurrentImage = en100;
         playerEnergyWrapper = new StackPane(playerEnergyBar);
         playerEnergyWrapper.setAlignment(Pos.CENTER);
+        playerEnergyWrapper.setTranslateX(10);  // Move energy bar right
+        playerEnergyWrapper.setTranslateY(0);
 
+        // Status label
         playerStatusLbl = makeLbl("NORMAL", "#aaaaaa", TXT_PLAYER_STATUS, false);
-        playerTurnLbl   = makeLbl("",       "#ffcc00", TXT_PLAYER_TURN,   true);
+        playerStatusLbl.setTranslateX(10);
+        playerStatusLbl.setTranslateY(0);
+        
+        // Turn label
+        playerTurnLbl = makeLbl("", "#ffcc00", TXT_PLAYER_TURN, true);
+        playerTurnLbl.setTranslateX(10);
+        playerTurnLbl.setTranslateY(0);
 
         playerPanelContainer.getChildren().addAll(
             lights, portraitPane, profilePane,
@@ -782,8 +804,9 @@ public class GameController {
             ((VBox) masterLayout.getRight()).setPrefWidth(panelW);
 
         double pad = H * PANEL_TOP_PAD;
-        playerPanelContainer.setStyle("-fx-padding: " + pad + " 4 4 4;");
-        opponentPanelContainer.setStyle("-fx-padding: 4 4 4 4;");
+        // Move left player panel down by increasing top padding
+        playerPanelContainer.setStyle("-fx-padding: " + (pad + 200) + " 4 4 60;");
+        opponentPanelContainer.setStyle("-fx-padding: " + (pad + 200) + " 4 4 4;");
 
         // Portrait — width only, height scales automatically (preserveRatio=true)
         double portraitW = panelW * PORTRAIT_W_MULT;
@@ -875,6 +898,12 @@ public class GameController {
         AnchorPane.setTopAnchor(rollImageBtn,    barH * BTN_TOP_FRAC);
         AnchorPane.setLeftAnchor(rollImageBtn,   null);
         AnchorPane.setBottomAnchor(rollImageBtn, null);
+        
+        // Move action log to bottom left
+        if (actionLogContainer != null && actionLogBg != null) {
+            actionLogContainer.setTranslateX(20);
+            actionLogContainer.setTranslateY(H - 200);
+        }
     }
 
     // =========================================================
