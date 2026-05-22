@@ -16,6 +16,8 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import game.engine.*;
 import game.engine.cards.Card;
+import game.engine.cells.Cell;
+import game.engine.cells.DoorCell;
 import game.engine.monsters.Monster;
 
 /**
@@ -375,6 +377,13 @@ public class GameController {
             }
 
             game.playTurn();
+         // Check if monster landed on a DoorCell
+         int newPosition = current.getPosition();
+         int[] rowCol = game.getBoard().indexToRowCol(newPosition);
+         Cell[][] cells = game.getBoard().getBoardCells();
+         if (cells[rowCol[0]][rowCol[1]] instanceof DoorCell) {
+             SoundManager.getInstance().playDoorOpening();
+         }
 
             int newPos       = current.getPosition();
             int newEnergy    = current.getEnergy();
@@ -421,6 +430,7 @@ public class GameController {
                     finalOldPos, finalNewPos, () -> {
                         if (finalCardDrawn && finalTopCard != null) {
                             refreshBoard(); updateUI();
+                            SoundManager.getInstance().playCardDraw();
                             panelBuilder.showCardOverlay(finalTopCard, () -> {
                                 refreshBoard(); updateUI();
                             });
