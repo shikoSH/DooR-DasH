@@ -3,6 +3,7 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.text.Font?>
 <StackPane fx:id="rootPane"
@@ -22,37 +23,49 @@
             maxWidth="Infinity"
             styleClass="overlay-pane">
          <children>
-            <!-- Winner banner — moved 100px down via topAnchor -->
+            <!-- Winner banner — centered under baked-in "GAME OVER" text -->
             <Label fx:id="winsLabel"
                    alignment="CENTER"
+                   maxWidth="Infinity"
                    prefHeight="96.0"
-                   prefWidth="1000.0"
                    text=""
                    textAlignment="CENTER"
                    wrapText="true"
                    styleClass="game-over-title"
-                   AnchorPane.topAnchor="100.0"
-                   AnchorPane.leftAnchor="140.0">
+                   AnchorPane.leftAnchor="0.0"
+                   AnchorPane.rightAnchor="0.0"
+                   AnchorPane.topAnchor="330.0">
                <font>
                   <Font name="Book Antiqua Bold" size="48.0" />
                </font>
             </Label>
-            <!-- RETRY button -->
-            <Button fx:id="retryButton"
-                   mnemonicParsing="false"
-                   onAction="#handleReplay"
-                   prefHeight="72.0"
-                   prefWidth="240.0"
-                   text="RETRY"
-                   styleClass="primary-button" />
-            <!-- MENU button -->
-            <Button fx:id="mainMenuButton"
-                   mnemonicParsing="false"
-                   onAction="#handleMainMenu"
-                   prefHeight="72.0"
-                   prefWidth="240.0"
-                   text="MENU"
-                   styleClass="secondary-button" />
+            <!-- Action buttons — equal width, centered row -->
+            <HBox fx:id="buttonRow"
+                  alignment="CENTER"
+                  spacing="40.0"
+                  styleClass="game-over-buttons"
+                  AnchorPane.bottomAnchor="100.0"
+                  AnchorPane.leftAnchor="0.0"
+                  AnchorPane.rightAnchor="0.0">
+               <children>
+                  <Button fx:id="retryButton"
+                         mnemonicParsing="false"
+                         onAction="#handleReplay"
+                         minWidth="240.0"
+                         prefHeight="72.0"
+                         prefWidth="240.0"
+                         text="RETRY"
+                         styleClass="primary-button" />
+                  <Button fx:id="mainMenuButton"
+                         mnemonicParsing="false"
+                         onAction="#handleMainMenu"
+                         minWidth="240.0"
+                         prefHeight="72.0"
+                         prefWidth="240.0"
+                         text="MENU"
+                         styleClass="secondary-button" />
+               </children>
+            </HBox>
          </children>
       </AnchorPane>
    </children>

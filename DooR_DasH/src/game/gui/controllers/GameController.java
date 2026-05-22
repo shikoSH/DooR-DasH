@@ -459,20 +459,32 @@ public class GameController {
                 ? "🃏 " + topCard.getName() + ": " + PanelBuilder.getCardEffectType(topCard.getName())
                 : "");
 
+            final Role movingRole = current.getRole();
+            boolean showStationedEnergyPopup = false;
+            boolean stationedEnergyIncrease = false;
+            int stationedEnergyAmount = 0;
+
             if (wasShielded && !current.isShielded())
                 panelBuilder.actionLine3.setText("🛡 Shield blocked energy loss!");
             else if (newEnergy != oldEnergy) {
                 int diff = newEnergy - oldEnergy;
                 panelBuilder.actionLine3.setText(current.getName() + " energy "
                     + (diff > 0 ? "+" : "") + diff + " → " + newEnergy);
-
-                animMgr.animateStationedMonsterPopups(grid, game, diff > 0, Math.abs(diff));
+                showStationedEnergyPopup = true;
+                stationedEnergyIncrease = diff > 0;
+                stationedEnergyAmount = Math.abs(diff);
             } else if (newOppEnergy != oldOppEnergy) {
                 int diff = newOppEnergy - oldOppEnergy;
                 panelBuilder.actionLine3.setText(opponent.getName() + " energy "
                     + (diff > 0 ? "+" : "") + diff + " → " + newOppEnergy);
+                showStationedEnergyPopup = false;
+                stationedEnergyIncrease = false;
+                stationedEnergyAmount = 0;
             } else {
                 panelBuilder.actionLine3.setText("");
+                showStationedEnergyPopup = false;
+                stationedEnergyIncrease = false;
+                stationedEnergyAmount = 0;
             }
 
             final Card finalTopCard = topCard;
@@ -483,10 +495,17 @@ public class GameController {
             final int finalNewPos = newPos;
             final boolean[][] finalDoorWasActivated = doorWasActivated;
             final Cell[][] finalCells = cells;
+            final boolean finalShowStationedEnergyPopup = showStationedEnergyPopup;
+            final boolean finalStationedEnergyIncrease = stationedEnergyIncrease;
+            final int finalStationedEnergyAmount = stationedEnergyAmount;
 
             animMgr.animateDiceRoll(diceView, diceResultLabel, diceFace, () ->
                 animMgr.animateMonsterMove(grid, finalCurrent, finalOpponent,
                     finalOldPos, finalNewPos, () -> {
+                        if (finalShowStationedEnergyPopup) {
+                            animMgr.animateStationedMonsterPopups(grid, movingRole,
+                                finalStationedEnergyIncrease, finalStationedEnergyAmount);
+                        }
                         if (finalCardDrawn && finalTopCard != null) {
                             refreshBoard(); updateUI();
                             // Check door sound before card overlay
@@ -583,7 +602,7 @@ public class GameController {
                 panelBuilder.actionLine2.setText("");
                 panelBuilder.actionLine3.setText("");
                 
-                animMgr.animateStationedMonsterPopups(grid, game, false, Constants.POWERUP_COST);                
+                animMgr.animateStationedMonsterPopups(grid, current.getRole(), false, Constants.POWERUP_COST);                
                 refreshBoard(); updateUI();
             } catch (Exception ex) {
                 showErrorAlert("Powerup Failed", ex.getMessage());
@@ -616,7 +635,7 @@ public class GameController {
             panelBuilder.actionLine2.setText("");
             panelBuilder.actionLine3.setText("");
             
-            animMgr.animateStationedMonsterPopups(grid, game, true, 50);            
+            animMgr.animateStationedMonsterPopups(grid, current.getRole(), true, 50);         
             refreshBoard(); updateUI();
         }
     }
