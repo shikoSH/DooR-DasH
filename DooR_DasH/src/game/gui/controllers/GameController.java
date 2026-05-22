@@ -2,6 +2,7 @@ package game.gui.controllers;
 
 import javafx.animation.AnimationTimer;
 import javafx.application.Platform;
+import javafx.beans.binding.Bindings;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -68,22 +69,24 @@ public class GameController {
 
     private static final double BOARD_SIZE_MULT = 0.77;
     private static final double CONTROL_BAR_MULT    = 0.16;
-    private static final double SIDE_PANEL_WIDTH = 0.16;
-    private static final double PORTRAIT_WIDTH_MULT = 0.85;
+    private static final double SIDE_PANEL_WIDTH = 0.13;
+    private static final double PORTRAIT_WIDTH_MULT = 0.78;
     private static final double ENERGY_BAR_H_MULT   = 0.13;
-    private static final double PANEL_TOP_PAD_MULT  = 0.12;
+    private static final double PANEL_TOP_PAD_MULT  = 0.19;
+    private static final double PANEL_PORTRAIT_DOWN_MULT = 0.024;
+    private static final double BOARD_TOP_OFFSET_MULT = 0.052;
 
     private static final double DECK_LEFT_MULT      = 0.245;
-    private static final double DECK_TOP_MULT       = -0.8;
+    private static final double DECK_TOP_MULT       = -0.58;
     private static final double DECK_W_MULT         = 0.162;
     private static final double DECK_H_MULT         = 0.324;
 
     private static final double DICE_SIZE_MULT      = 0.27;
-    private static final double DICE_TOP_MULT       = -0.8;
+    private static final double DICE_TOP_MULT       = -0.55;
 
     private static final double BTN_W_MULT          = 0.15;
     private static final double BTN_H_MULT          = 0.15;
-    private static final double BTN_TOP_MULT        = -0.55;
+    private static final double BTN_TOP_MULT        = -0.46;
     private static final double ROLL_RIGHT_MULT     = 0.175;
     private static final double POWERUP_RIGHT_MULT  = 0.28;
 
@@ -190,6 +193,11 @@ public class GameController {
     // =========================================================
 
     private void setupResponsiveLayout() {
+        masterLayout.prefWidthProperty().bind(backgroundRoot.widthProperty());
+        masterLayout.prefHeightProperty().bind(backgroundRoot.heightProperty());
+        masterLayout.maxWidthProperty().bind(backgroundRoot.widthProperty());
+        masterLayout.maxHeightProperty().bind(backgroundRoot.heightProperty());
+
         backgroundView.fitWidthProperty().bind(
             backgroundRoot.widthProperty().multiply(1.06));
         backgroundView.fitHeightProperty().bind(
@@ -198,8 +206,17 @@ public class GameController {
         controlPanelView.fitWidthProperty().bind(backgroundRoot.widthProperty());
         controlPanelView.fitHeightProperty().bind(backgroundRoot.heightProperty());
 
-        javafx.beans.binding.NumberBinding boardSize =
+        controlBar.prefWidthProperty().bind(backgroundRoot.widthProperty());
+
+        javafx.beans.binding.NumberBinding centerWidth =
+            backgroundRoot.widthProperty()
+                .subtract(backgroundRoot.widthProperty().multiply(SIDE_PANEL_WIDTH * 2));
+        javafx.beans.binding.NumberBinding boardFromHeight =
             backgroundRoot.heightProperty().multiply(BOARD_SIZE_MULT);
+        javafx.beans.binding.NumberBinding boardFromWidth =
+            centerWidth.multiply(0.92);
+        javafx.beans.binding.NumberBinding boardSize =
+            Bindings.min(boardFromHeight, boardFromWidth);
 
         boardHolderView.fitWidthProperty().bind(boardSize.multiply(1.12));
         boardHolderView.fitHeightProperty().bind(boardSize.multiply(1.12));
@@ -207,15 +224,25 @@ public class GameController {
 
         boardImageView.fitWidthProperty().bind(boardSize);
         boardImageView.fitHeightProperty().bind(boardSize);
+
+        grid.prefWidthProperty().bind(boardSize);
+        grid.prefHeightProperty().bind(boardSize);
         grid.maxWidthProperty().bind(boardSize);
         grid.maxHeightProperty().bind(boardSize);
         grid.minWidthProperty().bind(boardSize);
         grid.minHeightProperty().bind(boardSize);
 
+        boardContainer.prefWidthProperty().bind(boardSize.multiply(1.12));
+        boardContainer.prefHeightProperty().bind(boardSize.multiply(1.12));
+        boardContainer.maxWidthProperty().bind(boardSize.multiply(1.12));
+        boardContainer.maxHeightProperty().bind(boardSize.multiply(1.12));
+
         javafx.beans.value.ChangeListener<Number> onResize =
             (obs, old, val) -> applyAllLayout();
         backgroundRoot.widthProperty().addListener(onResize);
         backgroundRoot.heightProperty().addListener(onResize);
+        controlBar.widthProperty().addListener(onResize);
+        controlBar.heightProperty().addListener(onResize);
     }
 
     private void applyAllLayout() {
@@ -224,30 +251,43 @@ public class GameController {
         if (W == 0 || H == 0) return;
 
         double barH = H * CONTROL_BAR_MULT;
-        BorderPane.setMargin(boardContainer, new Insets(6, 6, barH + 6, 6));
+        double boardTop = 6 + H * BOARD_TOP_OFFSET_MULT;
+        BorderPane.setMargin(boardContainer, new Insets(boardTop, 6, barH + 6, 6));
         controlBar.setPrefHeight(barH);
 
         double panelW = W * SIDE_PANEL_WIDTH;
         playerPanelContainer.setPrefWidth(panelW);
-        if (masterLayout.getRight() != null)
-            ((VBox) masterLayout.getRight()).setPrefWidth(panelW);
-        
+        if (masterLayout.getRight() != null) {
+            VBox rightPanel = (VBox) masterLayout.getRight();
+            rightPanel.setPrefWidth(panelW);
+            double pad = H * PANEL_TOP_PAD_MULT;
+            rightPanel.setStyle("-fx-padding: " + pad + " 6 6 6;");
+        }
+
         panelBuilder.applyPanelFontSize(panelW);
-        
+
         double portraitW = panelW * PORTRAIT_WIDTH_MULT;
+        double portraitDown = H * PANEL_PORTRAIT_DOWN_MULT;
         panelBuilder.playerPortrait.setFitWidth(portraitW);
         panelBuilder.opponentPortrait.setFitWidth(portraitW);
+        panelBuilder.playerPortrait.setTranslateY(portraitDown);
+        panelBuilder.opponentPortrait.setTranslateY(portraitDown);
         panelBuilder.playerEnergyBar.setFitWidth(portraitW);
         panelBuilder.opponentEnergyBar.setFitWidth(portraitW);
 
-        double energyH = H * ENERGY_BAR_H_MULT * 1.8;
+        double energyH = H * ENERGY_BAR_H_MULT * 1.65;
         panelBuilder.playerEnergyBar.setFitHeight(energyH);
         panelBuilder.opponentEnergyBar.setFitHeight(energyH);
 
         double pad = H * PANEL_TOP_PAD_MULT;
-        playerPanelContainer.setStyle("-fx-padding: " + pad + " 6 6 6;");
-        opponentPanelContainer.setStyle("-fx-padding: " + pad + " 6 6 6;");
+        playerPanelContainer.setStyle("-fx-padding: " + pad + " 4 4 4;");
+        opponentPanelContainer.setStyle("-fx-padding: 4 4 4 4;");
 
+        double centerW = Math.max(1, W - panelW * 2);
+        double boardSide = Math.min(H * BOARD_SIZE_MULT, centerW * 0.92);
+        panelBuilder.scaleCardOverlay(boardSide);
+
+        // Sizes use full window (bar is only ~16% tall — bar-based sizing made deck/buttons tiny)
         cardDeckView.setFitWidth(W * DECK_W_MULT);
         cardDeckView.setFitHeight(H * DECK_H_MULT);
         AnchorPane.setLeftAnchor(cardDeckView,   W * DECK_LEFT_MULT);
@@ -263,10 +303,15 @@ public class GameController {
         AnchorPane.setRightAnchor(diceView,  null);
         AnchorPane.setBottomAnchor(diceView, null);
 
-        AnchorPane.setLeftAnchor(diceResultLabel,   (W / 2) - 60);
-        AnchorPane.setBottomAnchor(diceResultLabel, 4.0);
+        double labelOffset = Math.max(40, W * 0.05);
+        AnchorPane.setLeftAnchor(diceResultLabel,   (W / 2) - labelOffset);
+        AnchorPane.setBottomAnchor(diceResultLabel, barH * 0.04);
         AnchorPane.setRightAnchor(diceResultLabel,  null);
         AnchorPane.setTopAnchor(diceResultLabel,    null);
+        diceResultLabel.setStyle(
+            "-fx-text-fill: #00ff88;" +
+            "-fx-font-size: " + Math.max(10, H * 0.013) + "px;" +
+            "-fx-font-weight: bold;");
 
         double btnW = W * BTN_W_MULT;
         double btnH = H * BTN_H_MULT;
@@ -284,6 +329,13 @@ public class GameController {
         AnchorPane.setTopAnchor(rollImageBtn,    barH * BTN_TOP_MULT);
         AnchorPane.setLeftAnchor(rollImageBtn,   null);
         AnchorPane.setBottomAnchor(rollImageBtn, null);
+
+        int statusFont = (int) Math.max(12, H * 0.018);
+        myLabel.setStyle(
+            "-fx-font-size: " + statusFont + "px;" +
+            "-fx-font-weight: bold;" +
+            "-fx-padding: 5 0 3 0;" +
+            "-fx-text-fill: #00ff88;");
     }
 
     // =========================================================

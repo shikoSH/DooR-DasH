@@ -370,7 +370,31 @@ public class PanelBuilder {
             "-fx-font-family: " + LED + ";" +
             (bold ? "-fx-font-weight: bold;" : ""));
     }
-    
-    
-    
+
+    /** Scales the card-draw overlay with the game board when the window is resized. */
+    public void scaleCardOverlay(double boardSide) {
+        if (cardOverlay == null || boardSide <= 0) return;
+        double cardW = boardSide * 0.42;
+        double cardH = boardSide * 0.52;
+        cardOverlayBack.setFitWidth(cardW);
+        cardOverlayBack.setFitHeight(cardH);
+        cardOverlayFace.setFitWidth(cardW);
+        cardOverlayFace.setFitHeight(cardH);
+        cardOverlay.setMaxWidth(boardSide * 0.88);
+        cardOverlay.setMaxHeight(boardSide * 1.05);
+        int nameSize = (int) Math.max(11, boardSide * 0.028);
+        int bodySize = (int) Math.max(9, boardSide * 0.022);
+        cardOverlayName.setStyle(
+            "-fx-text-fill: #ffcc00; -fx-font-size: " + nameSize + "px;" +
+            "-fx-font-weight: bold; -fx-font-family: " + LED + ";");
+        cardOverlayDesc.setStyle(
+            "-fx-text-fill: white; -fx-font-size: " + bodySize + "px;" +
+            "-fx-font-family: " + LED + ";");
+        cardOverlayEffect.setStyle(
+            "-fx-text-fill: #00ffff; -fx-font-size: " + bodySize + "px;" +
+            "-fx-font-weight: bold; -fx-font-family: " + LED + ";");
+        cardOverlayName.setMaxWidth(boardSide * 0.75);
+        cardOverlayDesc.setMaxWidth(boardSide * 0.75);
+        cardOverlayEffect.setMaxWidth(boardSide * 0.75);
+    }
 }

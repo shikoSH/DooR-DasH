@@ -12,6 +12,8 @@
 <?import javafx.scene.layout.VBox?>
 
 <StackPane fx:id="backgroundRoot"
+           maxHeight="Infinity"
+           maxWidth="Infinity"
            xmlns="http://javafx.com/javafx/8"
            xmlns:fx="http://javafx.com/fxml/1"
            fx:controller="game.gui.controllers.GameController">
@@ -29,7 +31,9 @@
                    preserveRatio="false" />
 
         <!-- Main layout -->
-        <BorderPane fx:id="masterLayout">
+        <BorderPane fx:id="masterLayout"
+                    maxHeight="Infinity"
+                    maxWidth="Infinity">
 
             <!-- TOP -->
             <top>
@@ -80,6 +84,8 @@
             <center>
 
                 <StackPane fx:id="boardContainer"
+                           maxHeight="Infinity"
+                           maxWidth="Infinity"
                            BorderPane.alignment="CENTER">
 
                     <BorderPane.margin>
@@ -143,6 +149,7 @@
             <bottom>
 
                 <AnchorPane fx:id="controlBar"
+                            maxWidth="Infinity"
                             prefHeight="118"
                             BorderPane.alignment="CENTER">
 

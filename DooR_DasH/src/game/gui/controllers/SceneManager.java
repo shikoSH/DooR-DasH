@@ -1,13 +1,14 @@
 package game.gui.controllers;
 
 import javafx.animation.FadeTransition;
+import javafx.animation.PauseTransition;
+import javafx.animation.SequentialTransition;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCombination;
@@ -32,6 +33,11 @@ public class SceneManager {
     private MediaPlayer mediaPlayer;
     private boolean fullScreenPromptShown = false;
 
+    private static final double DEFAULT_WIDTH  = 1280;
+    private static final double DEFAULT_HEIGHT = 920;
+    private static final Duration PROMPT_FADE_MS = Duration.millis(350);
+    private static final Duration PROMPT_VISIBLE = Duration.seconds(2.5);
+
     private SceneManager() {}
 
     public static SceneManager getInstance() {
@@ -46,6 +52,8 @@ public class SceneManager {
         this.primaryStage.setTitle("DooR DasH: Scare vs Laugh Touchdown");
         this.primaryStage.setWidth(1280);
         this.primaryStage.setHeight(920);
+        this.primaryStage.setMinWidth(960);
+        this.primaryStage.setMinHeight(640);
         this.primaryStage.setResizable(true);
         this.primaryStage.centerOnScreen();
         this.primaryStage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);
@@ -97,11 +105,10 @@ public class SceneManager {
             }
             FXMLLoader loader = new FXMLLoader(fxmlUrl);
             Parent root = loader.load();
-            Scene scene = new Scene(root);
-            scene.setFill(Color.BLACK);
+            Scene scene = createScene(root);
             registerScene(scene, true);
             scenes.put("IntroScreen", scene);
-            primaryStage.setScene(scene);
+            switchToScene(scene);
             if (!primaryStage.isShowing()) {
                 primaryStage.show();
             }
@@ -123,13 +130,12 @@ public class SceneManager {
             Parent root = loader.load();
 
             root.setOpacity(0);
-            Scene scene = new Scene(root);
-            scene.setFill(Color.BLACK);
+            Scene scene = createScene(root);
             registerScene(scene, true);
             addStylesheet(scene, "/game/gui/resources/css/styles.css");
             addStylesheet(scene, "/game/gui/resources/css/start-screen.css");
             scenes.put("StartScreen", scene);
-            primaryStage.setScene(scene);
+            switchToScene(scene);
 
             FadeTransition fadeIn = new FadeTransition(Duration.millis(600), root);
             fadeIn.setFromValue(0);
@@ -169,12 +175,11 @@ public class SceneManager {
             controller.startGame(playerRole);
             System.out.println("DEBUG: controller.startGame() called OK");
 
-            Scene scene = new Scene(root);
-            scene.setFill(Color.BLACK);
+            Scene scene = createScene(root);
             registerScene(scene, false);
             addStylesheet(scene, "/game/gui/resources/css/styles.css");
             scenes.put("GameScreen", scene);
-            primaryStage.setScene(scene);
+            switchToScene(scene);
 
             if (!primaryStage.isShowing()) {
                 primaryStage.show();
@@ -217,12 +222,11 @@ public class SceneManager {
                 opponentName, opponentRole, opponentEnergy
             );
 
-            Scene scene = new Scene(root);
-            scene.setFill(Color.BLACK);
+            Scene scene = createScene(root);
             registerScene(scene, false);
             addStylesheet(scene, "/game/gui/resources/css/styles.css");
             scenes.put("GameOverScreen", scene);
-            primaryStage.setScene(scene);
+            switchToScene(scene);
 
             if (!primaryStage.isShowing()) {
                 primaryStage.show();
@@ -243,13 +247,12 @@ public class SceneManager {
                 }
                 FXMLLoader loader = new FXMLLoader(fxmlUrl);
                 Parent root = loader.load();
-                Scene scene = new Scene(root);
-                scene.setFill(Color.BLACK);
+                Scene scene = createScene(root);
                 registerScene(scene, false);
                 addStylesheet(scene, "/game/gui/resources/css/styles.css");
                 scenes.put(name, scene);
             }
-            primaryStage.setScene(scenes.get(name));
+            switchToScene(scenes.get(name));
             if (!primaryStage.isShowing()) {
                 primaryStage.show();
             }
@@ -272,32 +275,83 @@ public class SceneManager {
         }
     }
 
-    // Replaced Alert (which fails to resolve in JavaFX 8 Eclipse projects)
-    // with a plain Stage dialog — identical blocking behavior, no Alert import needed.
+    /** Creates a scene sized to the current window (or defaults on first launch). */
+    private Scene createScene(Parent root) {
+        double w = (primaryStage != null && primaryStage.getWidth() > 0)
+            ? primaryStage.getWidth() : DEFAULT_WIDTH;
+        double h = (primaryStage != null && primaryStage.getHeight() > 0)
+            ? primaryStage.getHeight() : DEFAULT_HEIGHT;
+        Scene scene = new Scene(root, w, h);
+        scene.setFill(Color.BLACK);
+        return scene;
+    }
+
+    /** Switches scene without letting FXML preferred sizes resize the window. */
+    private void switchToScene(Scene scene) {
+        double w = primaryStage.getWidth();
+        double h = primaryStage.getHeight();
+        boolean keepSize = w > 0 && h > 0;
+
+        primaryStage.setScene(scene);
+
+        if (keepSize) {
+            primaryStage.setWidth(w);
+            primaryStage.setHeight(h);
+            Platform.runLater(() -> {
+                primaryStage.setWidth(w);
+                primaryStage.setHeight(h);
+            });
+        }
+    }
+
+    /** Brief non-blocking tip: fades in, stays visible, then fades out and closes. */
     private void showFullScreenPrompt() {
         if (fullScreenPromptShown || primaryStage == null) return;
         fullScreenPromptShown = true;
 
         Stage dialog = new Stage();
         dialog.setTitle("Full Screen");
-        dialog.initModality(Modality.APPLICATION_MODAL);
         dialog.initOwner(primaryStage);
+        dialog.initModality(Modality.NONE);
 
         Label header = new Label("Make the game cover your entire screen");
-        header.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
+        header.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: white;");
 
         Label content = new Label("Press ESCAPE to toggle full-screen mode.");
         content.setWrapText(true);
+        content.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 12px;");
 
-        Button ok = new Button("OK");
-        ok.setOnAction(e -> dialog.close());
-
-        VBox layout = new VBox(12, header, content, ok);
+        VBox layout = new VBox(10, header, content);
         layout.setPadding(new Insets(20));
         layout.setAlignment(Pos.CENTER);
+        layout.setStyle(
+            "-fx-background-color: rgba(25,25,35,0.96);" +
+            "-fx-background-radius: 12;");
+        layout.setOpacity(0);
 
-        dialog.setScene(new Scene(layout, 340, 140));
-        dialog.showAndWait();
+        Scene dialogScene = new Scene(layout, 360, 110);
+        dialogScene.setFill(Color.TRANSPARENT);
+        dialog.setScene(dialogScene);
+
+        dialog.setOnShown(e -> {
+            dialog.setX(primaryStage.getX() + (primaryStage.getWidth() - dialog.getWidth()) / 2);
+            dialog.setY(primaryStage.getY() + (primaryStage.getHeight() - dialog.getHeight()) / 2);
+
+            FadeTransition fadeIn = new FadeTransition(PROMPT_FADE_MS, layout);
+            fadeIn.setFromValue(0);
+            fadeIn.setToValue(1);
+
+            PauseTransition hold = new PauseTransition(PROMPT_VISIBLE);
+
+            FadeTransition fadeOut = new FadeTransition(PROMPT_FADE_MS, layout);
+            fadeOut.setFromValue(1);
+            fadeOut.setToValue(0);
+            fadeOut.setOnFinished(ev -> dialog.close());
+
+            new SequentialTransition(fadeIn, hold, fadeOut).play();
+        });
+
+        dialog.show();
     }
 
     private void addStylesheet(Scene scene, String path) {
