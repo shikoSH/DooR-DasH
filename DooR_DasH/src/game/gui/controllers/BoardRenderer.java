@@ -1,11 +1,14 @@
 package game.gui.controllers;
 
 import javafx.geometry.Pos;
+import javafx.scene.Cursor;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.StackPane;
+import java.util.function.Consumer;
 import game.engine.Board;
 import game.engine.Constants;
 import game.engine.Game;
@@ -28,6 +31,8 @@ public class BoardRenderer {
 
     // ── Font constant (shared style) ──────────────────────────
     private static final String LED = PanelBuilder.LED;
+    private static final String DOOR_ENERGY_TEXT   = "rgba(175, 228, 255, 0.95)";
+    private static final String MONSTER_ENERGY_TEXT = "rgba(190, 255, 210, 0.95)";
     private javafx.beans.property.DoubleProperty cellSize = 
         new javafx.beans.property.SimpleDoubleProperty(40);
     
@@ -41,6 +46,8 @@ public class BoardRenderer {
 
     // ── Reference to the GridPane (needed for cell sizing binds) ─
     private GridPane grid;
+    private Game currentGame;
+    private Consumer<Monster> onMonsterCellClick;
 
     // =========================================================
     //  CONSTRUCTOR
@@ -48,6 +55,10 @@ public class BoardRenderer {
 
     public BoardRenderer(ImageLoader images) {
         this.images = images;
+    }
+
+    public void setOnMonsterCellClick(Consumer<Monster> handler) {
+        this.onMonsterCellClick = handler;
     }
 
     // =========================================================
@@ -107,20 +118,26 @@ public class BoardRenderer {
                 StackPane.setAlignment(indexLabel, Pos.TOP_RIGHT);
 
                 Label energyLabel = new Label("");
-                cellSize.addListener((obs, old, val) -> energyLabel.setStyle(
-                    "-fx-font-family: " + LED + ";" +
-                    "-fx-font-size: " + Math.max(5, val.doubleValue() * 0.16) + "px;" +
-                    "-fx-text-fill: #FFD700;" +
-                    "-fx-font-weight: bold;" +
-                    "-fx-alignment: center;" +
-                    "-fx-text-alignment: center;" +
-                    "-fx-padding: 0 0 1 0;"));
+                cellSize.addListener((obs, old, val) -> {
+                    Object kind = energyLabel.getUserData();
+                    if ("door".equals(kind)) {
+                        applyDoorEnergyLabelStyle(energyLabel, val.doubleValue());
+                    } else if ("monster".equals(kind)) {
+                        applyMonsterEnergyLabelStyle(energyLabel, val.doubleValue());
+                    }
+                });
                 energyLabel.setVisible(false);
                 StackPane.setAlignment(energyLabel, Pos.BOTTOM_CENTER);
 
                 backgroundViews[row][col] = bgView;
                 monsterViews[row][col]    = mView;
                 energyLabels[row][col]    = energyLabel;
+
+                if (isMonsterSlot) {
+                    final int monsterBoardIndex = boardIndex;
+                    cellStack.setCursor(Cursor.HAND);
+                    cellStack.setOnMouseClicked(e -> handleMonsterCellClick(e, monsterBoardIndex));
+                }
 
                 cellStack.getChildren().addAll(bgView, mView, indexLabel, energyLabel);
                 grid.add(cellStack, col, row);
@@ -140,6 +157,7 @@ public class BoardRenderer {
      */
     public void refreshBoard(Game game) {
         if (game == null) return;
+        this.currentGame = game;
         Cell[][] cells = game.getBoard().getBoardCells();
 
         // Clear
@@ -147,6 +165,7 @@ public class BoardRenderer {
             for (int c = 0; c < Constants.BOARD_COLS; c++) {
                 monsterViews[r][c].setImage(null);
                 energyLabels[r][c].setVisible(false);
+                energyLabels[r][c].setUserData(null);
             }
 
         // Paint cells
@@ -162,6 +181,7 @@ public class BoardRenderer {
                     DoorCell door = (DoorCell) cell;
                     if (!door.isActivated()) {
                         energyLabels[rc[0]][rc[1]].setText("⚡" + door.getEnergy());
+                        applyDoorEnergyLabelStyle(rc[0], rc[1]);
                         energyLabels[rc[0]][rc[1]].setVisible(true);
                     }
                 }
@@ -192,9 +212,53 @@ public class BoardRenderer {
         monsterViews[rc[0]][rc[1]].setImage(images.getMonsterImage(m.getName()));
     }
 
+    private void handleMonsterCellClick(MouseEvent e, int boardIndex) {
+        if (e.getClickCount() != 1 || currentGame == null || onMonsterCellClick == null) return;
+        int bRow = boardIndex / Constants.BOARD_COLS;
+        int bCol = boardIndex % Constants.BOARD_COLS;
+        if (bRow % 2 == 1) bCol = Constants.BOARD_COLS - 1 - bCol;
+        Cell cell = currentGame.getBoard().getBoardCells()[bRow][bCol];
+        if (cell instanceof MonsterCell) {
+            onMonsterCellClick.accept(((MonsterCell) cell).getCellMonster());
+        }
+    }
+
     // =========================================================
     //  CELL IMAGE
     // =========================================================
+
+    /** Same look as the cell index badge — subtle, not yellow/red. */
+    private void applyDoorEnergyLabelStyle(int row, int col) {
+        Label label = energyLabels[row][col];
+        label.setUserData("door");
+        applyDoorEnergyLabelStyle(label, cellSize.get());
+    }
+
+    private void applyDoorEnergyLabelStyle(Label label, double cellSz) {
+        label.setStyle(
+            "-fx-font-family: " + LED + ";" +
+            "-fx-font-size: " + Math.max(6, cellSz * 0.18) + "px;" +
+            "-fx-text-fill: " + DOOR_ENERGY_TEXT + ";" +
+            "-fx-font-weight: bold;" +
+            "-fx-background-color: rgba(0,0,0,0.35);" +
+            "-fx-background-radius: 5;" +
+            "-fx-padding: 1 4 1 4;" +
+            "-fx-alignment: center;" +
+            "-fx-text-alignment: center;");
+    }
+
+    private void applyMonsterEnergyLabelStyle(Label label, double cellSz) {
+        label.setStyle(
+            "-fx-font-family: " + LED + ";" +
+            "-fx-font-size: " + Math.max(5, cellSz * 0.16) + "px;" +
+            "-fx-text-fill: " + MONSTER_ENERGY_TEXT + ";" +
+            "-fx-font-weight: bold;" +
+            "-fx-background-color: rgba(0,0,0,0.35);" +
+            "-fx-background-radius: 5;" +
+            "-fx-padding: 1 4 1 4;" +
+            "-fx-alignment: center;" +
+            "-fx-text-alignment: center;");
+    }
 
     private void setCellImage(int row, int col, Cell cell) {
         if (cell instanceof MonsterCell) {
@@ -203,6 +267,8 @@ public class BoardRenderer {
             String roleText = (monsterCell.getCellMonster().getRole() == Role.SCARER)
                 ? "SCARER" : "LAUGHER";
             energyLabels[row][col].setText(roleText);
+            energyLabels[row][col].setUserData("monster");
+            applyMonsterEnergyLabelStyle(energyLabels[row][col], cellSize.get());
             energyLabels[row][col].setVisible(true);
         } else if (cell instanceof DoorCell) {
             DoorCell door = (DoorCell) cell;

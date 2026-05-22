@@ -71,6 +71,14 @@ public class GameOverController {
             overlayPane.prefHeightProperty().bind(rootPane.heightProperty());
         }
 
+        // Keep winner text centered under baked-in "GAME OVER" as the pane scales
+        if (winsLabel != null && overlayPane != null) {
+            overlayPane.heightProperty().addListener((obs, oldVal, newVal) ->
+                AnchorPane.setTopAnchor(winsLabel, newVal.doubleValue() * 0.36));
+            AnchorPane.setLeftAnchor(winsLabel, 0.0);
+            AnchorPane.setRightAnchor(winsLabel, 0.0);
+        }
+
         // ── Style + glow on buttons ───────────────────────────
         styleButton(retryButton,    "#00ff88", "#003322");
         styleButton(mainMenuButton, "#ff6666", "#330011");
@@ -85,23 +93,6 @@ public class GameOverController {
         } catch (Exception ex) {
             System.err.println("Could not load win sound: " + ex.getMessage());
         }
-
-        // ── Button positions — 100px lower than before ────────
-        // bottomAnchor reduced by 100 (220 → 120) to push buttons down
-        AnchorPane.setBottomAnchor(retryButton,    20.0);
-        AnchorPane.setLeftAnchor(retryButton,      null);
-        AnchorPane.setRightAnchor(retryButton,     null);
-
-        rootPane.widthProperty().addListener((obs, old, w) -> {
-            double totalW     = w.doubleValue();
-            double gap        = 40;
-            double btnW       = 240;
-            double totalBtnsW = btnW * 2 + gap;
-            double startX     = (totalW - totalBtnsW) / 2.0;
-            AnchorPane.setLeftAnchor(retryButton,    startX);
-            AnchorPane.setLeftAnchor(mainMenuButton, startX + btnW + gap);
-        });
-        AnchorPane.setBottomAnchor(mainMenuButton, 120.0);
 
         // Wire handlers defensively
         if (retryButton    != null) retryButton.setOnAction(e -> handleReplay());

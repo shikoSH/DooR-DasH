@@ -12,6 +12,7 @@ import javafx.animation.SequentialTransition;
 import javafx.geometry.Insets;
 import javafx.util.Duration;
 import game.engine.cards.Card;
+import game.engine.monsters.Monster;
 
 /**
  * Responsible for constructing and populating every UI panel on the game screen:
@@ -65,6 +66,12 @@ public class PanelBuilder {
     public javafx.scene.layout.VBox      cardOverlay;
     public ImageView cardOverlayBack, cardOverlayFace;
     public Label     cardOverlayName, cardOverlayDesc, cardOverlayEffect;
+
+    // ── Monster cell info overlay ─────────────────────────────
+    public javafx.scene.layout.VBox monsterOverlay;
+    public ImageView monsterOverlayPortrait;
+    public Label monsterOverlayName, monsterOverlayType, monsterOverlayRole;
+    public Label monsterOverlayDesc, monsterOverlayEnergy;
 
     
     // =========================================================
@@ -255,6 +262,127 @@ public class PanelBuilder {
 
         boardContainer.getChildren().add(cardOverlay);
         javafx.scene.layout.StackPane.setAlignment(cardOverlay, Pos.CENTER);
+    }
+
+    // =========================================================
+    //  MONSTER INFO OVERLAY
+    // =========================================================
+
+    public void buildMonsterOverlay(javafx.scene.layout.StackPane boardContainer) {
+        monsterOverlay = new VBox(8);
+        monsterOverlay.setAlignment(Pos.CENTER);
+        monsterOverlay.setStyle(
+            "-fx-background-color: rgba(0,0,0,0.88);" +
+            "-fx-padding: 24; -fx-background-radius: 16;");
+        monsterOverlay.setMaxWidth(320);
+        monsterOverlay.setMaxHeight(480);
+        monsterOverlay.setVisible(false);
+        monsterOverlay.setOpacity(0);
+
+        monsterOverlayPortrait = new ImageView();
+        monsterOverlayPortrait.setFitWidth(140);
+        monsterOverlayPortrait.setFitHeight(160);
+        monsterOverlayPortrait.setPreserveRatio(true);
+
+        monsterOverlayName = monsterDetailLabel("#ffcc00", 15, true);
+        monsterOverlayType = monsterDetailLabel("#00ffff", 12, true);
+        monsterOverlayRole = monsterDetailLabel("white", 12, true);
+        monsterOverlayDesc = monsterDetailLabel("#cccccc", 11, false);
+        monsterOverlayDesc.setWrapText(true);
+        monsterOverlayDesc.setMaxWidth(260);
+        monsterOverlayEnergy = monsterDetailLabel("#00ff88", 13, true);
+
+        Label hint = new Label("tap to close");
+        hint.setStyle("-fx-text-fill: #666; -fx-font-size: 10px; -fx-font-style: italic;");
+
+        monsterOverlay.getChildren().addAll(
+            monsterOverlayPortrait, monsterOverlayName, monsterOverlayType,
+            monsterOverlayRole, monsterOverlayDesc, monsterOverlayEnergy, hint);
+
+        boardContainer.getChildren().add(monsterOverlay);
+        javafx.scene.layout.StackPane.setAlignment(monsterOverlay, Pos.CENTER);
+    }
+
+    public boolean isMonsterOverlayVisible() {
+        return monsterOverlay != null && monsterOverlay.isVisible();
+    }
+
+    public boolean isAnyOverlayVisible() {
+        return (cardOverlay != null && cardOverlay.isVisible())
+            || isMonsterOverlayVisible();
+    }
+
+    public void showMonsterOverlay(Monster monster) {
+        if (monster == null || monsterOverlay == null) return;
+
+        monsterOverlayName.setText(monster.getName());
+        monsterOverlayType.setText(getMonsterTypeName(monster));
+        monsterOverlayRole.setText(monster.getRole().toString());
+        monsterOverlayDesc.setText(monster.getDescription());
+        monsterOverlayEnergy.setText("Energy: " + monster.getEnergy());
+
+        javafx.scene.image.Image portrait = images.getMonsterScreenImage(monster.getName());
+        if (portrait == null) portrait = images.getMonsterImage(monster.getName());
+        monsterOverlayPortrait.setImage(portrait);
+
+        monsterOverlay.setVisible(true);
+        monsterOverlay.setOnMouseClicked(e -> dismissMonsterOverlay());
+
+        FadeTransition fadeIn = new FadeTransition(Duration.millis(250), monsterOverlay);
+        fadeIn.setFromValue(0);
+        fadeIn.setToValue(1);
+        fadeIn.play();
+    }
+
+    public void dismissMonsterOverlay() {
+        if (monsterOverlay == null || !monsterOverlay.isVisible()) return;
+        FadeTransition out = new FadeTransition(Duration.millis(180), monsterOverlay);
+        out.setFromValue(1);
+        out.setToValue(0);
+        out.setOnFinished(e -> monsterOverlay.setVisible(false));
+        out.play();
+    }
+
+    public static String getMonsterTypeName(Monster monster) {
+        if (monster == null) return "";
+        return monster.getClass().getSimpleName();
+    }
+
+    private Label monsterDetailLabel(String color, int size, boolean bold) {
+        Label l = new Label();
+        l.setAlignment(Pos.CENTER);
+        l.setMaxWidth(260);
+        l.setStyle(
+            "-fx-text-fill: " + color + ";" +
+            "-fx-font-size: " + size + "px;" +
+            "-fx-font-family: " + LED + ";" +
+            (bold ? "-fx-font-weight: bold;" : ""));
+        return l;
+    }
+
+    public void scaleMonsterOverlay(double boardSide) {
+        if (monsterOverlay == null || boardSide <= 0) return;
+        double portraitW = boardSide * 0.38;
+        double portraitH = boardSide * 0.44;
+        monsterOverlayPortrait.setFitWidth(portraitW);
+        monsterOverlayPortrait.setFitHeight(portraitH);
+        monsterOverlay.setMaxWidth(boardSide * 0.92);
+        monsterOverlay.setMaxHeight(boardSide * 1.1);
+        int base = (int) Math.max(10, boardSide * 0.024);
+        applyMonsterOverlayStyle(monsterOverlayName, "#ffcc00", base + 3, true);
+        applyMonsterOverlayStyle(monsterOverlayType, "#00ffff", base + 1, true);
+        applyMonsterOverlayStyle(monsterOverlayRole, "white", base + 1, true);
+        applyMonsterOverlayStyle(monsterOverlayDesc, "#cccccc", base, false);
+        applyMonsterOverlayStyle(monsterOverlayEnergy, "#00ff88", base + 2, true);
+    }
+
+    private void applyMonsterOverlayStyle(Label l, String color, int size, boolean bold) {
+        if (l == null) return;
+        l.setStyle(
+            "-fx-text-fill: " + color + ";" +
+            "-fx-font-size: " + size + "px;" +
+            "-fx-font-family: " + LED + ";" +
+            (bold ? "-fx-font-weight: bold;" : ""));
     }
 
     // =========================================================
