@@ -91,8 +91,8 @@ public class GameController {
     private static final double DECK_TOP_FRAC     = 0.05;
     private static final double DECK_W            = 0.055;
     private static final double DECK_H            = 0.12;
-    private static final double DICE_SIZE         = 0.3;
-    private static final double DICE_TOP_FRAC     = 0.5;
+    private static final double DICE_SIZE         = 0.25;
+    private static final double DICE_TOP_FRAC     = -1.4;
     private static final double BTN_W             = 0.13;
     private static final double BTN_H             = 0.13;
     private static final double BTN_TOP_FRAC      = 0.05;
