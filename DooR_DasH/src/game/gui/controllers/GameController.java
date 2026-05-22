@@ -6,7 +6,6 @@ import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
-import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.effect.BoxBlur;
@@ -17,8 +16,6 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
 import javafx.util.Duration;
 import game.engine.*;
 import game.engine.cards.Card;
@@ -143,28 +140,10 @@ public class GameController {
     private static final String IMG_CARD_BACK    = "card_back_design.jpg";
 
     // =========================================================
-    //  IMAGE CACHE
+    //  IMAGE LOADING
     // =========================================================
-    private final java.util.HashMap<String, Image> cache = new java.util.HashMap<>();
-
     private Image img(String filename) {
-        String key = IMG + filename;
-        if (cache.containsKey(key)) return cache.get(key);
-        java.io.InputStream s = getClass().getResourceAsStream(key);
-        if (s == null) {
-            System.err.println("WARNING: image not found: " + key);
-            cache.put(key, null);
-            return null;
-        }
-        try {
-            Image image = new Image(s);
-            cache.put(key, image);
-            return image;
-        } catch (Exception e) {
-            System.err.println("ERROR loading: " + key);
-            cache.put(key, null);
-            return null;
-        }
+        return ImageLoader.getInstance().loadImage(filename);
     }
 
     // =========================================================
@@ -239,6 +218,13 @@ public class GameController {
     // Blur applied to masterLayout so the card overlay (on backgroundRoot) is NOT blurred
     private final BoxBlur worldBlur = new BoxBlur(0, 0, 2);
 
+    // In-scene message overlay (errors / confirms stay inside fullscreen window)
+    private StackPane messageOverlay;
+    private VBox      messageBox;
+    private Label     messageTitle;
+    private Label     messageBody;
+    private HBox      messageButtons;
+
     // =========================================================
     //  STATE
     // =========================================================
@@ -303,6 +289,7 @@ public class GameController {
             buildOpponentPanel();
             buildActionLog();
             buildCardOverlay();
+            buildMessageOverlay();
 
             if (powerUpImageBtn != null) {
                 powerUpImageBtn.setImage(img(IMG_POWERUP_BTN));
@@ -637,6 +624,125 @@ public class GameController {
         // Add to backgroundRoot — NOT boardContainer — so blur never touches it
         backgroundRoot.getChildren().add(cardOverlay);
         StackPane.setAlignment(cardOverlay, Pos.CENTER);
+    }
+
+    // =========================================================
+    //  BUILD MESSAGE OVERLAY (errors / confirms on top layer)
+    // =========================================================
+    private void buildMessageOverlay() {
+        messageOverlay = new StackPane();
+        messageOverlay.setStyle("-fx-background-color: rgba(0,0,0,0.55);");
+        messageOverlay.setVisible(false);
+        messageOverlay.setOpacity(0);
+        messageOverlay.setPickOnBounds(true);
+
+        messageBox = new VBox(14);
+        messageBox.setAlignment(Pos.CENTER);
+        messageBox.setPadding(new Insets(22, 28, 22, 28));
+        messageBox.setMaxWidth(440);
+        messageBox.setStyle(
+            "-fx-background-color: rgba(18,18,32,0.97);" +
+            "-fx-background-radius: 14;" +
+            "-fx-border-color: #ff5555;" +
+            "-fx-border-radius: 14;" +
+            "-fx-border-width: 2;");
+
+        messageTitle = makeLbl("", "#ff6666", 15, true);
+        messageBody  = makeLbl("", "white", 12, false);
+        messageBody.setWrapText(true);
+        messageBody.setMaxWidth(380);
+        messageBody.setAlignment(Pos.CENTER);
+
+        messageButtons = new HBox(14);
+        messageButtons.setAlignment(Pos.CENTER);
+
+        messageBox.getChildren().addAll(messageTitle, messageBody, messageButtons);
+        messageOverlay.getChildren().add(messageBox);
+        StackPane.setAlignment(messageBox, Pos.CENTER);
+
+        backgroundRoot.getChildren().add(messageOverlay);
+        messageOverlay.toFront();
+    }
+
+    private void showMessageOverlay(String title, String body, Runnable onConfirm, boolean confirm) {
+        if (messageOverlay == null) return;
+
+        messageTitle.setText(title != null ? title : "");
+        messageBody.setText(body != null ? body : "");
+        messageButtons.getChildren().clear();
+
+        if (confirm) {
+            messageBox.setStyle(
+                "-fx-background-color: rgba(18,18,32,0.97);" +
+                "-fx-background-radius: 14;" +
+                "-fx-border-color: #00ccff;" +
+                "-fx-border-radius: 14;" +
+                "-fx-border-width: 2;");
+            messageTitle.setStyle(
+                "-fx-font-family: " + FONT + ";" +
+                "-fx-text-fill: #00ccff;" +
+                "-fx-font-size: 15px;" +
+                "-fx-font-weight: bold;");
+
+            Button ok = new Button("OK");
+            styleOverlayButton(ok, "#00cc88");
+            ok.setOnAction(e -> {
+                hideMessageOverlay();
+                if (onConfirm != null) onConfirm.run();
+            });
+
+            Button cancel = new Button("CANCEL");
+            styleOverlayButton(cancel, "#666666");
+            cancel.setOnAction(e -> hideMessageOverlay());
+
+            messageButtons.getChildren().addAll(ok, cancel);
+        } else {
+            messageBox.setStyle(
+                "-fx-background-color: rgba(18,18,32,0.97);" +
+                "-fx-background-radius: 14;" +
+                "-fx-border-color: #ff5555;" +
+                "-fx-border-radius: 14;" +
+                "-fx-border-width: 2;");
+            messageTitle.setStyle(
+                "-fx-font-family: " + FONT + ";" +
+                "-fx-text-fill: #ff6666;" +
+                "-fx-font-size: 15px;" +
+                "-fx-font-weight: bold;");
+
+            Button ok = new Button("OK");
+            styleOverlayButton(ok, "#ff5555");
+            ok.setOnAction(e -> hideMessageOverlay());
+            messageButtons.getChildren().add(ok);
+        }
+
+        messageOverlay.setVisible(true);
+        messageOverlay.toFront();
+        FadeTransition fadeIn = new FadeTransition(Duration.millis(200), messageOverlay);
+        fadeIn.setFromValue(0);
+        fadeIn.setToValue(1);
+        fadeIn.play();
+    }
+
+    private void styleOverlayButton(Button btn, String color) {
+        btn.setStyle(
+            "-fx-font-family: " + FONT + ";" +
+            "-fx-background-color: " + color + ";" +
+            "-fx-text-fill: white;" +
+            "-fx-font-weight: bold;" +
+            "-fx-background-radius: 8;" +
+            "-fx-padding: 8 20;");
+    }
+
+    private void hideMessageOverlay() {
+        if (messageOverlay == null) return;
+        FadeTransition fadeOut = new FadeTransition(Duration.millis(180), messageOverlay);
+        fadeOut.setFromValue(messageOverlay.getOpacity());
+        fadeOut.setToValue(0);
+        fadeOut.setOnFinished(e -> {
+            messageOverlay.setVisible(false);
+            messageButtons.getChildren().clear();
+        });
+        fadeOut.play();
     }
 
     // =========================================================
@@ -1296,26 +1402,27 @@ public class GameController {
     @FXML
     private void handlePowerUp() {
         if (game == null || cardOverlay.isVisible()) return;
-        boolean ok = showConfirmDialog("Use Powerup", "Activate Powerup?",
-            "Costs " + Constants.POWERUP_COST + " energy. Proceed?");
-        if (ok) {
-            try {
-                Monster current = game.getCurrent();
-                boolean isPlayer = (current == game.getPlayer());
-                String name = current.getName();
-                game.usePowerup();
-                actionLine1.setText(name + " POWERUP ACTIVATED!");
-                actionLine2.setText(""); actionLine3.setText("");
-                // Light up the power bulb for POWERUP_DURATION turns
-                // Change POWERUP_DURATION to match how many turns your engine gives
-                int POWERUP_DURATION = 3;
-                if (isPlayer) playerPowerTurnsLeft   = POWERUP_DURATION;
-                else          opponentPowerTurnsLeft = POWERUP_DURATION;
-                refreshBoard(); updateUI();
-            } catch (Exception ex) {
-                showErrorAlert("Powerup Failed", ex.getMessage());
-            }
-        }
+        if (messageOverlay != null && messageOverlay.isVisible()) return;
+        showConfirmDialog("Use Powerup", "Activate Powerup?",
+            "Costs " + Constants.POWERUP_COST + " energy. Proceed?",
+            () -> {
+                try {
+                    Monster current = game.getCurrent();
+                    boolean isPlayer = (current == game.getPlayer());
+                    String name = current.getName();
+                    game.usePowerup();
+                    actionLine1.setText(name + " POWERUP ACTIVATED!");
+                    actionLine2.setText("");
+                    actionLine3.setText("");
+                    int POWERUP_DURATION = 3;
+                    if (isPlayer) playerPowerTurnsLeft   = POWERUP_DURATION;
+                    else          opponentPowerTurnsLeft = POWERUP_DURATION;
+                    refreshBoard();
+                    updateUI();
+                } catch (Exception ex) {
+                    showErrorAlert("Powerup Failed", ex.getMessage());
+                }
+            });
     }
 
     // =========================================================
@@ -1344,41 +1451,18 @@ public class GameController {
     }
 
     // =========================================================
-    //  DIALOGS
+    //  DIALOGS (in-scene — stays in fullscreen)
     // =========================================================
-    private boolean showConfirmDialog(String title, String header, String content) {
-        final boolean[] result = {false};
-        Stage dialog = new Stage();
-        dialog.setTitle(title);
-        dialog.initModality(Modality.APPLICATION_MODAL);
-        Label h = makeLbl(header, "black", 13, true);
-        Label c = makeLbl(content, "#333333", 11, false);
-        c.setWrapText(true);
-        Button ok = new Button("OK"), no = new Button("CANCEL");
-        ok.setOnAction(ev -> { result[0] = true; dialog.close(); });
-        no.setOnAction(ev -> dialog.close());
-        HBox btns = new HBox(10, ok, no); btns.setAlignment(Pos.CENTER);
-        VBox layout = new VBox(12, h, c, btns);
-        layout.setPadding(new Insets(20)); layout.setAlignment(Pos.CENTER);
-        dialog.setScene(new Scene(layout, 320, 160));
-        dialog.showAndWait();
-        return result[0];
+    private void showConfirmDialog(String title, String header, String content, Runnable onConfirm) {
+        String body = header;
+        if (content != null && !content.isEmpty()) {
+            body = (header != null && !header.isEmpty()) ? header + "\n" + content : content;
+        }
+        showMessageOverlay(title, body, onConfirm, true);
     }
 
     private void showErrorAlert(String title, String msg) {
-        Stage dialog = new Stage();
-        dialog.setTitle(title);
-        dialog.initModality(Modality.APPLICATION_MODAL);
-        Label h = makeLbl("! " + title, "red", 13, true);
-        Label c = makeLbl(msg != null ? msg : "Unknown error", "#333333", 11, false);
-        c.setWrapText(true);
-        Button ok = new Button("OK");
-        ok.setOnAction(ev -> dialog.close());
-        HBox btns = new HBox(ok); btns.setAlignment(Pos.CENTER);
-        VBox layout = new VBox(12, h, c, btns);
-        layout.setPadding(new Insets(20)); layout.setAlignment(Pos.CENTER);
-        dialog.setScene(new Scene(layout, 320, 140));
-        dialog.showAndWait();
+        showMessageOverlay(title, msg != null ? msg : "Unknown error", null, false);
     }
 
     // =========================================================

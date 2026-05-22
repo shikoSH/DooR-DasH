@@ -36,9 +36,10 @@ public class SceneManager {
     private final HashMap<String, Parent> cachedRoots = new HashMap<>();
     private MediaPlayer mediaPlayer;
     private boolean fullScreenPromptShown = false;
+    private boolean startScreenShownOnce = false;
 
     private static final double DEFAULT_WIDTH  = 1280;
-    private static final double DEFAULT_HEIGHT = 920;
+    private static final double DEFAULT_HEIGHT = 720;
     private static final Duration PROMPT_FADE_MS = Duration.millis(350);
     private static final Duration PROMPT_VISIBLE = Duration.seconds(2.5);
 
@@ -139,15 +140,20 @@ public class SceneManager {
             FXMLLoader loader = new FXMLLoader(fxmlUrl);
             Parent root = loader.load();
 
-            root.setOpacity(0);
             addStylesheetOnce("/game/gui/resources/css/styles.css");
             addStylesheetOnce("/game/gui/resources/css/start-screen.css");
             switchToContent(root, !fullScreenPromptShown);
 
-            FadeTransition fadeIn = new FadeTransition(Duration.millis(600), root);
-            fadeIn.setFromValue(0);
-            fadeIn.setToValue(1);
-            fadeIn.play();
+            if (!startScreenShownOnce) {
+                startScreenShownOnce = true;
+                root.setOpacity(0);
+                FadeTransition fadeIn = new FadeTransition(Duration.millis(600), root);
+                fadeIn.setFromValue(0);
+                fadeIn.setToValue(1);
+                fadeIn.play();
+            } else {
+                root.setOpacity(1);
+            }
 
             showStageIfNeeded();
         } catch (Exception e) {
@@ -257,11 +263,23 @@ public class SceneManager {
     private void switchToContent(Parent content, boolean showPrompt) {
         if (content == null || primaryStage == null) return;
 
+        releaseRootBindings();
         prepareRootForFill(content);
         sceneHolder.getChildren().setAll(content);
 
         if (showPrompt) {
             Platform.runLater(this::showFullScreenPrompt);
+        }
+    }
+
+    /** Unbind size properties from the outgoing screen so the next screen can bind cleanly. */
+    private void releaseRootBindings() {
+        if (sceneHolder.getChildren().isEmpty()) return;
+        javafx.scene.Node old = sceneHolder.getChildren().get(0);
+        if (old instanceof Region) {
+            Region region = (Region) old;
+            try { region.prefWidthProperty().unbind(); }  catch (Exception ignored) {}
+            try { region.prefHeightProperty().unbind(); } catch (Exception ignored) {}
         }
     }
 
