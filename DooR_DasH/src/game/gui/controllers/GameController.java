@@ -93,11 +93,11 @@ public class GameController {
     private static final double DECK_H            = 0.12;
     private static final double DICE_SIZE         = 0.25;
     private static final double DICE_TOP_FRAC     = -1.4;
-    private static final double BTN_W             = 0.13;
-    private static final double BTN_H             = 0.13;
-    private static final double BTN_TOP_FRAC      = 0.05;
-    private static final double ROLL_RIGHT        = 0.189;
-    private static final double POWERUP_RIGHT     = 0.287;
+    private static final double BTN_W             = 0.17;
+    private static final double BTN_H             = 0.17;
+    private static final double BTN_TOP_FRAC      = -1.2;
+    private static final double ROLL_RIGHT        = 0.185;
+    private static final double POWERUP_RIGHT     = 0.284;
     private static final double PARALLAX_X        = 28;
     private static final double PARALLAX_Y        = 18;
     private static final double BG_OVERSIZE       = 1.08; // must stay > 1 so edges never show
