@@ -160,10 +160,10 @@ public class BoardRenderer {
                 setCellImage(rc[0], rc[1], cell);
                 if (cell instanceof DoorCell) {
                     DoorCell door = (DoorCell) cell;
-                    String roleText = (door.getRole() == Role.SCARER) ? "SCARER" : "LAUGHER";
-                    energyLabels[rc[0]][rc[1]].setText(
-                        door.isActivated() ? roleText : roleText + "\n⚡" + door.getEnergy());
-                    energyLabels[rc[0]][rc[1]].setVisible(true);
+                    if (!door.isActivated()) {
+                        energyLabels[rc[0]][rc[1]].setText("⚡" + door.getEnergy());
+                        energyLabels[rc[0]][rc[1]].setVisible(true);
+                    }
                 }
             } else {
                 backgroundViews[rc[0]][rc[1]].setImage(images.normalImage);
