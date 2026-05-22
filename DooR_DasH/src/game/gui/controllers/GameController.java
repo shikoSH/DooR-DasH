@@ -84,15 +84,15 @@ public class GameController {
     private static final double PROFILE_W_MULT    = 0.90; // fraction of panel width (width only — height auto)
     private static final double ACTION_LOG_W_MULT = 0.90; // fraction of panel width (width only — height auto)
     private static final double CONTROL_BAR_H     = 0.16;
-    private static final double DECK_LEFT         = 0.26;
-    private static final double DECK_TOP_FRAC     = -1.7;
+    private static final double DECK_LEFT         = 0.25;
+    private static final double DECK_TOP_FRAC     = -1.8;
     private static final double DECK_W            = 0.1584;
     private static final double DECK_H            = 0.3456;
     private static final double DICE_SIZE         = 0.25;
-    private static final double DICE_TOP_FRAC     = -1.4;
+    private static final double DICE_TOP_FRAC     = -1.6;
     private static final double BTN_W             = 0.17;
     private static final double BTN_H             = 0.17;
-    private static final double BTN_TOP_FRAC      = -1.2;
+    private static final double BTN_TOP_FRAC      = -1.4;
     private static final double ROLL_RIGHT        = 0.185;
     private static final double POWERUP_RIGHT     = 0.284;
     private static final double PARALLAX_X        = 28;
@@ -490,12 +490,12 @@ public class GameController {
         playerNameLbl.setTranslateY(100);    // Move down (positive = down, negative = up)
         
         playerTypeLbl = makeLbl("Type: -", "#aaaaaa", TXT_PLAYER_TYPE, false);
-        playerTypeLbl.setTranslateX(90);
-        playerTypeLbl.setTranslateY(120);
+        playerTypeLbl.setTranslateX(150);
+        playerTypeLbl.setTranslateY(113);
         
         playerRoleLbl = makeLbl("Role: -", "white", TXT_PLAYER_ROLE, false);
-        playerRoleLbl.setTranslateX(90);
-        playerRoleLbl.setTranslateY(160);
+        playerRoleLbl.setTranslateX(150);
+        playerRoleLbl.setTranslateY(122);
         
         VBox profileText = new VBox(2, playerNameLbl, playerTypeLbl, playerRoleLbl);
         profileText.setPadding(new Insets(10, 6, 6, 10));
@@ -520,8 +520,8 @@ public class GameController {
 
         // Status label
         playerStatusLbl = makeLbl("NORMAL", "#aaaaaa", TXT_PLAYER_STATUS, false);
-        playerStatusLbl.setTranslateX(10);
-        playerStatusLbl.setTranslateY(0);
+        playerStatusLbl.setTranslateX(30);
+        playerStatusLbl.setTranslateY(-320);
         
         // Turn label
         playerTurnLbl = makeLbl("", "#ffcc00", TXT_PLAYER_TURN, true);
@@ -533,6 +533,7 @@ public class GameController {
             playerEnergyLbl, playerEnergyWrapper,
             playerStatusLbl, playerTurnLbl);
     }
+    
 
     // =========================================================
     //  BUILD OPPONENT PANEL
@@ -554,32 +555,54 @@ public class GameController {
         opponentPortrait.setPreserveRatio(true);
         addDropShadow(opponentPortrait, 12, Color.BLACK);
 
+        // Position badge
         opponentPosLbl = makeLbl("0", "#ff6666", TXT_PLAYER_POS, true);
         StackPane oppPortraitPane = new StackPane(opponentPortrait, opponentPosLbl);
         StackPane.setAlignment(opponentPosLbl, Pos.BOTTOM_LEFT);
         StackPane.setMargin(opponentPosLbl, new Insets(0, 0, 6, 6));
 
+        // Profile background
         opponentProfileBg = new ImageView(img(IMG_PROFILE));
         opponentProfileBg.setPreserveRatio(true);
-        opponentNameLbl = makeLbl("-",       "white",   TXT_PLAYER_NAME, true);
+        
+        // TEXT LABELS - Opposite positions for opponent (using negative values)
+        opponentNameLbl = makeLbl("-", "white", TXT_PLAYER_NAME, true);
+        opponentNameLbl.setTranslateX(30);   // Move left (opposite of player's +20)
+        opponentNameLbl.setTranslateY(100);   // Same Y position
+        
         opponentTypeLbl = makeLbl("Type: -", "#aaaaaa", TXT_PLAYER_TYPE, false);
-        opponentRoleLbl = makeLbl("Role: -", "white",   TXT_PLAYER_ROLE, false);
+        opponentTypeLbl.setTranslateX(160);  // Opposite of player's +150
+        opponentTypeLbl.setTranslateY(113);
+        
+        opponentRoleLbl = makeLbl("Role: -", "white", TXT_PLAYER_ROLE, false);
+        opponentRoleLbl.setTranslateX(160);  // Opposite of player's +150
+        opponentRoleLbl.setTranslateY(122);
+        
         VBox oppProfileText = new VBox(2, opponentNameLbl, opponentTypeLbl, opponentRoleLbl);
         oppProfileText.setPadding(new Insets(10, 6, 6, 10));
         oppProfileText.setAlignment(Pos.TOP_LEFT);
         StackPane oppProfilePane = new StackPane(opponentProfileBg, oppProfileText);
         StackPane.setAlignment(oppProfileText, Pos.TOP_LEFT);
 
+        // Energy label
         opponentEnergyLbl = makeLbl("-", "#ff6666", TXT_PLAYER_ENERGY, true);
         addGlow(opponentEnergyLbl, Color.web("#ff6666"), 16, 0.6);
+        opponentEnergyLbl.setTranslateX(10);  // Opposite of player's +10
+        opponentEnergyLbl.setTranslateY(0);
 
+        // Energy bar
         opponentEnergyBar.setPreserveRatio(true);
         opponentEnergyBar.setImage(en100);
         opponentEnergyBarCurrentImage = en100;
         opponentEnergyWrapper = new StackPane(opponentEnergyBar);
         opponentEnergyWrapper.setAlignment(Pos.CENTER);
+        opponentEnergyWrapper.setTranslateX(0);  // Opposite of player's +10
+        opponentEnergyWrapper.setTranslateY(-30);
 
+        // Status label
         opponentStatusLbl = makeLbl("NORMAL", "#aaaaaa", TXT_PLAYER_STATUS, false);
+        opponentStatusLbl.setTranslateX(30);  // Opposite of player's +10
+        opponentStatusLbl.setTranslateY(-320);
 
         opponentPanelContainer.getChildren().addAll(
             lights, oppPortraitPane, oppProfilePane,
@@ -805,8 +828,8 @@ public class GameController {
 
         double pad = H * PANEL_TOP_PAD;
         // Move left player panel down by increasing top padding
-        playerPanelContainer.setStyle("-fx-padding: " + (pad + 200) + " 4 4 60;");
-        opponentPanelContainer.setStyle("-fx-padding: " + (pad + 200) + " 4 4 4;");
+        playerPanelContainer.setStyle("-fx-padding: " + (pad + 170) + " 4 4 60;");
+        opponentPanelContainer.setStyle("-fx-padding: " + (pad + 170) + " 4 4 4;");
 
         // Portrait — width only, height scales automatically (preserveRatio=true)
         double portraitW = panelW * PORTRAIT_W_MULT;
