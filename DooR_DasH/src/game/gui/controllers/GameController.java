@@ -57,18 +57,18 @@ public class GameController {
     // =========================================================
     //  TEXT SIZES — change any number to resize that text
     // =========================================================
-    private static final int TXT_PLAYER_NAME   = 20;
-    private static final int TXT_PLAYER_TYPE   = 18;
-    private static final int TXT_PLAYER_ROLE   = 18;
-    private static final int TXT_PLAYER_POS    = 20;
-    private static final int TXT_PLAYER_ENERGY = 20;
-    private static final int TXT_PLAYER_STATUS = 20;
-    private static final int TXT_PLAYER_TURN   = 15;
-    private static final int TXT_ACTION_LOG    = 20;
+    private static final int TXT_PLAYER_NAME   = 13;
+    private static final int TXT_PLAYER_TYPE   = 10;
+    private static final int TXT_PLAYER_ROLE   = 10;
+    private static final int TXT_PLAYER_POS    = 11;
+    private static final int TXT_PLAYER_ENERGY = 13;
+    private static final int TXT_PLAYER_STATUS = 10;
+    private static final int TXT_PLAYER_TURN   = 12;
+    private static final int TXT_ACTION_LOG    = 10;
     private static final int TXT_TOP_LABEL     = 14;
-    private static final int TXT_DICE_RESULT   = 20;
-    private static final int TXT_CARD_NAME     = 20;
-    private static final int TXT_CARD_BODY     = 16;
+    private static final int TXT_DICE_RESULT   = 16;
+    private static final int TXT_CARD_NAME     = 16;
+    private static final int TXT_CARD_BODY     = 12;
     private static final int TXT_CELL_INDEX    =  7;
     private static final int TXT_DOOR_ENERGY   =  7;
 
@@ -84,10 +84,10 @@ public class GameController {
     private static final double PROFILE_W_MULT    = 0.90; // fraction of panel width (width only — height auto)
     private static final double ACTION_LOG_W_MULT = 0.90; // fraction of panel width (width only — height auto)
     private static final double CONTROL_BAR_H     = 0.16;
-    private static final double DECK_LEFT         = 0.25;
-    private static final double DECK_TOP_FRAC     = -1.7;
-    private static final double DECK_W            = 0.1584;
-    private static final double DECK_H            = 0.3456;
+    private static final double DECK_LEFT         = 0.245;
+    private static final double DECK_TOP_FRAC     = 0.05;
+    private static final double DECK_W            = 0.055;
+    private static final double DECK_H            = 0.12;
     private static final double DICE_SIZE         = 0.25;
     private static final double DICE_TOP_FRAC     = -1.4;
     private static final double BTN_W             = 0.17;
@@ -441,6 +441,12 @@ public class GameController {
                 bgViews[row][col]      = bg;
                 monsterViews[row][col] = mv;
                 energyLabels[row][col] = eLbl;
+
+                final int cellIndex = bi;
+                mv.setOnMouseClicked(e -> {
+                    Monster clicked = getMonsterAtCell(cellIndex);
+                    if (clicked != null) showMonsterPopup(clicked);
+                });
 
                 cell.getChildren().addAll(bg, mv, indexLbl, eLbl);
                 grid.add(cell, col, row);
@@ -1241,6 +1247,19 @@ public class GameController {
                 return;
             }
 
+         // Snapshot door states BEFORE the turn
+            boolean[][] doorWasActivated = new boolean[10][10];
+            Cell[][] cells = game.getBoard().getBoardCells();
+            for (int r = 0; r < 10; r++)
+                for (int c = 0; c < 10; c++)
+                    if (cells[r][c] instanceof DoorCell)
+                        doorWasActivated[r][c] = ((DoorCell) cells[r][c]).isActivated();
+
+            // Snapshot stationed monsters' energies BEFORE the turn
+            java.util.Map<String, Integer> stationedEnergyBefore = new java.util.HashMap<>();
+            for (Monster m : Board.getStationedMonsters())
+                stationedEnergyBefore.put(m.getName(), m.getEnergy());
+
             game.playTurn();
 
             int newPos    = current.getPosition();
@@ -1277,14 +1296,45 @@ public class GameController {
             final Monster fo = opponent;
             final int     fp = oldPos;
             final int     fn = newPos;
+            final boolean[][] finalDoorWasActivated = doorWasActivated;
+            final Cell[][] finalCells = cells;
+            final java.util.Map<String, Integer> finalStationedBefore = stationedEnergyBefore;
 
             animateDice(diceFace, () ->
                 animateMove(fm, fo, fp, fn, () -> {
                     refreshBoard(); updateUI();
-                    if (fd && fc != null) showCardOverlay(fc);
+
+                    // Door sound — only if door was just opened by landing on it
+                    int[] rowCol = toRowCol(fn);
+                    Cell landedCell = finalCells[rowCol[0]][rowCol[1]];
+                    if (landedCell instanceof DoorCell) {
+                        if (!finalDoorWasActivated[rowCol[0]][rowCol[1]]
+                                && ((DoorCell) landedCell).isActivated()) {
+                            SoundManager.getInstance().playDoorOpening();
+                        }
+                    }
+
+                    // Stationed monster energy popups — delayed to sync with landing
+                    for (Monster stationed : Board.getStationedMonsters()) {
+                        Integer before = finalStationedBefore.get(stationed.getName());
+                        if (before != null && stationed.getEnergy() != before) {
+                            int diff = stationed.getEnergy() - before;
+                            int[] src = toRowCol(fn);   // current monster landed here
+                            int[] dst = toRowCol(stationed.getPosition());
+                            // Only show popup if stationed monster is on same-role cell
+                            // (energy change was caused by landing interaction)
+                            showEnergyPopup(dst[0], dst[1], diff);
+                        }
+                    }
+
+                    if (fd && fc != null) {
+                        SoundManager.getInstance().playCardDraw();
+                        showCardOverlay(fc);
+                    }
                     checkWinner();
                     isAnimating = false;
                 }));
+            
 
         } catch (game.engine.exceptions.InvalidMoveException ex) {
             actionLine1.setText("INVALID: " + ex.getMessage());
@@ -1297,6 +1347,117 @@ public class GameController {
             ex.printStackTrace();
             isAnimating = false;
         }
+    }
+    private void showEnergyPopup(int row, int col, int diff) {
+        // Find the cell node in the grid
+        for (Node node : grid.getChildren()) {
+            Integer r = GridPane.getRowIndex(node);
+            Integer c = GridPane.getColumnIndex(node);
+            if (r == null) r = 0;
+            if (c == null) c = 0;
+            if (r == row && c == col && node instanceof StackPane) {
+                StackPane cell = (StackPane) node;
+                Label popup = new Label((diff > 0 ? "+" : "") + diff);
+                popup.setStyle(
+                    "-fx-text-fill: " + (diff > 0 ? "#00ff88" : "#ff4444") + ";" +
+                    "-fx-font-size: 11px;" +
+                    "-fx-font-weight: bold;" +
+                    "-fx-background-color: rgba(0,0,0,0.6);" +
+                    "-fx-padding: 1 3 1 3;" +
+                    "-fx-background-radius: 4;"
+                );
+                popup.setMouseTransparent(true);
+                cell.getChildren().add(popup);
+
+                // Float up and fade out
+                TranslateTransition move = new TranslateTransition(Duration.millis(900), popup);
+                move.setByY(-22);
+                FadeTransition fade = new FadeTransition(Duration.millis(900), popup);
+                fade.setFromValue(1.0);
+                fade.setToValue(0.0);
+                ParallelTransition pt = new ParallelTransition(move, fade);
+                pt.setOnFinished(e -> cell.getChildren().remove(popup));
+                pt.play();
+                break;
+            }
+        }
+    }
+
+    private Monster getMonsterAtCell(int cellIndex) {
+        if (game == null) return null;
+        if (game.getPlayer().getPosition() == cellIndex) return game.getPlayer();
+        if (game.getOpponent().getPosition() == cellIndex) return game.getOpponent();
+        for (Monster m : Board.getStationedMonsters())
+            if (m.getPosition() == cellIndex) return m;
+        return null;
+    }
+
+    private void showMonsterPopup(Monster m) {
+        String type     = m.getClass().getSimpleName();
+        String role     = m.getRole().toString();
+        String origRole = m.getOriginalRole().toString();
+        boolean confused = m.isConfused();
+
+        StringBuilder info = new StringBuilder();
+        info.append("NAME:      ").append(m.getName()).append("\n");
+        info.append("TYPE:      ").append(type).append("\n");
+        info.append("ROLE:      ").append(role);
+        if (confused) info.append(" (confused: ").append(m.getConfusionTurns()).append("T)");
+        info.append("\n");
+        info.append("ORIG ROLE: ").append(origRole).append("\n");
+        info.append("ENERGY:    ").append(m.getEnergy()).append("\n");
+        info.append("POSITION:  ").append(m.getPosition()).append("\n");
+        info.append("STATUS:    ");
+        if (!m.isShielded() && !m.isFrozen() && !confused) info.append("NORMAL");
+        if (m.isShielded()) info.append("[SHIELD] ");
+        if (m.isFrozen())   info.append("[FROZEN] ");
+        if (confused)       info.append("[CONFUSED] ");
+        info.append("\n\n").append(m.getDescription());
+
+        Label content = new Label(info.toString());
+        content.setStyle(
+            "-fx-font-family: '" + FONT + "';" +
+            "-fx-font-size: 11px;" +
+            "-fx-text-fill: #e0f7ff;" +
+            "-fx-line-spacing: 3;"
+        );
+        content.setWrapText(true);
+
+        Button closeBtn = new Button("CLOSE");
+        closeBtn.setStyle(
+            "-fx-background-color: #1a3a4a;" +
+            "-fx-text-fill: #00ccff;" +
+            "-fx-font-family: '" + FONT + "';" +
+            "-fx-font-size: 11px;" +
+            "-fx-border-color: #00ccff;" +
+            "-fx-border-radius: 4;" +
+            "-fx-background-radius: 4;" +
+            "-fx-cursor: hand;"
+        );
+
+        VBox box = new VBox(10, content, closeBtn);
+        box.setAlignment(Pos.CENTER);
+        box.setPadding(new Insets(16));
+        box.setMaxWidth(260);
+        box.setStyle(
+            "-fx-background-color: rgba(0,15,30,0.88);" +
+            "-fx-border-color: #00ccff;" +
+            "-fx-border-width: 1.5;" +
+            "-fx-border-radius: 8;" +
+            "-fx-background-radius: 8;"
+        );
+
+        StackPane overlay = new StackPane(box);
+        overlay.setStyle("-fx-background-color: rgba(0,0,0,0.45);");
+        overlay.setOnMouseClicked(e -> backgroundRoot.getChildren().remove(overlay));
+        closeBtn.setOnAction(e -> backgroundRoot.getChildren().remove(overlay));
+        box.setOnMouseClicked(javafx.event.Event::consume);
+
+        backgroundRoot.getChildren().add(overlay);
+        overlay.toFront();
+
+        FadeTransition ft = new FadeTransition(Duration.millis(200), overlay);
+        ft.setFromValue(0); ft.setToValue(1); ft.play();
     }
 
     private void checkWinner() {
