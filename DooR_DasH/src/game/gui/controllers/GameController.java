@@ -140,6 +140,12 @@ public class GameController {
             panelBuilder.buildActionLog(actionLogContainer);
             panelBuilder.buildDicePanel(diceContainer);
             panelBuilder.buildCardOverlay(boardContainer);
+            panelBuilder.buildMonsterOverlay(boardContainer);
+            boardRenderer.setOnMonsterCellClick(monster -> {
+                if (!panelBuilder.isAnyOverlayVisible()) {
+                    panelBuilder.showMonsterOverlay(monster);
+                }
+            });
 
             // 6. UI updater — wires panel builder's labels into one place
             uiUpdater = new UIUpdater(
@@ -284,6 +290,7 @@ public class GameController {
         double centerW = Math.max(1, W - panelW * 2);
         double boardSide = Math.min(H * BOARD_SIZE_MULT, centerW * 0.92);
         panelBuilder.scaleCardOverlay(boardSide);
+        panelBuilder.scaleMonsterOverlay(boardSide);
 
         // Sizes use full window (bar is only ~16% tall — bar-based sizing made deck/buttons tiny)
         cardDeckView.setFitWidth(W * DECK_W_MULT);
@@ -401,7 +408,7 @@ public class GameController {
 
     @FXML
     private void handleRollDice() {
-        if (game == null || panelBuilder.cardOverlay.isVisible() || isAnimating) return;
+        if (game == null || panelBuilder.isAnyOverlayVisible() || isAnimating) return;
         try {
             isAnimating = true;
             Monster current  = game.getCurrent();
@@ -562,7 +569,7 @@ public class GameController {
 
     @FXML
     private void handlePowerUp() {
-        if (game == null || panelBuilder.cardOverlay.isVisible()) return;
+        if (game == null || panelBuilder.isAnyOverlayVisible()) return;
         boolean ok = showConfirmDialog("Use Powerup", "Activate Powerup?",
             "Costs " + Constants.POWERUP_COST + " energy. Proceed?");
         if (ok) {
@@ -595,7 +602,7 @@ public class GameController {
     }
 
     private void handleCheatKeys(KeyEvent e) {
-        if (game == null || isAnimating || panelBuilder.cardOverlay.isVisible()) return;
+        if (game == null || isAnimating || panelBuilder.isAnyOverlayVisible()) return;
         Monster current = game.getCurrent();
         if (e.getCode() == KeyCode.W) {
             current.setPosition(99);
