@@ -47,6 +47,7 @@ public class StartController {
     private boolean isMuted = false;
     private Canvas  beamsCanvas;
     private double  beamAngle = 0;
+    private AnimationTimer beamTimer;
 
     private static final String IMG = "/game/gui/resources/images/";
 
@@ -83,7 +84,7 @@ public class StartController {
         imagesLoaded = true;
 
         // Background loaded at screen resolution to save heap
-        imgBackground   = loadSmall(IMG + "StartScreen_Background.png", 1280, 920);
+        imgBackground   = loadSmall(IMG + "StartScreen_Background.png", 1280, 720);
         imgLogo         = load(IMG + "DoorDash_Logo.png");
         imgScarer       = load(IMG + "scarer_button.png");
         imgLaugher      = load(IMG + "laugher_button.png");
@@ -190,13 +191,19 @@ public class StartController {
         logoGlow.setInput(glow);
         logoImage.setEffect(logoGlow);
 
-        AnimationTimer beamTimer = new AnimationTimer() {
+        beamTimer = new AnimationTimer() {
             @Override public void handle(long now) {
                 beamAngle += 0.25;
                 drawBeams();
             }
         };
         beamTimer.start();
+
+        rootPane.sceneProperty().addListener((obs, oldScene, newScene) -> {
+            if (newScene == null && beamTimer != null) {
+                beamTimer.stop();
+            }
+        });
     }
 
     private void drawBeams() {

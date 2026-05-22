@@ -1,6 +1,7 @@
 package game.gui.controllers;
 
 import javafx.animation.*;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
@@ -17,6 +18,8 @@ public class IntroController {
     @FXML
     private void initialize() {
         rootPane.setStyle("-fx-background-color: black;");
+        // Pre-load game images in background during intro to prevent OutOfMemoryError
+        Platform.runLater(() -> ImageLoader.getInstance().preloadGameImages());
         playIntroSequence();
     }
 

@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.AnchorPane?>
@@ -39,7 +38,7 @@
                   <Font name="Book Antiqua Bold" size="48.0" />
                </font>
             </Label>
-            <!-- Action buttons — equal width, centered row -->
+            <!-- Action buttons — glow image buttons -->
             <HBox fx:id="buttonRow"
                   alignment="CENTER"
                   spacing="40.0"
@@ -48,22 +47,20 @@
                   AnchorPane.leftAnchor="0.0"
                   AnchorPane.rightAnchor="0.0">
                <children>
-                  <Button fx:id="retryButton"
-                         mnemonicParsing="false"
-                         onAction="#handleReplay"
-                         minWidth="240.0"
-                         prefHeight="72.0"
-                         prefWidth="240.0"
-                         text="RETRY"
-                         styleClass="primary-button" />
-                  <Button fx:id="mainMenuButton"
-                         mnemonicParsing="false"
-                         onAction="#handleMainMenu"
-                         minWidth="240.0"
-                         prefHeight="72.0"
-                         prefWidth="240.0"
-                         text="MENU"
-                         styleClass="secondary-button" />
+                  <ImageView fx:id="retryButton"
+                             fitHeight="72.0"
+                             fitWidth="240.0"
+                             onMouseClicked="#handleReplay"
+                             pickOnBounds="true"
+                             preserveRatio="true"
+                             style="-fx-cursor: hand;" />
+                  <ImageView fx:id="mainMenuButton"
+                             fitHeight="72.0"
+                             fitWidth="240.0"
+                             onMouseClicked="#handleMainMenu"
+                             pickOnBounds="true"
+                             preserveRatio="true"
+                             style="-fx-cursor: hand;" />
                </children>
             </HBox>
          </children>

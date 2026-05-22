@@ -3,15 +3,16 @@ package game.gui.controllers;
 import javafx.animation.*;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
-import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.effect.DropShadow;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.paint.Color;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
 import javafx.util.Duration;
 import javafx.scene.Group;
 import javafx.scene.media.AudioClip;
@@ -32,8 +33,8 @@ public class GameOverController {
     @FXML private Label      winsLabel;
     @FXML private StackPane  rootPane;
     @FXML private ImageView  backgroundImage;
-    @FXML private Button     retryButton;
-    @FXML private Button     mainMenuButton;
+    @FXML private ImageView  retryButton;
+    @FXML private ImageView  mainMenuButton;
     @FXML private AnchorPane overlayPane;
 
     private Label     playerCardTitle, playerCardName, playerCardRole, playerCardEnergy;
@@ -58,7 +59,7 @@ public class GameOverController {
         // ── Background ────────────────────────────────────────
         if (!BG_LOAD_ATTEMPTED) {
             BG_LOAD_ATTEMPTED = true;
-            BG = tryLoadSmall(IMG + "FinalGameOverScreen.png", 1280, 920);
+            BG = tryLoadSmall(IMG + "FinalGameOverScreen.png", 1280, 720);
         }
         if (backgroundImage != null && BG != null) {
             backgroundImage.setImage(BG);
@@ -79,12 +80,8 @@ public class GameOverController {
             AnchorPane.setRightAnchor(winsLabel, 0.0);
         }
 
-        // ── Style + glow on buttons ───────────────────────────
-        styleButton(retryButton,    "#00ff88", "#003322");
-        styleButton(mainMenuButton, "#ff6666", "#330011");
-
-        if (retryButton    != null) addScaleHover(retryButton);
-        if (mainMenuButton != null) addScaleHover(mainMenuButton);
+        // ── Glow image buttons ────────────────────────────────
+        setupActionButtons();
 
         // Load a short win sound if present at /game/resources/audio/win.wav
         try {
@@ -94,33 +91,56 @@ public class GameOverController {
             System.err.println("Could not load win sound: " + ex.getMessage());
         }
 
-        // Wire handlers defensively
-        if (retryButton    != null) retryButton.setOnAction(e -> handleReplay());
-        if (mainMenuButton != null) mainMenuButton.setOnAction(e -> handleMainMenu());
-
         buildStatCards();
     }
 
     // =========================================================
-    //  BUTTON STYLING
+    //  ACTION BUTTONS (image)
     // =========================================================
-    private void styleButton(Button btn, String textColor, String bgColor) {
-        btn.setStyle("");
-        if (!btn.getStyleClass().contains("primary-button") && !btn.getStyleClass().contains("secondary-button")) {
-            if (btn == retryButton)        btn.getStyleClass().add("primary-button");
-            else if (btn == mainMenuButton) btn.getStyleClass().add("secondary-button");
-            else                            btn.getStyleClass().add("primary-button");
+    private void setupActionButtons() {
+        if (retryButton != null) {
+            Image playAgain = tryLoadSmall(IMG + "play_again_glow.png", 480, 144);
+            if (playAgain != null) retryButton.setImage(playAgain);
+            retryButton.fitHeightProperty().bind(rootPane.heightProperty().multiply(0.15));
+            addImageButtonHover(retryButton, Color.web("#00ff88"));
+        }
+        if (mainMenuButton != null) {
+            Image mainMenu = tryLoadSmall(IMG + "main_menu_glow_button.png", 480, 144);
+            if (mainMenu != null) mainMenuButton.setImage(mainMenu);
+            mainMenuButton.fitHeightProperty().bind(rootPane.heightProperty().multiply(0.15));
+            addImageButtonHover(mainMenuButton, Color.web("#ff6666"));
         }
     }
 
-    private void addScaleHover(Button btn) {
-        ScaleTransition scaleUp = new ScaleTransition(Duration.millis(150), btn);
-        scaleUp.setToX(1.06); scaleUp.setToY(1.06);
-        ScaleTransition scaleDown = new ScaleTransition(Duration.millis(150), btn);
-        scaleDown.setToX(1.0); scaleDown.setToY(1.0);
+    private void addImageButtonHover(ImageView btn, Color glowColor) {
+        DropShadow glow = new DropShadow();
+        glow.setColor(glowColor);
+        glow.setRadius(22);
+        glow.setSpread(0.5);
 
-        btn.setOnMouseEntered(e -> { scaleDown.stop(); scaleUp.playFromStart(); });
-        btn.setOnMouseExited(e  -> { scaleUp.stop();   scaleDown.playFromStart(); });
+        DropShadow shadow = new DropShadow();
+        shadow.setColor(Color.BLACK);
+        shadow.setRadius(12);
+        shadow.setSpread(0.35);
+        btn.setEffect(shadow);
+
+        ScaleTransition scaleUp = new ScaleTransition(Duration.millis(150), btn);
+        scaleUp.setToX(1.06);
+        scaleUp.setToY(1.06);
+        ScaleTransition scaleDown = new ScaleTransition(Duration.millis(150), btn);
+        scaleDown.setToX(1.0);
+        scaleDown.setToY(1.0);
+
+        btn.setOnMouseEntered(e -> {
+            scaleDown.stop();
+            scaleUp.playFromStart();
+            btn.setEffect(glow);
+        });
+        btn.setOnMouseExited(e -> {
+            scaleUp.stop();
+            scaleDown.playFromStart();
+            btn.setEffect(shadow);
+        });
     }
 
     // =========================================================
@@ -248,8 +268,15 @@ public class GameOverController {
     // =========================================================
     //  BUTTON HANDLERS
     // =========================================================
-    @FXML private void handleReplay()   { SceneManager.getInstance().startGameScreen(lastPlayerRole); }
-    @FXML private void handleMainMenu() { SceneManager.getInstance().switchToStartScreen(); }
+    @FXML private void handleReplay(MouseEvent e) {
+        if (lastPlayerRole != null) {
+            SceneManager.getInstance().startGameScreen(lastPlayerRole);
+        }
+    }
+
+    @FXML private void handleMainMenu(MouseEvent e) {
+        SceneManager.getInstance().switchToStartScreen();
+    }
 
     // =========================================================
     //  IMAGE LOADING
