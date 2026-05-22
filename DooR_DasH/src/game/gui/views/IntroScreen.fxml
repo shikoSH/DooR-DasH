@@ -9,7 +9,8 @@
            xmlns:fx="http://javafx.com/fxml/1"
            fx:controller="game.gui.controllers.IntroController"
            style="-fx-background-color: black;"
-           prefWidth="1280" prefHeight="720">
+           maxHeight="Infinity"
+           maxWidth="Infinity">
     <children>
 
         <!-- Team credit + disclaimer -->
