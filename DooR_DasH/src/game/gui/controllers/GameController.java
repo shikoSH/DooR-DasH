@@ -198,10 +198,8 @@ public class GameController {
         masterLayout.maxWidthProperty().bind(backgroundRoot.widthProperty());
         masterLayout.maxHeightProperty().bind(backgroundRoot.heightProperty());
 
-        backgroundView.fitWidthProperty().bind(
-            backgroundRoot.widthProperty().multiply(1.06));
-        backgroundView.fitHeightProperty().bind(
-            backgroundRoot.heightProperty().multiply(1.06));
+        backgroundView.fitWidthProperty().bind(backgroundRoot.widthProperty());
+        backgroundView.fitHeightProperty().bind(backgroundRoot.heightProperty());
 
         controlPanelView.fitWidthProperty().bind(backgroundRoot.widthProperty());
         controlPanelView.fitHeightProperty().bind(backgroundRoot.heightProperty());

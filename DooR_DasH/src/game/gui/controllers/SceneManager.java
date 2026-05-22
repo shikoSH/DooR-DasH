@@ -13,6 +13,8 @@ import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
@@ -29,7 +31,9 @@ public class SceneManager {
 
     private static SceneManager instance;
     private Stage primaryStage;
-    private final HashMap<String, Scene> scenes = new HashMap<>();
+    private final StackPane sceneHolder = new StackPane();
+    private Scene persistentScene;
+    private final HashMap<String, Parent> cachedRoots = new HashMap<>();
     private MediaPlayer mediaPlayer;
     private boolean fullScreenPromptShown = false;
 
@@ -50,14 +54,25 @@ public class SceneManager {
     public void initialize(Stage stage) {
         this.primaryStage = stage;
         this.primaryStage.setTitle("DooR DasH: Scare vs Laugh Touchdown");
-        this.primaryStage.setWidth(1280);
-        this.primaryStage.setHeight(920);
+        this.primaryStage.setWidth(DEFAULT_WIDTH);
+        this.primaryStage.setHeight(DEFAULT_HEIGHT);
         this.primaryStage.setMinWidth(960);
         this.primaryStage.setMinHeight(640);
         this.primaryStage.setResizable(true);
         this.primaryStage.centerOnScreen();
         this.primaryStage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);
         this.primaryStage.setFullScreenExitHint("Press ESC to exit fullscreen");
+
+        sceneHolder.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+        persistentScene = new Scene(sceneHolder, DEFAULT_WIDTH, DEFAULT_HEIGHT);
+        persistentScene.setFill(Color.BLACK);
+        persistentScene.addEventHandler(KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == KeyCode.ESCAPE) {
+                primaryStage.setFullScreen(!primaryStage.isFullScreen());
+                event.consume();
+            }
+        });
+        primaryStage.setScene(persistentScene);
     }
 
     // ===== MUSIC =====
@@ -105,13 +120,8 @@ public class SceneManager {
             }
             FXMLLoader loader = new FXMLLoader(fxmlUrl);
             Parent root = loader.load();
-            Scene scene = createScene(root);
-            registerScene(scene, true);
-            scenes.put("IntroScreen", scene);
-            switchToScene(scene);
-            if (!primaryStage.isShowing()) {
-                primaryStage.show();
-            }
+            switchToContent(root, true);
+            showStageIfNeeded();
         } catch (Exception e) {
             System.err.println("ERROR: Failed to load IntroScreen");
             e.printStackTrace();
@@ -130,21 +140,16 @@ public class SceneManager {
             Parent root = loader.load();
 
             root.setOpacity(0);
-            Scene scene = createScene(root);
-            registerScene(scene, true);
-            addStylesheet(scene, "/game/gui/resources/css/styles.css");
-            addStylesheet(scene, "/game/gui/resources/css/start-screen.css");
-            scenes.put("StartScreen", scene);
-            switchToScene(scene);
+            addStylesheetOnce("/game/gui/resources/css/styles.css");
+            addStylesheetOnce("/game/gui/resources/css/start-screen.css");
+            switchToContent(root, !fullScreenPromptShown);
 
             FadeTransition fadeIn = new FadeTransition(Duration.millis(600), root);
             fadeIn.setFromValue(0);
             fadeIn.setToValue(1);
             fadeIn.play();
 
-            if (!primaryStage.isShowing()) {
-                primaryStage.show();
-            }
+            showStageIfNeeded();
         } catch (Exception e) {
             System.err.println("ERROR: Failed to load StartScreen");
             e.printStackTrace();
@@ -152,7 +157,7 @@ public class SceneManager {
     }
 
     public void switchToInstructionsScreen() {
-        loadScene("InstructionsScreen", "/game/gui/views/InstructionsScreen.fxml");
+        loadCachedScreen("InstructionsScreen", "/game/gui/views/InstructionsScreen.fxml");
     }
 
     public void startGameScreen(game.engine.Role playerRole) {
@@ -175,15 +180,9 @@ public class SceneManager {
             controller.startGame(playerRole);
             System.out.println("DEBUG: controller.startGame() called OK");
 
-            Scene scene = createScene(root);
-            registerScene(scene, false);
-            addStylesheet(scene, "/game/gui/resources/css/styles.css");
-            scenes.put("GameScreen", scene);
-            switchToScene(scene);
-
-            if (!primaryStage.isShowing()) {
-                primaryStage.show();
-            }
+            addStylesheetOnce("/game/gui/resources/css/styles.css");
+            switchToContent(root, false);
+            showStageIfNeeded();
             System.out.println("DEBUG: Switched to GameScreen successfully");
 
         } catch (IOException e) {
@@ -195,7 +194,6 @@ public class SceneManager {
         }
     }
 
-    // Updated signature to match the 9-parameter call in GameController.checkWinner()
     public void switchToGameOverScreen(
             String winnerName,
             String winnerRole,
@@ -222,24 +220,18 @@ public class SceneManager {
                 opponentName, opponentRole, opponentEnergy
             );
 
-            Scene scene = createScene(root);
-            registerScene(scene, false);
-            addStylesheet(scene, "/game/gui/resources/css/styles.css");
-            scenes.put("GameOverScreen", scene);
-            switchToScene(scene);
-
-            if (!primaryStage.isShowing()) {
-                primaryStage.show();
-            }
+            addStylesheetOnce("/game/gui/resources/css/styles.css");
+            switchToContent(root, false);
+            showStageIfNeeded();
         } catch (Exception e) {
             System.err.println("ERROR: Failed to load GameOverScreen");
             e.printStackTrace();
         }
     }
 
-    private void loadScene(String name, String fxmlPath) {
+    private void loadCachedScreen(String name, String fxmlPath) {
         try {
-            if (!scenes.containsKey(name)) {
+            if (!cachedRoots.containsKey(name)) {
                 URL fxmlUrl = getClass().getResource(fxmlPath);
                 if (fxmlUrl == null) {
                     System.err.println("ERROR: FXML not found: " + fxmlPath);
@@ -247,60 +239,47 @@ public class SceneManager {
                 }
                 FXMLLoader loader = new FXMLLoader(fxmlUrl);
                 Parent root = loader.load();
-                Scene scene = createScene(root);
-                registerScene(scene, false);
-                addStylesheet(scene, "/game/gui/resources/css/styles.css");
-                scenes.put(name, scene);
+                addStylesheetOnce("/game/gui/resources/css/styles.css");
+                cachedRoots.put(name, root);
             }
-            switchToScene(scenes.get(name));
-            if (!primaryStage.isShowing()) {
-                primaryStage.show();
-            }
+            switchToContent(cachedRoots.get(name), false);
+            showStageIfNeeded();
         } catch (Exception e) {
             System.err.println("ERROR: Failed to load scene: " + fxmlPath);
             e.printStackTrace();
         }
     }
 
-    private void registerScene(Scene scene, boolean showPrompt) {
-        if (scene == null) return;
-        scene.addEventHandler(KeyEvent.KEY_PRESSED, event -> {
-            if (event.getCode() == KeyCode.ESCAPE) {
-                primaryStage.setFullScreen(!primaryStage.isFullScreen());
-                event.consume();
-            }
-        });
+    /**
+     * Swaps the visible screen inside one persistent {@link Scene} so the stage
+     * never calls {@code setScene} again (that resets size and exits fullscreen).
+     */
+    private void switchToContent(Parent content, boolean showPrompt) {
+        if (content == null || primaryStage == null) return;
+
+        prepareRootForFill(content);
+        sceneHolder.getChildren().setAll(content);
+
         if (showPrompt) {
             Platform.runLater(this::showFullScreenPrompt);
         }
     }
 
-    /** Creates a scene sized to the current window (or defaults on first launch). */
-    private Scene createScene(Parent root) {
-        double w = (primaryStage != null && primaryStage.getWidth() > 0)
-            ? primaryStage.getWidth() : DEFAULT_WIDTH;
-        double h = (primaryStage != null && primaryStage.getHeight() > 0)
-            ? primaryStage.getHeight() : DEFAULT_HEIGHT;
-        Scene scene = new Scene(root, w, h);
-        scene.setFill(Color.BLACK);
-        return scene;
+    /** Fit the screen root to the stage without forcing a larger minimum size. */
+    private void prepareRootForFill(Parent root) {
+        if (!(root instanceof Region)) return;
+        Region region = (Region) root;
+        region.setMinWidth(0);
+        region.setMinHeight(0);
+        region.setMaxWidth(Double.MAX_VALUE);
+        region.setMaxHeight(Double.MAX_VALUE);
+        region.prefWidthProperty().bind(sceneHolder.widthProperty());
+        region.prefHeightProperty().bind(sceneHolder.heightProperty());
     }
 
-    /** Switches scene without letting FXML preferred sizes resize the window. */
-    private void switchToScene(Scene scene) {
-        double w = primaryStage.getWidth();
-        double h = primaryStage.getHeight();
-        boolean keepSize = w > 0 && h > 0;
-
-        primaryStage.setScene(scene);
-
-        if (keepSize) {
-            primaryStage.setWidth(w);
-            primaryStage.setHeight(h);
-            Platform.runLater(() -> {
-                primaryStage.setWidth(w);
-                primaryStage.setHeight(h);
-            });
+    private void showStageIfNeeded() {
+        if (!primaryStage.isShowing()) {
+            primaryStage.show();
         }
     }
 
@@ -354,12 +333,15 @@ public class SceneManager {
         dialog.show();
     }
 
-    private void addStylesheet(Scene scene, String path) {
+    private void addStylesheetOnce(String path) {
         URL url = getClass().getResource(path);
-        if (url != null) {
-            scene.getStylesheets().add(url.toExternalForm());
-        } else {
+        if (url == null) {
             System.err.println("WARNING: Stylesheet not found, skipping: " + path);
+            return;
+        }
+        String external = url.toExternalForm();
+        if (!persistentScene.getStylesheets().contains(external)) {
+            persistentScene.getStylesheets().add(external);
         }
     }
 }
