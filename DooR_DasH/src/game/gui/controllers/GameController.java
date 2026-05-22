@@ -376,14 +376,15 @@ public class GameController {
                 return;
             }
 
+         // Snapshot door states BEFORE the turn
+            boolean[][] doorWasActivated = new boolean[10][10];
+            Cell[][] cells = game.getBoard().getBoardCells();
+            for (int r = 0; r < 10; r++)
+                for (int c = 0; c < 10; c++)
+                    if (cells[r][c] instanceof DoorCell)
+                        doorWasActivated[r][c] = ((DoorCell) cells[r][c]).isActivated();
+
             game.playTurn();
-         // Check if monster landed on a DoorCell
-         int newPosition = current.getPosition();
-         int[] rowCol = game.getBoard().indexToRowCol(newPosition);
-         Cell[][] cells = game.getBoard().getBoardCells();
-         if (cells[rowCol[0]][rowCol[1]] instanceof DoorCell) {
-             SoundManager.getInstance().playDoorOpening();
-         }
 
             int newPos       = current.getPosition();
             int newEnergy    = current.getEnergy();
@@ -407,8 +408,7 @@ public class GameController {
                 int diff = newEnergy - oldEnergy;
                 panelBuilder.actionLine3.setText(current.getName() + " energy "
                     + (diff > 0 ? "+" : "") + diff + " → " + newEnergy);
-                
-                // FIXED: Forward true/false along with the absolute math difference value
+
                 animMgr.animateStationedMonsterPopups(grid, game, diff > 0, Math.abs(diff));
             } else if (newOppEnergy != oldOppEnergy) {
                 int diff = newOppEnergy - oldOppEnergy;
@@ -424,18 +424,38 @@ public class GameController {
             final Monster finalOpponent = opponent;
             final int finalOldPos = oldPos;
             final int finalNewPos = newPos;
+            final boolean[][] finalDoorWasActivated = doorWasActivated;
+            final Cell[][] finalCells = cells;
 
             animMgr.animateDiceRoll(diceView, diceResultLabel, diceFace, () ->
                 animMgr.animateMonsterMove(grid, finalCurrent, finalOpponent,
                     finalOldPos, finalNewPos, () -> {
                         if (finalCardDrawn && finalTopCard != null) {
                             refreshBoard(); updateUI();
+                            // Check door sound before card overlay
+                            int[] rowCol = game.getBoard().indexToRowCol(finalNewPos);
+                            Cell landedCell = finalCells[rowCol[0]][rowCol[1]];
+                            if (landedCell instanceof DoorCell) {
+                                if (!finalDoorWasActivated[rowCol[0]][rowCol[1]]
+                                        && ((DoorCell) landedCell).isActivated()) {
+                                    SoundManager.getInstance().playDoorOpening();
+                                }
+                            }
                             SoundManager.getInstance().playCardDraw();
                             panelBuilder.showCardOverlay(finalTopCard, () -> {
                                 refreshBoard(); updateUI();
                             });
                         } else {
                             refreshBoard(); updateUI();
+                            // Check door sound
+                            int[] rowCol = game.getBoard().indexToRowCol(finalNewPos);
+                            Cell landedCell = finalCells[rowCol[0]][rowCol[1]];
+                            if (landedCell instanceof DoorCell) {
+                                if (!finalDoorWasActivated[rowCol[0]][rowCol[1]]
+                                        && ((DoorCell) landedCell).isActivated()) {
+                                    SoundManager.getInstance().playDoorOpening();
+                                }
+                            }
                         }
                         checkWinner();
                         isAnimating = false;
