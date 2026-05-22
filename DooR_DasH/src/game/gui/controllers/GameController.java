@@ -64,9 +64,9 @@ public class GameController {
     //  LAYOUT MULTIPLIERS — edit these to move/resize elements
     // =========================================================
 
-    private static final double BOARD_SIZE_MULT = 0.88;
+    private static final double BOARD_SIZE_MULT = 0.77;
     private static final double CONTROL_BAR_MULT    = 0.16;
-    private static final double SIDE_PANEL_WIDTH = 0.10;
+    private static final double SIDE_PANEL_WIDTH = 0.16;
     private static final double PORTRAIT_WIDTH_MULT = 0.85;
     private static final double ENERGY_BAR_H_MULT   = 0.13;
     private static final double PANEL_TOP_PAD_MULT  = 0.12;
@@ -142,13 +142,13 @@ public class GameController {
                 panelBuilder.playerPortrait,    panelBuilder.playerEnergyBar,
                 panelBuilder.playerNameLabel,   panelBuilder.playerTypeLabel,
                 panelBuilder.playerOrigRoleLabel, panelBuilder.playerCurrRoleLabel,
-                panelBuilder.playerPosLabel,    panelBuilder.playerEnergyLabel,
-                panelBuilder.playerStatusLabel, panelBuilder.playerTurnLabel,
+                panelBuilder.playerIndexLabel,  panelBuilder.playerEnergyLabel,
+                panelBuilder.playerStatusLabel, panelBuilder.playerTurnLabel, panelBuilder.playerSignals,
                 panelBuilder.opponentPortrait,  panelBuilder.opponentEnergyBar,
                 panelBuilder.opponentNameLabel, panelBuilder.opponentTypeLabel,
                 panelBuilder.opponentOrigRoleLabel, panelBuilder.opponentCurrRoleLabel,
-                panelBuilder.opponentPosLabel,  panelBuilder.opponentEnergyLabel,
-                panelBuilder.opponentStatusLabel
+                panelBuilder.opponentIndexLabel, panelBuilder.opponentEnergyLabel,
+                panelBuilder.opponentStatusLabel, panelBuilder.opponentSignals
             );
 
             // 7. Animation manager

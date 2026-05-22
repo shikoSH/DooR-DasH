@@ -4,6 +4,7 @@ import javafx.animation.FadeTransition;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.HBox;
 import javafx.util.Duration;
 import game.engine.Board;
 import game.engine.Game;
@@ -30,14 +31,16 @@ public class UIUpdater {
     // ── Player panel widgets ──────────────────────────────────
     private final ImageView playerPortrait, playerEnergyBar;
     private final Label playerNameLabel, playerTypeLabel, playerOrigRoleLabel;
-    private final Label playerCurrRoleLabel, playerPosLabel, playerEnergyLabel;
+    private final Label playerCurrRoleLabel, playerIndexLabel, playerEnergyLabel;
     private final Label playerStatusLabel, playerTurnLabel;
+    private final HBox  playerSignals;
 
-    // ── Opponent panel widgets ────────────────────────────────
+    // ── Opponent panel widgets ───────────────────────────────
     private final ImageView opponentPortrait, opponentEnergyBar;
     private final Label opponentNameLabel, opponentTypeLabel, opponentOrigRoleLabel;
-    private final Label opponentCurrRoleLabel, opponentPosLabel, opponentEnergyLabel;
+    private final Label opponentCurrRoleLabel, opponentIndexLabel, opponentEnergyLabel;
     private final Label opponentStatusLabel;
+    private final HBox  opponentSignals;
 
     // =========================================================
     //  CONSTRUCTOR — receives every widget it needs to update
@@ -49,14 +52,15 @@ public class UIUpdater {
             ImageView playerPortrait,    ImageView playerEnergyBar,
             Label playerNameLabel,       Label playerTypeLabel,
             Label playerOrigRoleLabel,   Label playerCurrRoleLabel,
-            Label playerPosLabel,        Label playerEnergyLabel,
+            Label playerIndexLabel,      Label playerEnergyLabel,
             Label playerStatusLabel,     Label playerTurnLabel,
+            HBox playerSignals,
             // opponent panel
             ImageView opponentPortrait,  ImageView opponentEnergyBar,
             Label opponentNameLabel,     Label opponentTypeLabel,
             Label opponentOrigRoleLabel, Label opponentCurrRoleLabel,
-            Label opponentPosLabel,      Label opponentEnergyLabel,
-            Label opponentStatusLabel) {
+            Label opponentIndexLabel,    Label opponentEnergyLabel,
+            Label opponentStatusLabel,   HBox opponentSignals) {
 
         this.images = images;
 
@@ -66,10 +70,11 @@ public class UIUpdater {
         this.playerTypeLabel     = playerTypeLabel;
         this.playerOrigRoleLabel = playerOrigRoleLabel;
         this.playerCurrRoleLabel = playerCurrRoleLabel;
-        this.playerPosLabel      = playerPosLabel;
+        this.playerIndexLabel    = playerIndexLabel;
         this.playerEnergyLabel   = playerEnergyLabel;
         this.playerStatusLabel   = playerStatusLabel;
         this.playerTurnLabel     = playerTurnLabel;
+        this.playerSignals       = playerSignals;
 
         this.opponentPortrait      = opponentPortrait;
         this.opponentEnergyBar     = opponentEnergyBar;
@@ -77,9 +82,10 @@ public class UIUpdater {
         this.opponentTypeLabel     = opponentTypeLabel;
         this.opponentOrigRoleLabel = opponentOrigRoleLabel;
         this.opponentCurrRoleLabel = opponentCurrRoleLabel;
-        this.opponentPosLabel      = opponentPosLabel;
+        this.opponentIndexLabel    = opponentIndexLabel;
         this.opponentEnergyLabel   = opponentEnergyLabel;
         this.opponentStatusLabel   = opponentStatusLabel;
+        this.opponentSignals       = opponentSignals;
     }
 
     // =========================================================
@@ -112,10 +118,25 @@ public class UIUpdater {
             "-fx-font-family: " + LED + ";" +
             (pConfused ? "-fx-font-weight: bold;" : ""));
 
-        playerPosLabel.setText("Pos: " + player.getPosition());
+        playerIndexLabel.setText(String.valueOf(player.getPosition()));
         playerEnergyLabel.setText("Energy: " + player.getEnergy() + "/1000");
         animateEnergyBar(playerEnergyBar, player.getEnergy());
         playerStatusLabel.setText(buildStatusString(player));
+        // Populate signal badges for active effects
+        if (playerSignals != null) {
+            playerSignals.getChildren().clear();
+            if (player.isShielded()) playerSignals.getChildren().add(makeSignal("Shield", "#FFD700"));
+            if (player.isConfused()) playerSignals.getChildren().add(makeSignal("Confused:" + player.getConfusionTurns() + "t", "#ff00ff"));
+            if (player.isFrozen()) playerSignals.getChildren().add(makeSignal("Frozen", "#00ffff"));
+            if (player instanceof game.engine.monsters.Dasher) {
+                int mt = ((game.engine.monsters.Dasher) player).getMomentumTurns();
+                if (mt > 0) playerSignals.getChildren().add(makeSignal("Rush:" + mt + "t", "#ff8800"));
+            }
+            if (player instanceof game.engine.monsters.MultiTasker) {
+                int ft = ((game.engine.monsters.MultiTasker) player).getNormalSpeedTurns();
+                if (ft > 0) playerSignals.getChildren().add(makeSignal("Focus:" + ft + "t", "#00ff88"));
+            }
+        }
         playerTurnLabel.setText(current == player ? "▶ YOUR TURN" : "");
 
         // ── Opponent panel ────────────────────────────────────
@@ -132,10 +153,24 @@ public class UIUpdater {
             "-fx-font-family: " + LED + ";" +
             (oConfused ? "-fx-font-weight: bold;" : ""));
 
-        opponentPosLabel.setText("Pos: " + opponent.getPosition());
+        opponentIndexLabel.setText(String.valueOf(opponent.getPosition()));
         opponentEnergyLabel.setText("Energy: " + opponent.getEnergy() + "/1000");
         animateEnergyBar(opponentEnergyBar, opponent.getEnergy());
         opponentStatusLabel.setText(buildStatusString(opponent));
+        if (opponentSignals != null) {
+            opponentSignals.getChildren().clear();
+            if (opponent.isShielded()) opponentSignals.getChildren().add(makeSignal("Shield", "#FFD700"));
+            if (opponent.isConfused()) opponentSignals.getChildren().add(makeSignal("Confused:" + opponent.getConfusionTurns() + "t", "#ff00ff"));
+            if (opponent.isFrozen()) opponentSignals.getChildren().add(makeSignal("Frozen", "#00ffff"));
+            if (opponent instanceof game.engine.monsters.Dasher) {
+                int mt = ((game.engine.monsters.Dasher) opponent).getMomentumTurns();
+                if (mt > 0) opponentSignals.getChildren().add(makeSignal("Rush:" + mt + "t", "#ff8800"));
+            }
+            if (opponent instanceof game.engine.monsters.MultiTasker) {
+                int ft = ((game.engine.monsters.MultiTasker) opponent).getNormalSpeedTurns();
+                if (ft > 0) opponentSignals.getChildren().add(makeSignal("Focus:" + ft + "t", "#00ff88"));
+            }
+        }
 
         // ── Turn label ────────────────────────────────────────
         turnLabel.setText(current == player
@@ -221,5 +256,22 @@ public class UIUpdater {
             if (ft > 0) sb.append("[Focus:").append(ft).append("t] ");
         }
         return sb.length() == 0 ? "Normal" : sb.toString().trim();
+    }
+
+    // Helper to create a compact signal badge
+    private Label makeSignal(String text, String bgColor) {
+        Label l = new Label(text);
+        int size = (int)(9 * TEXT_SCALE);
+        l.setStyle(
+            "-fx-text-fill: white;" +
+            "-fx-font-size: " + size + "px;" +
+            "-fx-font-family: " + LED + ";" +
+            "-fx-font-weight: bold;" +
+            "-fx-background-color: " + bgColor + ";" +
+            "-fx-background-radius: 6;" +
+            "-fx-padding: 2 8 2 8;" +
+            "-fx-border-color: rgba(255,255,255,0.12); -fx-border-radius:6;"
+        );
+        return l;
     }
 }

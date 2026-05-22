@@ -3,6 +3,8 @@ package game.gui.controllers;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.animation.FadeTransition;
 import javafx.animation.PauseTransition;
@@ -42,15 +44,19 @@ public class PanelBuilder {
     public final ImageView playerPortrait    = new ImageView();
     public final ImageView playerEnergyBar   = new ImageView();
     public Label playerNameLabel, playerTypeLabel, playerOrigRoleLabel;
-    public Label playerCurrRoleLabel, playerPosLabel, playerEnergyLabel;
+    public Label playerCurrRoleLabel, playerIndexLabel, playerEnergyLabel;
     public Label playerStatusLabel, playerTurnLabel;
 
-    // ── Opponent panel widgets ────────────────────────────────
+    public HBox playerSignals;
+
+    // ── Opponent panel widgets ───────────────────────────────
     public final ImageView opponentPortrait  = new ImageView();
     public final ImageView opponentEnergyBar = new ImageView();
     public Label opponentNameLabel, opponentTypeLabel, opponentOrigRoleLabel;
-    public Label opponentCurrRoleLabel, opponentPosLabel, opponentEnergyLabel;
+    public Label opponentCurrRoleLabel, opponentIndexLabel, opponentEnergyLabel;
     public Label opponentStatusLabel;
+
+    public HBox opponentSignals;
 
     // ── Action log widgets ────────────────────────────────────
     public Label actionLine1, actionLine2, actionLine3;
@@ -84,15 +90,32 @@ public class PanelBuilder {
         playerTypeLabel     = ledLabel("Type: -",        "#aaaaaa", 10, false);
         playerOrigRoleLabel = ledLabel("Orig: -",        "white",   10, false);
         playerCurrRoleLabel = ledLabel("Curr: -",        "white",   10, false);
-        playerPosLabel      = ledLabel("Pos: -",         "#00ffff", 11, true);
+        playerIndexLabel    = ledLabel("0",              "#00ff88", 11, true);
+        playerIndexLabel.setStyle(playerIndexLabel.getStyle() +
+            "-fx-text-fill: white;" +
+            "-fx-background-color: rgba(0,0,0,0.92);" +
+            "-fx-background-radius: 6;" +
+            "-fx-border-color: rgba(255,255,255,0.18);" +
+            "-fx-border-radius: 6;" +
+            "-fx-padding: 3 8 3 8;" +
+            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.55), 6, 0, 0, 2);"
+        );
+        StackPane playerPortraitPane = new StackPane(playerPortrait, playerIndexLabel);
+        StackPane.setAlignment(playerIndexLabel, Pos.BOTTOM_LEFT);
+        StackPane.setMargin(playerIndexLabel, new Insets(0, 0, 8, 8));
+
+        playerSignals = new HBox(6);
+        playerSignals.setAlignment(Pos.CENTER_LEFT);
+        playerSignals.setMaxWidth(180);
+
         playerEnergyLabel   = ledLabel("Energy: -/1000", "#00ff88", 11, true);
         playerStatusLabel   = ledLabel("Normal",         "#aaaaaa", 10, false);
         playerTurnLabel     = ledLabel("",               "#ffcc00", 12, true);
 
         container.getChildren().addAll(
-            playerPortrait, playerNameLabel, playerTypeLabel,
+            playerPortraitPane, playerNameLabel, playerTypeLabel,
             playerOrigRoleLabel, playerCurrRoleLabel,
-            playerPosLabel, playerEnergyLabel,
+            playerSignals, playerEnergyLabel,
             playerEnergyBar, playerStatusLabel, playerTurnLabel
         );
     }
@@ -110,14 +133,31 @@ public class PanelBuilder {
         opponentTypeLabel     = ledLabel("Type: -",        "#aaaaaa", 10, false);
         opponentOrigRoleLabel = ledLabel("Orig: -",        "white",   10, false);
         opponentCurrRoleLabel = ledLabel("Curr: -",        "white",   10, false);
-        opponentPosLabel      = ledLabel("Pos: -",         "#00ffff", 11, true);
+        opponentIndexLabel    = ledLabel("0",              "#ff6666", 11, true);
+        opponentIndexLabel.setStyle(opponentIndexLabel.getStyle() +
+            "-fx-text-fill: white;" +
+            "-fx-background-color: rgba(0,0,0,0.92);" +
+            "-fx-background-radius: 6;" +
+            "-fx-border-color: rgba(255,255,255,0.18);" +
+            "-fx-border-radius: 6;" +
+            "-fx-padding: 3 8 3 8;" +
+            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.55), 6, 0, 0, 2);"
+        );
+        StackPane opponentPortraitPane = new StackPane(opponentPortrait, opponentIndexLabel);
+        StackPane.setAlignment(opponentIndexLabel, Pos.BOTTOM_LEFT);
+        StackPane.setMargin(opponentIndexLabel, new Insets(0, 0, 8, 8));
+
+        opponentSignals = new HBox(6);
+        opponentSignals.setAlignment(Pos.CENTER_LEFT);
+        opponentSignals.setMaxWidth(180);
+
         opponentEnergyLabel   = ledLabel("Energy: -/1000", "#ff6666", 11, true);
         opponentStatusLabel   = ledLabel("Normal",         "#aaaaaa", 10, false);
 
         container.getChildren().addAll(
-            opponentPortrait, opponentNameLabel, opponentTypeLabel,
+            opponentPortraitPane, opponentNameLabel, opponentTypeLabel,
             opponentOrigRoleLabel, opponentCurrRoleLabel,
-            opponentPosLabel, opponentEnergyLabel,
+            opponentSignals, opponentEnergyLabel,
             opponentEnergyBar, opponentStatusLabel
         );
     }
@@ -309,7 +349,7 @@ public class PanelBuilder {
         applyStyle(playerTypeLabel,      "#aaaaaa", base,     false);
         applyStyle(playerOrigRoleLabel,  "white",   base,     false);
         applyStyle(playerCurrRoleLabel,  "white",   base,     false);
-        applyStyle(playerPosLabel,       "#00ffff", base + 1, true);
+        applyStyle(playerIndexLabel,     "#00ff88", base + 1, true);
         applyStyle(playerEnergyLabel,    "#00ff88", base + 1, true);
         applyStyle(playerStatusLabel,    "#aaaaaa", base,     false);
         applyStyle(playerTurnLabel,      "#ffcc00", base + 2, true);
@@ -317,7 +357,7 @@ public class PanelBuilder {
         applyStyle(opponentTypeLabel,    "#aaaaaa", base,     false);
         applyStyle(opponentOrigRoleLabel,"white",   base,     false);
         applyStyle(opponentCurrRoleLabel,"white",   base,     false);
-        applyStyle(opponentPosLabel,     "#00ffff", base + 1, true);
+        applyStyle(opponentIndexLabel,   "#ff6666", base + 1, true);
         applyStyle(opponentEnergyLabel,  "#ff6666", base + 1, true);
         applyStyle(opponentStatusLabel,  "#aaaaaa", base,     false);
     }

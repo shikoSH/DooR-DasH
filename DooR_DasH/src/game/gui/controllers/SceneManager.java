@@ -1,14 +1,25 @@
 package game.gui.controllers;
 
 import javafx.animation.FadeTransition;
+import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.VBox;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.paint.Color;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+
 import java.io.IOException;
 import java.net.URL;
 import java.util.HashMap;
@@ -17,8 +28,9 @@ public class SceneManager {
 
     private static SceneManager instance;
     private Stage primaryStage;
-    private HashMap<String, Scene> scenes = new HashMap<>();
+    private final HashMap<String, Scene> scenes = new HashMap<>();
     private MediaPlayer mediaPlayer;
+    private boolean fullScreenPromptShown = false;
 
     private SceneManager() {}
 
@@ -36,6 +48,8 @@ public class SceneManager {
         this.primaryStage.setHeight(920);
         this.primaryStage.setResizable(true);
         this.primaryStage.centerOnScreen();
+        this.primaryStage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);
+        this.primaryStage.setFullScreenExitHint("Press ESC to exit fullscreen");
     }
 
     // ===== MUSIC =====
@@ -85,6 +99,7 @@ public class SceneManager {
             Parent root = loader.load();
             Scene scene = new Scene(root);
             scene.setFill(Color.BLACK);
+            registerScene(scene, true);
             scenes.put("IntroScreen", scene);
             primaryStage.setScene(scene);
             if (!primaryStage.isShowing()) {
@@ -109,13 +124,13 @@ public class SceneManager {
 
             root.setOpacity(0);
             Scene scene = new Scene(root);
-            scene.setFill(Color.BLACK); // black background so no white flash
+            scene.setFill(Color.BLACK);
+            registerScene(scene, true);
             addStylesheet(scene, "/game/gui/resources/css/styles.css");
             addStylesheet(scene, "/game/gui/resources/css/start-screen.css");
             scenes.put("StartScreen", scene);
             primaryStage.setScene(scene);
 
-            // Fade in from black
             FadeTransition fadeIn = new FadeTransition(Duration.millis(600), root);
             fadeIn.setFromValue(0);
             fadeIn.setToValue(1);
@@ -156,6 +171,7 @@ public class SceneManager {
 
             Scene scene = new Scene(root);
             scene.setFill(Color.BLACK);
+            registerScene(scene, false);
             addStylesheet(scene, "/game/gui/resources/css/styles.css");
             scenes.put("GameScreen", scene);
             primaryStage.setScene(scene);
@@ -174,7 +190,17 @@ public class SceneManager {
         }
     }
 
-    public void switchToGameOverScreen(String winnerName, String winnerRole, game.engine.Role playerRole) {
+    // Updated signature to match the 9-parameter call in GameController.checkWinner()
+    public void switchToGameOverScreen(
+            String winnerName,
+            String winnerRole,
+            game.engine.Role playerRole,
+            String playerName,
+            String playerRoleStr,
+            int playerEnergy,
+            String opponentName,
+            String opponentRole,
+            int opponentEnergy) {
         try {
             URL fxmlUrl = getClass().getResource("/game/gui/views/GameOverScreen.fxml");
             if (fxmlUrl == null) {
@@ -185,10 +211,15 @@ public class SceneManager {
             Parent root = loader.load();
 
             GameOverController controller = loader.getController();
-            controller.setWinner(winnerName, winnerRole, playerRole);
+            controller.setWinner(
+                winnerName, winnerRole, playerRole,
+                playerName, playerRoleStr, playerEnergy,
+                opponentName, opponentRole, opponentEnergy
+            );
 
             Scene scene = new Scene(root);
-            scene.setFill(javafx.scene.paint.Color.BLACK);
+            scene.setFill(Color.BLACK);
+            registerScene(scene, false);
             addStylesheet(scene, "/game/gui/resources/css/styles.css");
             scenes.put("GameOverScreen", scene);
             primaryStage.setScene(scene);
@@ -214,6 +245,7 @@ public class SceneManager {
                 Parent root = loader.load();
                 Scene scene = new Scene(root);
                 scene.setFill(Color.BLACK);
+                registerScene(scene, false);
                 addStylesheet(scene, "/game/gui/resources/css/styles.css");
                 scenes.put(name, scene);
             }
@@ -227,41 +259,53 @@ public class SceneManager {
         }
     }
 
+    private void registerScene(Scene scene, boolean showPrompt) {
+        if (scene == null) return;
+        scene.addEventHandler(KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == KeyCode.ESCAPE) {
+                primaryStage.setFullScreen(!primaryStage.isFullScreen());
+                event.consume();
+            }
+        });
+        if (showPrompt) {
+            Platform.runLater(this::showFullScreenPrompt);
+        }
+    }
+
+    // Replaced Alert (which fails to resolve in JavaFX 8 Eclipse projects)
+    // with a plain Stage dialog — identical blocking behavior, no Alert import needed.
+    private void showFullScreenPrompt() {
+        if (fullScreenPromptShown || primaryStage == null) return;
+        fullScreenPromptShown = true;
+
+        Stage dialog = new Stage();
+        dialog.setTitle("Full Screen");
+        dialog.initModality(Modality.APPLICATION_MODAL);
+        dialog.initOwner(primaryStage);
+
+        Label header = new Label("Make the game cover your entire screen");
+        header.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
+
+        Label content = new Label("Press ESCAPE to toggle full-screen mode.");
+        content.setWrapText(true);
+
+        Button ok = new Button("OK");
+        ok.setOnAction(e -> dialog.close());
+
+        VBox layout = new VBox(12, header, content, ok);
+        layout.setPadding(new Insets(20));
+        layout.setAlignment(Pos.CENTER);
+
+        dialog.setScene(new Scene(layout, 340, 140));
+        dialog.showAndWait();
+    }
+
     private void addStylesheet(Scene scene, String path) {
         URL url = getClass().getResource(path);
         if (url != null) {
             scene.getStylesheets().add(url.toExternalForm());
         } else {
             System.err.println("WARNING: Stylesheet not found, skipping: " + path);
-        }
-    }
-    public void switchToGameOverScreen(String winnerName, String winnerRole,
-            game.engine.Role playerRole,
-            String playerName,   String playerRole2,   int playerEnergy,
-            String opponentName, String opponentRole2, int opponentEnergy) {
-        try {
-            URL fxmlUrl = getClass().getResource("/game/gui/views/GameOverScreen.fxml");
-            if (fxmlUrl == null) {
-                System.err.println("ERROR: GameOverScreen.fxml not found!");
-                return;
-            }
-            FXMLLoader loader = new FXMLLoader(fxmlUrl);
-            Parent root = loader.load();
-
-            GameOverController controller = loader.getController();
-            controller.setWinner(winnerName, winnerRole, playerRole,
-                playerName,   playerRole2,   playerEnergy,
-                opponentName, opponentRole2, opponentEnergy);
-
-            Scene scene = new Scene(root);
-            scene.setFill(javafx.scene.paint.Color.BLACK);
-            addStylesheet(scene, "/game/gui/resources/css/styles.css");
-            scenes.put("GameOverScreen", scene);
-            primaryStage.setScene(scene);
-            if (!primaryStage.isShowing()) primaryStage.show();
-        } catch (Exception e) {
-            System.err.println("ERROR: Failed to load GameOverScreen");
-            e.printStackTrace();
         }
     }
 }

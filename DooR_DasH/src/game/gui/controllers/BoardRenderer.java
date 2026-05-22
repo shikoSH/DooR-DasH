@@ -95,12 +95,15 @@ public class BoardRenderer {
 
              // Replace the static style block with:
                 Label indexLabel = new Label(String.valueOf(boardIndex));
+                indexLabel.setMouseTransparent(true);
                 cellSize.addListener((obs, old, val) -> indexLabel.setStyle(
                     "-fx-font-family: " + LED + ";" +
                     "-fx-font-size: " + Math.max(6, val.doubleValue() * 0.18) + "px;" +
-                    "-fx-text-fill: rgba(255,255,255,0.65);" +
+                    "-fx-text-fill: rgba(255,255,255,0.85);" +
                     "-fx-font-weight: bold;" +
-                    "-fx-padding: 1 2 0 0;"));
+                    "-fx-background-color: rgba(0,0,0,0.35);" +
+                    "-fx-background-radius: 5;" +
+                    "-fx-padding: 1 4 1 4;"));
                 StackPane.setAlignment(indexLabel, Pos.TOP_RIGHT);
 
                 Label energyLabel = new Label("");
