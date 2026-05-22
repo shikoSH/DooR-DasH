@@ -186,26 +186,59 @@ public class AnimationManager {
 
         // Bring the moving cell to the front so it renders above neighbours
         PauseTransition front = new PauseTransition(Duration.millis(1));
-        front.setOnFinished(e -> {
-            Node hopParent = mv.getParent();
-            if (hopParent != null) hopParent.toFront();
-        });
+        front.setOnFinished(e -> mv.getParent().toFront());
         return new SequentialTransition(front, tt);
     }
     
     //--- Energy of stationed monster change pop up 
     // FIXED: Added 'int amount' parameters here to forward value to the popup text builder
-    public void animateStationedMonsterPopups(GridPane grid, Role movingRole,
-            boolean isIncrease, int amount) {
-        if (movingRole == null || amount <= 0) return;
+    public void animateStationedMonsterPopups(GridPane grid, Game game, boolean isIncrease, int amount) {
+        if (game == null || game.getCurrent() == null) return;
+        
+        Role activeRole = game.getCurrent().getRole();
+        Cell[][] boardCells = game.getBoard().getBoardCells();
 
-        for (Monster stationed : Board.getStationedMonsters()) {
-            if (stationed.getRole() != movingRole) continue;
+        // Check all 100 cells on the board
+        for (int index = 0; index < 100; index++) {
+            // Translate the flat index to backend rows/cols to inspect the cell data structure
+            int bRow = index / 10; // Assuming Constants.BOARD_COLS is 10 based on standard 100-size grid
+            int bCol = index % 10;
+            if (bRow % 2 == 1) bCol = 10 - 1 - bCol;
 
-            int[] visualRC = board.indexToRowCol(stationed.getPosition());
-            Node parent = board.getMonsterView(visualRC[0], visualRC[1]).getParent();
-            if (parent instanceof StackPane) {
-                createFloatingPopup((StackPane) parent, isIncrease, amount);
+            Cell cell = boardCells[bRow][bCol];
+
+            if (cell instanceof MonsterCell) {
+                MonsterCell mCell = (MonsterCell) cell;
+                Monster cellMonster = mCell.getCellMonster();
+
+                // Process only if the stationed cell monster matches our active monster's role type
+                if (cellMonster != null && cellMonster.getRole() == activeRole) {
+                    
+                    // Translate flat index into actual JavaFX visual UI Grid row/col positioning
+                    int[] visualRC = board.indexToRowCol(index);
+                    int visualRow = visualRC[0];
+                    int visualCol = visualRC[1];
+
+                    // Find the StackPane container matching this specific cell coordinate inside the GridPane
+                    StackPane cellPane = null;
+                    for (Node child : grid.getChildren()) {
+                        Integer cIndex = GridPane.getColumnIndex(child);
+                        Integer rIndex = GridPane.getRowIndex(child);
+                        
+                        int colCoord = (cIndex == null) ? 0 : cIndex;
+                        int rowCoord = (rIndex == null) ? 0 : rIndex;
+
+                        if (colCoord == visualCol && rowCoord == visualRow && child instanceof StackPane) {
+                            cellPane = (StackPane) child;
+                            break;
+                        }
+                    }
+
+                    // Kick off the floating layout node if found
+                    if (cellPane != null) {
+                        createFloatingPopup(cellPane, isIncrease, amount);
+                    }
+                }
             }
         }
     }
