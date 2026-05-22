@@ -101,13 +101,13 @@ public class GameOverController {
         if (retryButton != null) {
             Image playAgain = tryLoadSmall(IMG + "play_again_glow.png", 480, 144);
             if (playAgain != null) retryButton.setImage(playAgain);
-            retryButton.fitHeightProperty().bind(rootPane.heightProperty().multiply(0.10));
+            retryButton.fitHeightProperty().bind(rootPane.heightProperty().multiply(0.15));
             addImageButtonHover(retryButton, Color.web("#00ff88"));
         }
         if (mainMenuButton != null) {
             Image mainMenu = tryLoadSmall(IMG + "main_menu_glow_button.png", 480, 144);
             if (mainMenu != null) mainMenuButton.setImage(mainMenu);
-            mainMenuButton.fitHeightProperty().bind(rootPane.heightProperty().multiply(0.10));
+            mainMenuButton.fitHeightProperty().bind(rootPane.heightProperty().multiply(0.15));
             addImageButtonHover(mainMenuButton, Color.web("#ff6666"));
         }
     }

@@ -1,6 +1,8 @@
 package game.gui.controllers;
 
 import javafx.animation.FadeTransition;
+import javafx.animation.ParallelTransition;
+import javafx.animation.TranslateTransition;
 import javafx.animation.PauseTransition;
 import javafx.animation.SequentialTransition;
 import javafx.application.Platform;
@@ -19,7 +21,6 @@ import javafx.scene.layout.VBox;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.paint.Color;
-import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -40,8 +41,6 @@ public class SceneManager {
 
     private static final double DEFAULT_WIDTH  = 1280;
     private static final double DEFAULT_HEIGHT = 720;
-    private static final Duration PROMPT_FADE_MS = Duration.millis(350);
-    private static final Duration PROMPT_VISIBLE = Duration.seconds(2.5);
 
     private SceneManager() {}
 
@@ -61,19 +60,30 @@ public class SceneManager {
         this.primaryStage.setMinHeight(640);
         this.primaryStage.setResizable(true);
         this.primaryStage.centerOnScreen();
+        // Disable the built-in ESC key so we manage fullscreen toggling ourselves
         this.primaryStage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);
-        this.primaryStage.setFullScreenExitHint("Press ESC to exit fullscreen");
+        this.primaryStage.setFullScreenExitHint("");
 
         sceneHolder.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
         persistentScene = new Scene(sceneHolder, DEFAULT_WIDTH, DEFAULT_HEIGHT);
         persistentScene.setFill(Color.BLACK);
+        // ESC toggles: fullscreen <-> 1280x720 windowed — never exits the game
         persistentScene.addEventHandler(KeyEvent.KEY_PRESSED, event -> {
             if (event.getCode() == KeyCode.ESCAPE) {
-                primaryStage.setFullScreen(!primaryStage.isFullScreen());
+                if (primaryStage.isFullScreen()) {
+                    primaryStage.setFullScreen(false);
+                    primaryStage.setWidth(DEFAULT_WIDTH);
+                    primaryStage.setHeight(DEFAULT_HEIGHT);
+                    primaryStage.centerOnScreen();
+                } else {
+                    primaryStage.setFullScreen(true);
+                }
                 event.consume();
             }
         });
         primaryStage.setScene(persistentScene);
+        // Start in fullscreen by default
+        primaryStage.setFullScreen(true);
     }
 
     // ===== MUSIC =====
@@ -301,54 +311,48 @@ public class SceneManager {
         }
     }
 
-    /** Brief non-blocking tip: fades in, stays visible, then fades out and closes. */
+    /** In-scene toast that slides in from the top, holds, then fades out. No separate window. */
     private void showFullScreenPrompt() {
         if (fullScreenPromptShown || primaryStage == null) return;
         fullScreenPromptShown = true;
 
-        Stage dialog = new Stage();
-        dialog.setTitle("Full Screen");
-        dialog.initOwner(primaryStage);
-        dialog.initModality(Modality.NONE);
+        Label toast = new Label("Press  ESC  to toggle fullscreen / windowed");
+        toast.setStyle(
+            "-fx-background-color: rgba(15,15,25,0.88);" +
+            "-fx-background-radius: 30;" +
+            "-fx-border-color: rgba(100,200,255,0.55);" +
+            "-fx-border-radius: 30;" +
+            "-fx-border-width: 1.5;" +
+            "-fx-text-fill: #e0f0ff;" +
+            "-fx-font-size: 13px;" +
+            "-fx-font-family: 'Segoe UI', Arial, sans-serif;" +
+            "-fx-padding: 10 28 10 28;"
+        );
+        toast.setMouseTransparent(true);
 
-        Label header = new Label("Make the game cover your entire screen");
-        header.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: white;");
+        StackPane.setAlignment(toast, Pos.TOP_CENTER);
+        StackPane.setMargin(toast, new Insets(18, 0, 0, 0));
+        toast.setOpacity(0);
+        toast.setTranslateY(-20);
 
-        Label content = new Label("Press ESCAPE to toggle full-screen mode.");
-        content.setWrapText(true);
-        content.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 12px;");
+        sceneHolder.getChildren().add(toast);
 
-        VBox layout = new VBox(10, header, content);
-        layout.setPadding(new Insets(20));
-        layout.setAlignment(Pos.CENTER);
-        layout.setStyle(
-            "-fx-background-color: rgba(25,25,35,0.96);" +
-            "-fx-background-radius: 12;");
-        layout.setOpacity(0);
+        TranslateTransition slideIn = new TranslateTransition(Duration.millis(350), toast);
+        slideIn.setFromY(-20);
+        slideIn.setToY(0);
+        FadeTransition fadeIn = new FadeTransition(Duration.millis(350), toast);
+        fadeIn.setFromValue(0);
+        fadeIn.setToValue(1);
+        ParallelTransition enterAnim = new ParallelTransition(slideIn, fadeIn);
 
-        Scene dialogScene = new Scene(layout, 360, 110);
-        dialogScene.setFill(Color.TRANSPARENT);
-        dialog.setScene(dialogScene);
+        PauseTransition hold = new PauseTransition(Duration.seconds(3));
 
-        dialog.setOnShown(e -> {
-            dialog.setX(primaryStage.getX() + (primaryStage.getWidth() - dialog.getWidth()) / 2);
-            dialog.setY(primaryStage.getY() + (primaryStage.getHeight() - dialog.getHeight()) / 2);
+        FadeTransition fadeOut = new FadeTransition(Duration.millis(400), toast);
+        fadeOut.setFromValue(1);
+        fadeOut.setToValue(0);
+        fadeOut.setOnFinished(e -> sceneHolder.getChildren().remove(toast));
 
-            FadeTransition fadeIn = new FadeTransition(PROMPT_FADE_MS, layout);
-            fadeIn.setFromValue(0);
-            fadeIn.setToValue(1);
-
-            PauseTransition hold = new PauseTransition(PROMPT_VISIBLE);
-
-            FadeTransition fadeOut = new FadeTransition(PROMPT_FADE_MS, layout);
-            fadeOut.setFromValue(1);
-            fadeOut.setToValue(0);
-            fadeOut.setOnFinished(ev -> dialog.close());
-
-            new SequentialTransition(fadeIn, hold, fadeOut).play();
-        });
-
-        dialog.show();
+        new SequentialTransition(enterAnim, hold, fadeOut).play();
     }
 
     private void addStylesheetOnce(String path) {
