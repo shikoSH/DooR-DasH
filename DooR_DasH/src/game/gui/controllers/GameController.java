@@ -57,18 +57,18 @@ public class GameController {
     // =========================================================
     //  TEXT SIZES — change any number to resize that text
     // =========================================================
-    private static final int TXT_PLAYER_NAME   = 13;
-    private static final int TXT_PLAYER_TYPE   = 10;
-    private static final int TXT_PLAYER_ROLE   = 10;
-    private static final int TXT_PLAYER_POS    = 11;
-    private static final int TXT_PLAYER_ENERGY = 13;
-    private static final int TXT_PLAYER_STATUS = 10;
-    private static final int TXT_PLAYER_TURN   = 12;
-    private static final int TXT_ACTION_LOG    = 10;
+    private static final int TXT_PLAYER_NAME   = 20;
+    private static final int TXT_PLAYER_TYPE   = 18;
+    private static final int TXT_PLAYER_ROLE   = 18;
+    private static final int TXT_PLAYER_POS    = 20;
+    private static final int TXT_PLAYER_ENERGY = 20;
+    private static final int TXT_PLAYER_STATUS = 20;
+    private static final int TXT_PLAYER_TURN   = 15;
+    private static final int TXT_ACTION_LOG    = 20;
     private static final int TXT_TOP_LABEL     = 14;
-    private static final int TXT_DICE_RESULT   = 16;
-    private static final int TXT_CARD_NAME     = 16;
-    private static final int TXT_CARD_BODY     = 12;
+    private static final int TXT_DICE_RESULT   = 20;
+    private static final int TXT_CARD_NAME     = 20;
+    private static final int TXT_CARD_BODY     = 16;
     private static final int TXT_CELL_INDEX    =  7;
     private static final int TXT_DOOR_ENERGY   =  7;
 
@@ -84,10 +84,10 @@ public class GameController {
     private static final double PROFILE_W_MULT    = 0.90; // fraction of panel width (width only — height auto)
     private static final double ACTION_LOG_W_MULT = 0.90; // fraction of panel width (width only — height auto)
     private static final double CONTROL_BAR_H     = 0.16;
-    private static final double DECK_LEFT         = 0.245;
-    private static final double DECK_TOP_FRAC     = 0.05;
-    private static final double DECK_W            = 0.055;
-    private static final double DECK_H            = 0.12;
+    private static final double DECK_LEFT         = 0.25;
+    private static final double DECK_TOP_FRAC     = -1.7;
+    private static final double DECK_W            = 0.1584;
+    private static final double DECK_H            = 0.3456;
     private static final double DICE_SIZE         = 0.25;
     private static final double DICE_TOP_FRAC     = -1.4;
     private static final double BTN_W             = 0.17;
