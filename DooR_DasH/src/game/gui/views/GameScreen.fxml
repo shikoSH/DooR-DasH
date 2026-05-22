@@ -2,6 +2,7 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.BorderPane?>
@@ -11,70 +12,226 @@
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
-<StackPane fx:id="backgroundRoot"
-           maxHeight="Infinity"
-           maxWidth="Infinity"
-           xmlns="http://javafx.com/javafx/8"
-           xmlns:fx="http://javafx.com/fxml/1"
-           fx:controller="game.gui.controllers.GameController">
+<StackPane fx:id="backgroundRoot" maxHeight="Infinity" maxWidth="Infinity" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="game.gui.controllers.GameController">
 
     <children>
 
         <!-- Background -->
-        <ImageView fx:id="backgroundView"
-                   pickOnBounds="true"
-                   preserveRatio="false" />
+        <ImageView fx:id="backgroundView" pickOnBounds="true" preserveRatio="false" />
 
         <!-- Control panel overlay -->
-        <ImageView fx:id="controlPanelView"
-                   pickOnBounds="true"
-                   preserveRatio="false" />
+        <ImageView fx:id="controlPanelView" pickOnBounds="true" preserveRatio="false" />
 
         <!-- Main layout -->
-        <BorderPane fx:id="masterLayout"
-                    maxHeight="Infinity"
-                    maxWidth="Infinity">
+        <BorderPane fx:id="masterLayout" maxHeight="Infinity" maxWidth="Infinity">
 
             <!-- TOP -->
             <top>
-                <Label fx:id="myLabel"
-                       alignment="CENTER"
-                       maxWidth="Infinity"
-                       text="Loading..."
-                       style="-fx-font-size: 15px;
-                              -fx-font-weight: bold;
-                              -fx-padding: 5 0 3 0;
-                              -fx-text-fill: #00ff88;"
-                       BorderPane.alignment="CENTER" />
+                <Label fx:id="myLabel" alignment="CENTER" maxWidth="Infinity" style="-fx-font-size: 15px;                               -fx-font-weight: bold;                               -fx-padding: 5 0 3 0;                               -fx-text-fill: #00ff88;" text="Loading..." BorderPane.alignment="CENTER" />
             </top>
 
             <!-- LEFT -->
             <left>
-                <VBox fx:id="playerPanelContainer"
-                      alignment="TOP_CENTER"
-                      prefWidth="215"
-                      spacing="4"
-                      style="-fx-padding: 10 6 6 6;"
-                      BorderPane.alignment="CENTER" />
+                <VBox fx:id="playerPanelContainer" alignment="TOP_CENTER" prefWidth="215" spacing="4" style="-fx-padding: 10 6 6 6;" BorderPane.alignment="CENTER">
+               <children>
+                  <ImageView fitHeight="200.0" fitWidth="193.0">
+                     <image>
+                        <Image url="@../resources/images/confusion_off.png" />
+                     </image>
+                  </ImageView>
+                  <ImageView fitHeight="200.0" fitWidth="192.0">
+                     <image>
+                        <Image url="@../resources/images/confusion_on.png" />
+                     </image>
+                  </ImageView>
+                  <ImageView fitHeight="200.0" fitWidth="193.0">
+                     <image>
+                        <Image url="@../resources/images/freezed_off.png" />
+                     </image>
+                  </ImageView>
+                  <ImageView fitHeight="200.0" fitWidth="192.0">
+                     <image>
+                        <Image url="@../resources/images/freezed_on.png" />
+                     </image>
+                  </ImageView>
+                  <ImageView fitHeight="200.0" fitWidth="193.0">
+                     <image>
+                        <Image url="@../resources/images/powerup_off.png" />
+                     </image>
+                  </ImageView>
+                  <ImageView fitHeight="200.0" fitWidth="193.0">
+                     <image>
+                        <Image url="@../resources/images/powerup_on.png" />
+                     </image>
+                  </ImageView>
+                  <ImageView fitHeight="200.0" fitWidth="193.0">
+                     <image>
+                        <Image url="@../resources/images/shield_off.png" />
+                     </image>
+                  </ImageView>
+                  <ImageView fitHeight="200.0" fitWidth="193.0">
+                     <image>
+                        <Image url="@../resources/images/shield_on.png" />
+                     </image>
+                  </ImageView>
+                  <ImageView fitHeight="200.0" fitWidth="193.0">
+                     <image>
+                        <Image url="@../resources/images/turn_off.png" />
+                     </image>
+                  </ImageView>
+                  <ImageView fitHeight="200.0" fitWidth="193.0">
+                     <image>
+                        <Image url="@../resources/images/turn_on.png" />
+                     </image>
+                  </ImageView>
+                  <StackPane fx:id="backgroundRoot1" maxHeight="Infinity" maxWidth="Infinity">
+                  
+                      <children>
+                  
+                          <!-- Background -->
+                          <ImageView fx:id="backgroundView1" pickOnBounds="true" preserveRatio="false" />
+                  
+                          <!-- Control panel overlay -->
+                          <ImageView fx:id="controlPanelView1" pickOnBounds="true" preserveRatio="false" />
+                  
+                          <!-- Main layout -->
+                          <BorderPane fx:id="masterLayout1" maxHeight="Infinity" maxWidth="Infinity">
+                  
+                              <!-- TOP -->
+                              <top>
+                                  <Label fx:id="myLabel1" alignment="CENTER" maxWidth="Infinity" style="-fx-font-size: 15px;                               -fx-font-weight: bold;                               -fx-padding: 5 0 3 0;                               -fx-text-fill: #00ff88;" text="Loading..." BorderPane.alignment="CENTER" />
+                              </top>
+                  
+                              <!-- LEFT -->
+                              <left>
+                                  <VBox fx:id="playerPanelContainer1" alignment="TOP_CENTER" prefWidth="215" spacing="4" style="-fx-padding: 10 6 6 6;" BorderPane.alignment="CENTER" />
+                              </left>
+                  
+                              <!-- RIGHT -->
+                              <right>
+                                  <VBox alignment="TOP_CENTER" prefWidth="215" spacing="4" style="-fx-padding: 10 6 6 6;" BorderPane.alignment="CENTER">
+                  
+                                      <children>
+                                          <VBox fx:id="opponentPanelContainer1" spacing="4" />
+                  
+                                          <VBox fx:id="actionLogContainer1" spacing="3" />
+                  
+                                          <VBox fx:id="diceContainer1" spacing="3" />
+                                      </children>
+                  
+                                  </VBox>
+                              </right>
+                  
+                              <!-- CENTER -->
+                              <center>
+                  
+                                  <StackPane fx:id="boardContainer1" maxHeight="Infinity" maxWidth="Infinity" BorderPane.alignment="CENTER">
+                  
+                                      <BorderPane.margin>
+                                          <Insets bottom="118" left="6" right="6" top="6" />
+                                      </BorderPane.margin>
+                  
+                                      <children>
+                  
+                                          <!-- BOARD HOLDER (must be first / behind everything) -->
+                                          <ImageView fx:id="boardHolderView1" pickOnBounds="true" preserveRatio="false" />
+                  
+                                          <!-- BOARD IMAGE -->
+                                          <ImageView fx:id="boardImageView1" pickOnBounds="true" preserveRatio="false" />
+                  
+                                          <!-- GRID -->
+                                          <GridPane fx:id="grid1" gridLinesVisible="false">
+                  
+                                              <columnConstraints>
+                                                  <ColumnConstraints percentWidth="10.0" />
+                                                  <ColumnConstraints percentWidth="10.0" />
+                                                  <ColumnConstraints percentWidth="10.0" />
+                                                  <ColumnConstraints percentWidth="10.0" />
+                                                  <ColumnConstraints percentWidth="10.0" />
+                                                  <ColumnConstraints percentWidth="10.0" />
+                                                  <ColumnConstraints percentWidth="10.0" />
+                                                  <ColumnConstraints percentWidth="10.0" />
+                                                  <ColumnConstraints percentWidth="10.0" />
+                                                  <ColumnConstraints percentWidth="10.0" />
+                                              </columnConstraints>
+                  
+                                              <rowConstraints>
+                                                  <RowConstraints percentHeight="10.0" />
+                                                  <RowConstraints percentHeight="10.0" />
+                                                  <RowConstraints percentHeight="10.0" />
+                                                  <RowConstraints percentHeight="10.0" />
+                                                  <RowConstraints percentHeight="10.0" />
+                                                  <RowConstraints percentHeight="10.0" />
+                                                  <RowConstraints percentHeight="10.0" />
+                                                  <RowConstraints percentHeight="10.0" />
+                                                  <RowConstraints percentHeight="10.0" />
+                                                  <RowConstraints percentHeight="10.0" />
+                                              </rowConstraints>
+                  
+                                          </GridPane>
+                  
+                                      </children>
+                  
+                                  </StackPane>
+                  
+                              </center>
+                  
+                              <!-- BOTTOM -->
+                              <bottom>
+                  
+                                  <AnchorPane fx:id="controlBar1" maxWidth="Infinity" prefHeight="118" BorderPane.alignment="CENTER">
+                  
+                                      <children>
+                  
+                                          <!-- CARD DECK -->
+                                          <ImageView fx:id="cardDeckView1" fitHeight="88" fitWidth="68" preserveRatio="true" AnchorPane.leftAnchor="80" AnchorPane.topAnchor="8" />
+                  
+                                          <!-- DICE -->
+                                          <ImageView fx:id="diceView1" fitHeight="100" fitWidth="100" preserveRatio="true" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0" AnchorPane.topAnchor="6" />
+                  
+                                          <!-- DICE RESULT -->
+                                          <Label fx:id="diceResultLabel1" alignment="CENTER" maxWidth="Infinity" style="-fx-text-fill: #00ff88;                                       -fx-font-size: 12px;                                       -fx-font-weight: bold;" text="—" AnchorPane.bottomAnchor="2" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0" />
+                  
+                                          <!-- POWER UP -->
+                                          <ImageView fx:id="powerUpImageBtn1" fitHeight="75" fitWidth="115" onMouseClicked="#handlePowerUp" pickOnBounds="true" preserveRatio="true" style="-fx-cursor: hand;" AnchorPane.rightAnchor="135" AnchorPane.topAnchor="14" />
+                  
+                                          <!-- ROLL BUTTON -->
+                                          <ImageView fx:id="rollImageBtn1" fitHeight="75" fitWidth="115" onMouseClicked="#handleRollDice" pickOnBounds="true" preserveRatio="true" style="-fx-cursor: hand;" AnchorPane.rightAnchor="10" AnchorPane.topAnchor="14" />
+                  
+                                      </children>
+                  
+                                  </AnchorPane>
+                  
+                              </bottom>
+                  
+                          </BorderPane>
+                  
+                      </children>
+                  
+                  </StackPane>
+               </children></VBox>
             </left>
 
             <!-- RIGHT -->
             <right>
-                <VBox alignment="TOP_CENTER"
-                      prefWidth="215"
-                      spacing="4"
-                      style="-fx-padding: 10 6 6 6;"
-                      BorderPane.alignment="CENTER">
+                <VBox alignment="TOP_CENTER" prefWidth="215" spacing="4" style="-fx-padding: 10 6 6 6;" BorderPane.alignment="CENTER">
 
                     <children>
-                        <VBox fx:id="opponentPanelContainer"
-                              spacing="4" />
+                        <VBox fx:id="opponentPanelContainer" spacing="4" />
 
-                        <VBox fx:id="actionLogContainer"
-                              spacing="3" />
+                        <VBox fx:id="actionLogContainer" spacing="3" />
 
-                        <VBox fx:id="diceContainer"
-                              spacing="3" />
+                        <VBox fx:id="diceContainer" spacing="3" />
+                  <ImageView fitHeight="188.0" fitWidth="200.0">
+                     <image>
+                        <Image url="@../resources/images/Action_Log.png" />
+                     </image>
+                  </ImageView>
+                  <ImageView fitHeight="169.0" fitWidth="200.0">
+                     <image>
+                        <Image url="@../resources/images/monster_profile.png" />
+                     </image>
+                  </ImageView>
                     </children>
 
                 </VBox>
@@ -83,33 +240,22 @@
             <!-- CENTER -->
             <center>
 
-                <StackPane fx:id="boardContainer"
-                           maxHeight="Infinity"
-                           maxWidth="Infinity"
-                           BorderPane.alignment="CENTER">
+                <StackPane fx:id="boardContainer" maxHeight="Infinity" maxWidth="Infinity" BorderPane.alignment="CENTER">
 
                     <BorderPane.margin>
-                        <Insets top="6"
-                                right="6"
-                                bottom="118"
-                                left="6" />
+                        <Insets bottom="118" left="6" right="6" top="6" />
                     </BorderPane.margin>
 
                     <children>
 
                         <!-- BOARD HOLDER (must be first / behind everything) -->
-                        <ImageView fx:id="boardHolderView"
-                                   pickOnBounds="true"
-                                   preserveRatio="false" />
+                        <ImageView fx:id="boardHolderView" pickOnBounds="true" preserveRatio="false" />
 
                         <!-- BOARD IMAGE -->
-                        <ImageView fx:id="boardImageView"
-                                   pickOnBounds="true"
-                                   preserveRatio="false" />
+                        <ImageView fx:id="boardImageView" pickOnBounds="true" preserveRatio="false" />
 
                         <!-- GRID -->
-                        <GridPane fx:id="grid"
-                                  gridLinesVisible="false">
+                        <GridPane fx:id="grid" gridLinesVisible="false">
 
                             <columnConstraints>
                                 <ColumnConstraints percentWidth="10.0" />
@@ -148,63 +294,24 @@
             <!-- BOTTOM -->
             <bottom>
 
-                <AnchorPane fx:id="controlBar"
-                            maxWidth="Infinity"
-                            prefHeight="118"
-                            BorderPane.alignment="CENTER">
+                <AnchorPane fx:id="controlBar" maxWidth="Infinity" prefHeight="118" BorderPane.alignment="CENTER">
 
                     <children>
 
                         <!-- CARD DECK -->
-                        <ImageView fx:id="cardDeckView"
-                                   fitHeight="88"
-                                   fitWidth="68"
-                                   preserveRatio="true"
-                                   AnchorPane.topAnchor="8"
-                                   AnchorPane.leftAnchor="80" />
+                        <ImageView fx:id="cardDeckView" fitHeight="88" fitWidth="68" preserveRatio="true" AnchorPane.leftAnchor="80" AnchorPane.topAnchor="8" />
 
                         <!-- DICE -->
-                        <ImageView fx:id="diceView"
-                                   fitHeight="100"
-                                   fitWidth="100"
-                                   preserveRatio="true"
-                                   AnchorPane.topAnchor="6"
-                                   AnchorPane.leftAnchor="0"
-                                   AnchorPane.rightAnchor="0" />
+                        <ImageView fx:id="diceView" fitHeight="100" fitWidth="100" preserveRatio="true" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0" AnchorPane.topAnchor="6" />
 
                         <!-- DICE RESULT -->
-                        <Label fx:id="diceResultLabel"
-                               text="—"
-                               alignment="CENTER"
-                               maxWidth="Infinity"
-                               style="-fx-text-fill: #00ff88;
-                                      -fx-font-size: 12px;
-                                      -fx-font-weight: bold;"
-                               AnchorPane.bottomAnchor="2"
-                               AnchorPane.leftAnchor="0"
-                               AnchorPane.rightAnchor="0" />
+                        <Label fx:id="diceResultLabel" alignment="CENTER" maxWidth="Infinity" style="-fx-text-fill: #00ff88;                                       -fx-font-size: 12px;                                       -fx-font-weight: bold;" text="—" AnchorPane.bottomAnchor="2" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0" />
 
                         <!-- POWER UP -->
-                        <ImageView fx:id="powerUpImageBtn"
-                                   fitHeight="75"
-                                   fitWidth="115"
-                                   pickOnBounds="true"
-                                   preserveRatio="true"
-                                   style="-fx-cursor: hand;"
-                                   onMouseClicked="#handlePowerUp"
-                                   AnchorPane.topAnchor="14"
-                                   AnchorPane.rightAnchor="135" />
+                        <ImageView fx:id="powerUpImageBtn" fitHeight="75" fitWidth="115" onMouseClicked="#handlePowerUp" pickOnBounds="true" preserveRatio="true" style="-fx-cursor: hand;" AnchorPane.rightAnchor="135" AnchorPane.topAnchor="14" />
 
                         <!-- ROLL BUTTON -->
-                        <ImageView fx:id="rollImageBtn"
-                                   fitHeight="75"
-                                   fitWidth="115"
-                                   pickOnBounds="true"
-                                   preserveRatio="true"
-                                   style="-fx-cursor: hand;"
-                                   onMouseClicked="#handleRollDice"
-                                   AnchorPane.topAnchor="14"
-                                   AnchorPane.rightAnchor="10" />
+                        <ImageView fx:id="rollImageBtn" fitHeight="75" fitWidth="115" onMouseClicked="#handleRollDice" pickOnBounds="true" preserveRatio="true" style="-fx-cursor: hand;" AnchorPane.rightAnchor="10" AnchorPane.topAnchor="14" />
 
                     </children>
 
