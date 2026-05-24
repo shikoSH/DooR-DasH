@@ -5,6 +5,7 @@ import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -48,14 +49,13 @@ public class GameController {
     @FXML private BorderPane masterLayout;
 
     // =========================================================
-    //  FONT — change to switch font everywhere
-    //  "ARCADECLASSIC" uses the TTF you added
-    //  "\"Courier New\", monospace" is the LED fallback
+    //  FONT
     // =========================================================
-    private static final String FONT = "ARCADECLASSIC";
+    private static final String FONT      = "ARCADECLASSIC";
+    private static final String FONT_PATH = "/game/gui/resources/fonts/ARCADECLASSIC.TTF";
 
     // =========================================================
-    //  TEXT SIZES — change any number to resize that text
+    //  TEXT SIZES
     // =========================================================
     private static final int TXT_PLAYER_NAME   = 20;
     private static final int TXT_PLAYER_TYPE   = 18;
@@ -73,16 +73,16 @@ public class GameController {
     private static final int TXT_DOOR_ENERGY   =  7;
 
     // =========================================================
-    //  SIZES — fractions of screen WIDTH or HEIGHT
+    //  SIZES
     // =========================================================
     private static final double BOARD_SIZE_MULT   = 0.66;
     private static final double SIDE_PANEL_W      = 0.155;
     private static final double PORTRAIT_W_MULT   = 0.88;
-    private static final double ENERGY_BAR_W_MULT = 0.2; // fraction of panel width (width only — height auto)
+    private static final double ENERGY_BAR_W_MULT = 0.2;
     private static final double PANEL_TOP_PAD     = 0.08;
-    private static final double LIGHT_SIZE_MULT   = 0.16; // fraction of panel width
-    private static final double PROFILE_W_MULT    = 0.90; // fraction of panel width (width only — height auto)
-    private static final double ACTION_LOG_W_MULT = 0.90; // fraction of panel width (width only — height auto)
+    private static final double LIGHT_SIZE_MULT   = 0.16;
+    private static final double PROFILE_W_MULT    = 0.90;
+    private static final double ACTION_LOG_W_MULT = 0.90;
     private static final double CONTROL_BAR_H     = 0.16;
     private static final double DECK_LEFT         = 0.25;
     private static final double DECK_TOP_FRAC     = -1.8;
@@ -97,15 +97,14 @@ public class GameController {
     private static final double POWERUP_RIGHT     = 0.284;
     private static final double PARALLAX_X        = 28;
     private static final double PARALLAX_Y        = 18;
-    private static final double BG_OVERSIZE       = 1.08; // must stay > 1 so edges never show
+    private static final double BG_OVERSIZE       = 1.08;
     private static final double CARD_W_MULT       = 0.38;
     private static final double CARD_H_MULT       = 0.50;
 
     // =========================================================
-    //  IMAGE PATHS — change filename if your file is renamed
+    //  IMAGE PATHS
     // =========================================================
-    private static final String IMG       = "/game/gui/resources/images/";
-    private static final String FONT_PATH = "/game/gui/resources/fonts/ARCADECLASSIC.TTF";
+    private static final String IMG = "/game/gui/resources/images/";
 
     private static final String IMG_NORMAL       = "NormalCell.png";
     private static final String IMG_DOOR_SC      = "Scarer_ClosedDoor_Cell2.png";
@@ -153,6 +152,10 @@ public class GameController {
     private ImageView[][] monsterViews;
     private Label[][]     energyLabels;
 
+    // Cell size property for responsive label scaling
+    private final javafx.beans.property.DoubleProperty cellSize =
+        new javafx.beans.property.SimpleDoubleProperty(40);
+
     // =========================================================
     //  IMAGES
     // =========================================================
@@ -173,19 +176,16 @@ public class GameController {
     // =========================================================
     private final ImageView playerPortrait  = new ImageView();
     private final ImageView playerEnergyBar = new ImageView();
-    // Wrapper StackPane for energy bar so overlay sits at exact same position
     private StackPane playerEnergyWrapper;
     private Label playerNameLbl, playerTypeLbl, playerRoleLbl;
     private Label playerPosLbl, playerEnergyLbl, playerStatusLbl, playerTurnLbl;
 
-    // Lights — player (order: turn, confused, frozen, shield, power)
     private ImageView pTurnOff, pTurnOn;
     private ImageView pConfOff, pConfOn;
     private ImageView pFrzOff,  pFrzOn;
     private ImageView pShldOff, pShldOn;
     private ImageView pPwrOff,  pPwrOn;
 
-    // Light states — only animate when state actually changes
     private boolean pTurnState, pConfState, pFrzState, pShldState, pPwrState;
     private boolean oTurnState, oConfState, oFrzState, oShldState, oPwrState;
 
@@ -198,7 +198,6 @@ public class GameController {
     private Label opponentNameLbl, opponentTypeLbl, opponentRoleLbl;
     private Label opponentPosLbl, opponentEnergyLbl, opponentStatusLbl;
 
-    // Lights — opponent
     private ImageView oTurnOff, oTurnOn;
     private ImageView oConfOff, oConfOn;
     private ImageView oFrzOff,  oFrzOn;
@@ -215,10 +214,9 @@ public class GameController {
     private VBox      cardOverlay;
     private ImageView cardOverlayBack, cardOverlayFace;
     private Label     cardOverlayName, cardOverlayDesc, cardOverlayEffect;
-    // Blur applied to masterLayout so the card overlay (on backgroundRoot) is NOT blurred
     private final BoxBlur worldBlur = new BoxBlur(0, 0, 2);
 
-    // In-scene message overlay (errors / confirms stay inside fullscreen window)
+    // In-scene message overlay
     private StackPane messageOverlay;
     private VBox      messageBox;
     private Label     messageTitle;
@@ -229,18 +227,16 @@ public class GameController {
     //  STATE
     // =========================================================
     private Game     game;
-    private boolean  isAnimating = false;
+    private boolean  isAnimating           = false;
+    private boolean  monsterOverlayVisible = false;
     private Timeline diceTimeline;
 
-    // Power-up light tracking
     private int playerPowerTurnsLeft   = 0;
     private int opponentPowerTurnsLeft = 0;
 
-    // Parallax
     private double targetX = 0, targetY = 0;
     private AnimationTimer parallaxTimer;
 
-    // Track current energy bar level to avoid redundant animation
     private Image playerEnergyBarCurrentImage   = null;
     private Image opponentEnergyBarCurrentImage = null;
 
@@ -250,13 +246,11 @@ public class GameController {
     @FXML
     private void initialize() {
         try {
-            // Font must load before any label is created
             javafx.scene.text.Font.loadFont(
                 getClass().getResourceAsStream(FONT_PATH), 14);
 
             loadAllImages();
 
-            // Background — oversized so parallax never reveals edges
             backgroundView.setImage(img(IMG_BACKGROUND));
             backgroundView.fitWidthProperty().bind(
                 backgroundRoot.widthProperty().multiply(BG_OVERSIZE));
@@ -270,7 +264,6 @@ public class GameController {
 
             setupParallax();
 
-            // Board bindings
             javafx.beans.binding.NumberBinding boardSize =
                 backgroundRoot.heightProperty().multiply(BOARD_SIZE_MULT);
             boardHolderView.setImage(img(IMG_BOARD_HOLDER));
@@ -305,8 +298,6 @@ public class GameController {
             setupResponsiveLayout();
             setupCheatCodes();
 
-            // Fire layout once scene is ready — prevents "everything huge for a second"
-            // by deferring until after the scene graph is fully laid out
             backgroundRoot.sceneProperty().addListener((obs, old, scene) -> {
                 if (scene != null) {
                     scene.widthProperty().addListener((o, ov, nv) -> {
@@ -374,84 +365,500 @@ public class GameController {
     }
 
     // =========================================================
-    //  BUILD GRID
+    //  BUILD GRID  (replaced with new version)
     // =========================================================
     private void buildGrid() {
+        // Bind the shared cellSize property so label styles can react to resize
+        cellSize.bind(grid.heightProperty().divide(Constants.BOARD_ROWS));
+
         bgViews      = new ImageView[Constants.BOARD_ROWS][Constants.BOARD_COLS];
         monsterViews = new ImageView[Constants.BOARD_ROWS][Constants.BOARD_COLS];
         energyLabels = new Label[Constants.BOARD_ROWS][Constants.BOARD_COLS];
 
-        javafx.beans.property.DoubleProperty cellSz =
-            new javafx.beans.property.SimpleDoubleProperty(40);
-        cellSz.bind(grid.heightProperty().divide(Constants.BOARD_ROWS));
-
         for (int row = 0; row < Constants.BOARD_ROWS; row++) {
             for (int col = 0; col < Constants.BOARD_COLS; col++) {
-                StackPane cell = new StackPane();
-                int br = Constants.BOARD_ROWS - 1 - row;
-                int bc = (br % 2 == 1) ? Constants.BOARD_COLS - 1 - col : col;
-                int bi = br * Constants.BOARD_COLS + bc;
+                StackPane cellStack = new StackPane();
+
+                int backendRow = Constants.BOARD_ROWS - 1 - row;
+                int backendCol = (backendRow % 2 == 1)
+                    ? Constants.BOARD_COLS - 1 - col : col;
+                int boardIndex = backendRow * Constants.BOARD_COLS + backendCol;
 
                 boolean isMonsterSlot = false;
                 for (int mi : Constants.MONSTER_CELL_INDICES)
-                    if (mi == bi) { isMonsterSlot = true; break; }
+                    if (mi == boardIndex) { isMonsterSlot = true; break; }
 
-                ImageView bg = new ImageView();
-                bg.setPreserveRatio(false);
-                bg.fitWidthProperty().bind(
+                // Background image view
+                ImageView bgView = new ImageView();
+                bgView.setPreserveRatio(false);
+                bgView.fitWidthProperty().bind(
                     grid.widthProperty().divide(Constants.BOARD_COLS));
-                bg.fitHeightProperty().bind(
+                bgView.fitHeightProperty().bind(
                     grid.heightProperty().divide(Constants.BOARD_ROWS));
 
-                ImageView mv = new ImageView();
-                mv.setPreserveRatio(true);
-                double ms = isMonsterSlot ? 1.0 : 0.80;
-                mv.fitWidthProperty().bind(
-                    grid.widthProperty().divide(Constants.BOARD_COLS).multiply(ms));
-                mv.fitHeightProperty().bind(
-                    grid.heightProperty().divide(Constants.BOARD_ROWS).multiply(ms));
+                // Monster sprite view
+                ImageView mView = new ImageView();
+                mView.setPreserveRatio(true);
+                double mScale = isMonsterSlot ? 1.0 : 0.80;
+                mView.fitWidthProperty().bind(
+                    grid.widthProperty().divide(Constants.BOARD_COLS).multiply(mScale));
+                mView.fitHeightProperty().bind(
+                    grid.heightProperty().divide(Constants.BOARD_ROWS).multiply(mScale));
 
-                // Cell index — NO black background on it
-                Label indexLbl = new Label(String.valueOf(bi));
-                indexLbl.setMouseTransparent(true);
-                cellSz.addListener((o, ov, nv) -> indexLbl.setStyle(
+                // Cell index label — scales with cell size, has subtle background badge
+                Label indexLabel = new Label(String.valueOf(boardIndex));
+                indexLabel.setMouseTransparent(true);
+                cellSize.addListener((obs, old, val) -> indexLabel.setStyle(
                     "-fx-font-family: '" + FONT + "';" +
                     "-fx-font-size: " + Math.max(TXT_CELL_INDEX,
-                        nv.doubleValue() * 0.18) + "px;" +
+                        val.doubleValue() * 0.18) + "px;" +
                     "-fx-text-fill: rgba(255,255,255,0.85);" +
-                    "-fx-font-weight: bold;"));
+                    "-fx-font-weight: bold;" +
+                    "-fx-background-color: rgba(0,0,0,0.35);" +
+                    "-fx-background-radius: 5;" +
+                    "-fx-padding: 1 4 1 4;"));
                 // Apply initial style immediately
-                indexLbl.setStyle(
+                indexLabel.setStyle(
                     "-fx-font-family: '" + FONT + "';" +
                     "-fx-font-size: " + TXT_CELL_INDEX + "px;" +
                     "-fx-text-fill: rgba(255,255,255,0.85);" +
-                    "-fx-font-weight: bold;");
-                StackPane.setAlignment(indexLbl, Pos.TOP_RIGHT);
+                    "-fx-font-weight: bold;" +
+                    "-fx-background-color: rgba(0,0,0,0.35);" +
+                    "-fx-background-radius: 5;" +
+                    "-fx-padding: 1 4 1 4;");
+                StackPane.setAlignment(indexLabel, Pos.TOP_RIGHT);
 
-                Label eLbl = new Label("");
-                eLbl.setMouseTransparent(true);
-                eLbl.setVisible(false);
-                eLbl.setStyle(
-                    "-fx-font-family: '" + FONT + "';" +
-                    "-fx-font-size: " + TXT_DOOR_ENERGY + "px;" +
-                    "-fx-text-fill: rgba(175,228,255,0.95);" +
-                    "-fx-font-weight: bold;");
-                StackPane.setAlignment(eLbl, Pos.BOTTOM_CENTER);
-
-                bgViews[row][col]      = bg;
-                monsterViews[row][col] = mv;
-                energyLabels[row][col] = eLbl;
-
-                final int cellIndex = bi;
-                mv.setOnMouseClicked(e -> {
-                    Monster clicked = getMonsterAtCell(cellIndex);
-                    if (clicked != null) showMonsterPopup(clicked);
+                // Energy label — styled dynamically based on cell type via userData
+                Label energyLabel = new Label("");
+                cellSize.addListener((obs, old, val) -> {
+                    Object kind = energyLabel.getUserData();
+                    if ("door".equals(kind)) {
+                        applyDoorEnergyLabelStyle(energyLabel, val.doubleValue());
+                    } else if ("monster".equals(kind)) {
+                        applyMonsterEnergyLabelStyle(energyLabel, val.doubleValue());
+                    }
                 });
+                energyLabel.setVisible(false);
+                StackPane.setAlignment(energyLabel, Pos.BOTTOM_CENTER);
 
-                cell.getChildren().addAll(bg, mv, indexLbl, eLbl);
-                grid.add(cell, col, row);
+                bgViews[row][col]      = bgView;
+                monsterViews[row][col] = mView;
+                energyLabels[row][col] = energyLabel;
+
+                // Monster-slot cells get a hand cursor and click handler
+                if (isMonsterSlot) {
+                    final int monsterBoardIndex = boardIndex;
+                    cellStack.setCursor(Cursor.HAND);
+                    cellStack.setOnMouseClicked(e ->
+                        handleMonsterCellClick(monsterBoardIndex));
+                }
+
+                cellStack.getChildren().addAll(bgView, mView, indexLabel, energyLabel);
+                grid.add(cellStack, col, row);
             }
         }
+    }
+
+    // ── Label style helpers called from the cellSize listener ──────────────
+
+    /** Door energy label: blue-tinted, centred at bottom */
+    private void applyDoorEnergyLabelStyle(Label lbl, double cellPx) {
+        lbl.setStyle(
+            "-fx-font-family: '" + FONT + "';" +
+            "-fx-font-size: " + Math.max(TXT_DOOR_ENERGY, cellPx * 0.15) + "px;" +
+            "-fx-text-fill: rgba(175,228,255,0.95);" +
+            "-fx-font-weight: bold;");
+    }
+
+    /** Monster energy label: green-tinted, centred at bottom */
+    private void applyMonsterEnergyLabelStyle(Label lbl, double cellPx) {
+        lbl.setStyle(
+            "-fx-font-family: '" + FONT + "';" +
+            "-fx-font-size: " + Math.max(TXT_DOOR_ENERGY, cellPx * 0.15) + "px;" +
+            "-fx-text-fill: rgba(100,255,160,0.95);" +
+            "-fx-font-weight: bold;");
+    }
+
+    // =========================================================
+    //  MONSTER CELL CLICK HANDLER  (replaces showMonsterPopup)
+    //  Clicking a monster cell now triggers the floating energy
+    //  popup animation on every stationed-monster cell whose role
+    //  matches the current player, mirroring the post-turn effect.
+    // =========================================================
+
+    /**
+     * Called when the user clicks a monster-slot cell on the board.
+     * Instead of a popup dialog it fires the floating ⚡ animation on
+     * every MonsterCell whose stationed monster shares a role with the
+     * current active player, so the player can see at a glance which
+     * cells are "theirs" and what energy they hold.
+     *
+     * @param boardIndex the flat board index (0-99) of the clicked cell
+     */
+    private void handleMonsterCellClick(int boardIndex) {
+        if (game == null) return;
+
+        Monster clickedMonster = getMonsterAtCell(boardIndex);
+        if (clickedMonster == null) return;
+
+        // Show the info overlay for the specific monster that was clicked
+        showMonsterInfoOverlay(clickedMonster);
+    }
+
+    /**
+     * Displays a styled in-scene info card for the given monster.
+     * Uses the existing message-overlay infrastructure so it stays
+     * inside the fullscreen window and is never clipped by the OS.
+     */
+    /**
+     * Shows a full card-style overlay for a monster — blurs the world,
+     * displays the monster's screen portrait, then reveals a stats panel,
+     * mirroring the card-draw presentation.
+     */
+    private void showMonsterInfoOverlay(Monster m) {
+        monsterOverlayVisible = true;
+
+        // ── Determine role-based accent colour ──────────────────────────
+        boolean isScarer   = m.getRole() == Role.SCARER;
+        String  accentHex  = isScarer ? "#ff6a00" : "#00ccff";
+        Color   accentColor = isScarer ? Color.web("#ff6a00") : Color.web("#00ccff");
+
+        // ── Portrait image (screen portrait, same as side panels) ────────
+        ImageView portrait = new ImageView(screenPortrait(m.getName()));
+        portrait.setPreserveRatio(true);
+        portrait.setFitWidth(220);
+        DropShadow portraitGlow = new DropShadow(24, accentColor);
+        portraitGlow.setSpread(0.15);
+        portrait.setEffect(portraitGlow);
+
+        // ── Name label ───────────────────────────────────────────────────
+        Label nameLbl = new Label(m.getName().toUpperCase());
+        nameLbl.setStyle(
+            "-fx-font-family: '" + FONT + "';" +
+            "-fx-font-size: 22px;" +
+            "-fx-font-weight: bold;" +
+            "-fx-text-fill: " + accentHex + ";");
+        nameLbl.setAlignment(Pos.CENTER);
+        DropShadow nameGlow = new DropShadow(18, accentColor);
+        nameGlow.setSpread(0.3);
+        nameLbl.setEffect(nameGlow);
+
+        // ── Thin divider bar ─────────────────────────────────────────────
+        javafx.scene.shape.Rectangle divider = new javafx.scene.shape.Rectangle(200, 2);
+        divider.setFill(accentColor);
+        divider.setOpacity(0.6);
+        divider.setArcWidth(2); divider.setArcHeight(2);
+
+        // ── Stat rows helper ─────────────────────────────────────────────
+        // Each row: dim label on left, bright value on right
+        java.util.function.BiFunction<String, String, HBox> statRow = (key, val) -> {
+            Label k = new Label(key);
+            k.setStyle(
+                "-fx-font-family: '" + FONT + "';" +
+                "-fx-font-size: 12px;" +
+                "-fx-text-fill: #7ab8cc;");
+            Label v = new Label(val);
+            v.setStyle(
+                "-fx-font-family: '" + FONT + "';" +
+                "-fx-font-size: 12px;" +
+                "-fx-font-weight: bold;" +
+                "-fx-text-fill: #e8f9ff;");
+            HBox row = new HBox(k, v);
+            row.setSpacing(6);
+            row.setAlignment(Pos.CENTER_LEFT);
+            HBox.setHgrow(k, javafx.scene.layout.Priority.NEVER);
+            // push value to right side
+            javafx.scene.layout.Region spacer = new javafx.scene.layout.Region();
+            HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
+            row.getChildren().add(1, spacer); // insert spacer between key and val
+            return row;
+        };
+
+        // Build status string
+        boolean confused = m.isConfused();
+        StringBuilder statusSb = new StringBuilder();
+        if (!m.isShielded() && !m.isFrozen() && !confused) statusSb.append("NORMAL");
+        if (m.isShielded()) statusSb.append("SHIELD ");
+        if (m.isFrozen())   statusSb.append("FROZEN ");
+        if (confused)       statusSb.append("CONFUSED(").append(m.getConfusionTurns()).append("T)");
+
+        // Role value — magenta if confused
+        String roleVal = m.getRole().toString();
+        Label roleLbl = new Label(roleVal);
+        roleLbl.setStyle(
+            "-fx-font-family: '" + FONT + "';" +
+            "-fx-font-size: 12px;" +
+            "-fx-font-weight: bold;" +
+            "-fx-text-fill: " + (confused ? "#ff00ff" : "#e8f9ff") + ";");
+
+        VBox statsBox = new VBox(6);
+        statsBox.setAlignment(Pos.CENTER_LEFT);
+        statsBox.setMaxWidth(220);
+        statsBox.getChildren().addAll(
+            statRow.apply("TYPE",      m.getClass().getSimpleName()),
+            statRow.apply("ROLE",      roleVal),       // will be tinted below if confused
+            statRow.apply("ORIG ROLE", m.getOriginalRole().toString()),
+            statRow.apply("ENERGY",    String.valueOf(m.getEnergy())),
+            statRow.apply("POSITION",  String.valueOf(m.getPosition())),
+            statRow.apply("STATUS",    statusSb.toString())
+        );
+
+        // If confused, override the role row's value colour
+        if (confused) {
+            HBox roleRow = (HBox) statsBox.getChildren().get(1);
+            // last child of the HBox is the value label
+            Node valNode = roleRow.getChildren().get(roleRow.getChildren().size() - 1);
+            if (valNode instanceof Label)
+                ((Label) valNode).setStyle(
+                    "-fx-font-family: '" + FONT + "';" +
+                    "-fx-font-size: 12px;" +
+                    "-fx-font-weight: bold;" +
+                    "-fx-text-fill: #ff00ff;");
+        }
+
+        // ── Description label ────────────────────────────────────────────
+        Label descLbl = new Label(m.getDescription());
+        descLbl.setStyle(
+            "-fx-font-family: '" + FONT + "';" +
+            "-fx-font-size: 10px;" +
+            "-fx-text-fill: #7ab8cc;" +
+            "-fx-font-style: italic;");
+        descLbl.setWrapText(true);
+        descLbl.setMaxWidth(220);
+        descLbl.setAlignment(Pos.CENTER);
+
+        // ── Buttons ──────────────────────────────────────────────────────
+        Button auraBtn = new Button("SHOW ENERGY AURA");
+        auraBtn.setStyle(
+            "-fx-font-family: '" + FONT + "';" +
+            "-fx-font-size: 11px;" +
+            "-fx-font-weight: bold;" +
+            "-fx-background-color: rgba(0,60,30,0.85);" +
+            "-fx-text-fill: #00ff88;" +
+            "-fx-border-color: #00ff88;" +
+            "-fx-border-width: 1;" +
+            "-fx-border-radius: 6;" +
+            "-fx-background-radius: 6;" +
+            "-fx-cursor: hand;" +
+            "-fx-padding: 6 16;");
+
+        Button closeBtn = new Button("CLOSE");
+        closeBtn.setStyle(
+            "-fx-font-family: '" + FONT + "';" +
+            "-fx-font-size: 11px;" +
+            "-fx-font-weight: bold;" +
+            "-fx-background-color: rgba(10,30,50,0.90);" +
+            "-fx-text-fill: " + accentHex + ";" +
+            "-fx-border-color: " + accentHex + ";" +
+            "-fx-border-width: 1;" +
+            "-fx-border-radius: 6;" +
+            "-fx-background-radius: 6;" +
+            "-fx-cursor: hand;" +
+            "-fx-padding: 6 28;");
+
+        HBox btnRow = new HBox(12, auraBtn, closeBtn);
+        btnRow.setAlignment(Pos.CENTER);
+
+        // ── Hint ─────────────────────────────────────────────────────────
+        Label hint = new Label("tap outside to dismiss");
+        hint.setStyle(
+            "-fx-font-family: '" + FONT + "';" +
+            "-fx-font-size: 9px;" +
+            "-fx-text-fill: #445566;" +
+            "-fx-font-style: italic;");
+
+        // ── Card body ────────────────────────────────────────────────────
+        VBox card = new VBox(10,
+            portrait,
+            nameLbl,
+            divider,
+            statsBox,
+            descLbl,
+            btnRow,
+            hint);
+        card.setAlignment(Pos.TOP_CENTER);
+        card.setPadding(new Insets(20, 24, 18, 24));
+        card.setMaxWidth(270);
+
+        // Glassy dark panel with role-coloured border
+        card.setStyle(
+            "-fx-background-color: " +
+                "linear-gradient(to bottom, rgba(5,18,35,0.97), rgba(2,10,22,0.99));" +
+            "-fx-background-radius: 16;" +
+            "-fx-border-color: " + accentHex + ";" +
+            "-fx-border-width: 2;" +
+            "-fx-border-radius: 16;");
+
+        DropShadow cardShadow = new DropShadow(40, accentColor);
+        cardShadow.setSpread(0.08);
+        card.setEffect(cardShadow);
+
+        // ── Full-screen dim layer (lives on backgroundRoot, above masterLayout) ──
+        StackPane dimLayer = new StackPane(card);
+        dimLayer.setStyle("-fx-background-color: rgba(0,0,0,0);"); // colour animated below
+        dimLayer.setPickOnBounds(true);
+        dimLayer.setOpacity(0);
+
+        // Close on clicking the dim background
+        dimLayer.setOnMouseClicked(e -> {
+            if (e.getTarget() == dimLayer) dismissMonsterOverlay(dimLayer);
+        });
+        card.setOnMouseClicked(javafx.event.Event::consume);
+
+        closeBtn.setOnAction(e -> dismissMonsterOverlay(dimLayer));
+
+        auraBtn.setOnAction(e -> {
+            int energy  = m.getEnergy();
+            boolean pos = energy > 0;
+            animateStationedMonsterPopups(pos, Math.max(1, Math.abs(energy)), m.getRole());
+        });
+
+        // Hover glow on buttons
+        for (Button btn : new Button[]{closeBtn, auraBtn}) {
+            btn.setOnMouseEntered(ev -> btn.setOpacity(0.80));
+            btn.setOnMouseExited(ev  -> btn.setOpacity(1.00));
+        }
+
+        // ── Add to scene on top of everything ────────────────────────────
+        backgroundRoot.getChildren().add(dimLayer);
+        dimLayer.toFront();
+
+        // ── Blur the game world (same BoxBlur used for cards) ────────────
+        masterLayout.setEffect(worldBlur);
+        Timeline blurIn = new Timeline(
+            new KeyFrame(Duration.ZERO,
+                ev -> { worldBlur.setWidth(0);  worldBlur.setHeight(0); }),
+            new KeyFrame(Duration.millis(380),
+                ev -> { worldBlur.setWidth(18); worldBlur.setHeight(18); }));
+
+        // Dim the background simultaneously
+        Timeline dimIn = new Timeline(
+            new KeyFrame(Duration.ZERO,
+                ev -> dimLayer.setStyle("-fx-background-color: rgba(0,0,0,0);")),
+            new KeyFrame(Duration.millis(380),
+                ev -> dimLayer.setStyle("-fx-background-color: rgba(0,0,0,0.55);")));
+
+        // Card + dim layer fade in
+        FadeTransition panelFade = new FadeTransition(Duration.millis(320), dimLayer);
+        panelFade.setFromValue(0); panelFade.setToValue(1);
+
+        // Card scales in from 0.85 → 1.0
+        card.setScaleX(0.85); card.setScaleY(0.85);
+        ScaleTransition cardScale = new ScaleTransition(Duration.millis(320), card);
+        cardScale.setFromX(0.85); cardScale.setFromY(0.85);
+        cardScale.setToX(1.0);   cardScale.setToY(1.0);
+        cardScale.setInterpolator(javafx.animation.Interpolator.EASE_OUT);
+
+        new ParallelTransition(blurIn, dimIn, panelFade, cardScale).play();
+    }
+
+    /** Reverses the blur + fade for the monster info overlay. */
+    private void dismissMonsterOverlay(StackPane dimLayer) {
+        Timeline blurOut = new Timeline(
+            new KeyFrame(Duration.ZERO,
+                ev -> { worldBlur.setWidth(18); worldBlur.setHeight(18); }),
+            new KeyFrame(Duration.millis(280),
+                ev -> { worldBlur.setWidth(0);  worldBlur.setHeight(0);
+                        masterLayout.setEffect(null); }));
+
+        FadeTransition fadeOut = new FadeTransition(Duration.millis(240), dimLayer);
+        fadeOut.setFromValue(1); fadeOut.setToValue(0);
+        fadeOut.setOnFinished(ev -> {
+            backgroundRoot.getChildren().remove(dimLayer);
+            monsterOverlayVisible = false;
+        });
+
+        new ParallelTransition(blurOut, fadeOut).play();
+    }
+    // =========================================================
+
+    /**
+     * Fires the floating ⚡ popup on every MonsterCell whose stationed
+     * monster matches {@code targetRole}.  Mirrors the logic from the
+     * original {@code animateStationedMonsterPopups} method.
+     *
+     * @param isIncrease true  → green "+N⚡", false → red "-N⚡"
+     * @param amount     absolute energy amount to display
+     * @param targetRole only cells whose monster has this role are affected
+     */
+    private void animateStationedMonsterPopups(boolean isIncrease, int amount,
+                                               Role targetRole) {
+        if (game == null) return;
+        Cell[][] boardCells = game.getBoard().getBoardCells();
+
+        for (int index = 0; index < 100; index++) {
+            int bRow = index / Constants.BOARD_COLS;
+            int bCol = index % Constants.BOARD_COLS;
+            if (bRow % 2 == 1) bCol = Constants.BOARD_COLS - 1 - bCol;
+
+            Cell cell = boardCells[bRow][bCol];
+            if (!(cell instanceof MonsterCell)) continue;
+
+            Monster cellMonster = ((MonsterCell) cell).getCellMonster();
+            if (cellMonster == null || cellMonster.getRole() != targetRole) continue;
+
+            int[] visualRC  = toRowCol(index);
+            int   visualRow = visualRC[0];
+            int   visualCol = visualRC[1];
+
+            // Locate the StackPane for this grid coordinate
+            for (Node child : grid.getChildren()) {
+                Integer cIdx = GridPane.getColumnIndex(child);
+                Integer rIdx = GridPane.getRowIndex(child);
+                int colCoord = (cIdx == null) ? 0 : cIdx;
+                int rowCoord = (rIdx == null) ? 0 : rIdx;
+                if (colCoord == visualCol && rowCoord == visualRow
+                        && child instanceof StackPane) {
+                    createFloatingPopup((StackPane) child, isIncrease, amount);
+                    break;
+                }
+            }
+        }
+    }
+
+    /**
+     * Creates, styles, positions and animates a single floating energy label
+     * inside the given cell's StackPane, then removes it when done.
+     *
+     * @param cellPane  the StackPane that represents the board cell
+     * @param isIncrease true → green gain label, false → red loss label
+     * @param amount    absolute value to show next to the ⚡ symbol
+     */
+    private void createFloatingPopup(StackPane cellPane, boolean isIncrease, int amount) {
+        // amount == 0 means a "warp flash" — show a neutral star indicator
+        String text  = (amount == 0) ? "★ WARP"
+                     : isIncrease   ? "+" + amount + "⚡"
+                                    : "-" + amount + "⚡";
+        String color = (amount == 0) ? "#ffcc00"
+                     : isIncrease   ? "#00FF00"
+                                    : "#FF3333";
+
+        Label popupLabel = new Label(text);
+        popupLabel.setStyle(
+            "-fx-font-family: 'Arial';" +
+            "-fx-font-weight: bold;" +
+            "-fx-font-size: 13px;" +
+            "-fx-text-fill: " + color + ";" +
+            "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.8), 3, 0, 0, 0);" +
+            "-fx-padding: 2 0 0 4;");
+        popupLabel.setMouseTransparent(true);
+        StackPane.setAlignment(popupLabel, Pos.TOP_LEFT);
+
+        Platform.runLater(() -> {
+            cellPane.getChildren().add(popupLabel);
+
+            TranslateTransition moveUp = new TranslateTransition(Duration.millis(1200), popupLabel);
+            moveUp.setFromY(0);
+            moveUp.setToY(-15);
+
+            FadeTransition fadeOut = new FadeTransition(Duration.millis(1200), popupLabel);
+            fadeOut.setFromValue(1.0);
+            fadeOut.setToValue(0.0);
+
+            ParallelTransition sequence = new ParallelTransition(moveUp, fadeOut);
+            sequence.setOnFinished(ev -> cellPane.getChildren().remove(popupLabel));
+            sequence.play();
+        });
     }
 
     // =========================================================
@@ -474,56 +881,49 @@ public class GameController {
         playerPortrait.setPreserveRatio(true);
         addDropShadow(playerPortrait, 12, Color.BLACK);
 
-        // Position badge
         playerPosLbl = makeLbl("0", "#00ff88", TXT_PLAYER_POS, true);
         StackPane portraitPane = new StackPane(playerPortrait, playerPosLbl);
         StackPane.setAlignment(playerPosLbl, Pos.BOTTOM_LEFT);
         StackPane.setMargin(playerPosLbl, new Insets(0, 0, 6, 6));
 
-        // Profile background
         playerProfileBg = new ImageView(img(IMG_PROFILE));
         playerProfileBg.setPreserveRatio(true);
-        
-        // TEXT LABELS - Adjust these numbers to move each text
+
         playerNameLbl = makeLbl("-", "white", TXT_PLAYER_NAME, true);
-        playerNameLbl.setTranslateX(20);   // Move right (positive = right, negative = left)
-        playerNameLbl.setTranslateY(100);    // Move down (positive = down, negative = up)
-        
+        playerNameLbl.setTranslateX(20);
+        playerNameLbl.setTranslateY(100);
+
         playerTypeLbl = makeLbl("Type: -", "#aaaaaa", TXT_PLAYER_TYPE, false);
         playerTypeLbl.setTranslateX(150);
         playerTypeLbl.setTranslateY(113);
-        
+
         playerRoleLbl = makeLbl("Role: -", "white", TXT_PLAYER_ROLE, false);
         playerRoleLbl.setTranslateX(150);
         playerRoleLbl.setTranslateY(122);
-        
+
         VBox profileText = new VBox(2, playerNameLbl, playerTypeLbl, playerRoleLbl);
         profileText.setPadding(new Insets(10, 6, 6, 10));
         profileText.setAlignment(Pos.TOP_LEFT);
         StackPane profilePane = new StackPane(playerProfileBg, profileText);
         StackPane.setAlignment(profileText, Pos.TOP_LEFT);
 
-        // Energy label
         playerEnergyLbl = makeLbl("-", "#00ff88", TXT_PLAYER_ENERGY, true);
         addGlow(playerEnergyLbl, Color.web("#00ff88"), 16, 0.6);
         playerEnergyLbl.setTranslateX(10);
         playerEnergyLbl.setTranslateY(0);
 
-        // Energy bar
         playerEnergyBar.setPreserveRatio(true);
         playerEnergyBar.setImage(en100);
         playerEnergyBarCurrentImage = en100;
         playerEnergyWrapper = new StackPane(playerEnergyBar);
         playerEnergyWrapper.setAlignment(Pos.CENTER);
-        playerEnergyWrapper.setTranslateX(10);  // Move energy bar right
+        playerEnergyWrapper.setTranslateX(10);
         playerEnergyWrapper.setTranslateY(0);
 
-        // Status label
         playerStatusLbl = makeLbl("NORMAL", "#aaaaaa", TXT_PLAYER_STATUS, false);
         playerStatusLbl.setTranslateX(30);
         playerStatusLbl.setTranslateY(-320);
-        
-        // Turn label
+
         playerTurnLbl = makeLbl("", "#ffcc00", TXT_PLAYER_TURN, true);
         playerTurnLbl.setTranslateX(10);
         playerTurnLbl.setTranslateY(0);
@@ -533,7 +933,6 @@ public class GameController {
             playerEnergyLbl, playerEnergyWrapper,
             playerStatusLbl, playerTurnLbl);
     }
-    
 
     // =========================================================
     //  BUILD OPPONENT PANEL
@@ -555,53 +954,47 @@ public class GameController {
         opponentPortrait.setPreserveRatio(true);
         addDropShadow(opponentPortrait, 12, Color.BLACK);
 
-        // Position badge
         opponentPosLbl = makeLbl("0", "#ff6666", TXT_PLAYER_POS, true);
         StackPane oppPortraitPane = new StackPane(opponentPortrait, opponentPosLbl);
         StackPane.setAlignment(opponentPosLbl, Pos.BOTTOM_LEFT);
         StackPane.setMargin(opponentPosLbl, new Insets(0, 0, 6, 6));
 
-        // Profile background
         opponentProfileBg = new ImageView(img(IMG_PROFILE));
         opponentProfileBg.setPreserveRatio(true);
-        
-        // TEXT LABELS - Opposite positions for opponent (using negative values)
+
         opponentNameLbl = makeLbl("-", "white", TXT_PLAYER_NAME, true);
-        opponentNameLbl.setTranslateX(30);   // Move left (opposite of player's +20)
-        opponentNameLbl.setTranslateY(100);   // Same Y position
-        
+        opponentNameLbl.setTranslateX(30);
+        opponentNameLbl.setTranslateY(100);
+
         opponentTypeLbl = makeLbl("Type: -", "#aaaaaa", TXT_PLAYER_TYPE, false);
-        opponentTypeLbl.setTranslateX(160);  // Opposite of player's +150
+        opponentTypeLbl.setTranslateX(160);
         opponentTypeLbl.setTranslateY(113);
-        
+
         opponentRoleLbl = makeLbl("Role: -", "white", TXT_PLAYER_ROLE, false);
-        opponentRoleLbl.setTranslateX(160);  // Opposite of player's +150
+        opponentRoleLbl.setTranslateX(160);
         opponentRoleLbl.setTranslateY(122);
-        
+
         VBox oppProfileText = new VBox(2, opponentNameLbl, opponentTypeLbl, opponentRoleLbl);
         oppProfileText.setPadding(new Insets(10, 6, 6, 10));
         oppProfileText.setAlignment(Pos.TOP_LEFT);
         StackPane oppProfilePane = new StackPane(opponentProfileBg, oppProfileText);
         StackPane.setAlignment(oppProfileText, Pos.TOP_LEFT);
 
-        // Energy label
         opponentEnergyLbl = makeLbl("-", "#ff6666", TXT_PLAYER_ENERGY, true);
         addGlow(opponentEnergyLbl, Color.web("#ff6666"), 16, 0.6);
-        opponentEnergyLbl.setTranslateX(10);  // Opposite of player's +10
+        opponentEnergyLbl.setTranslateX(10);
         opponentEnergyLbl.setTranslateY(0);
 
-        // Energy bar
         opponentEnergyBar.setPreserveRatio(true);
         opponentEnergyBar.setImage(en100);
         opponentEnergyBarCurrentImage = en100;
         opponentEnergyWrapper = new StackPane(opponentEnergyBar);
         opponentEnergyWrapper.setAlignment(Pos.CENTER);
-        opponentEnergyWrapper.setTranslateX(0);  // Opposite of player's +10
+        opponentEnergyWrapper.setTranslateX(0);
         opponentEnergyWrapper.setTranslateY(-30);
 
-        // Status label
         opponentStatusLbl = makeLbl("NORMAL", "#aaaaaa", TXT_PLAYER_STATUS, false);
-        opponentStatusLbl.setTranslateX(30);  // Opposite of player's +10
+        opponentStatusLbl.setTranslateX(30);
         opponentStatusLbl.setTranslateY(-320);
 
         opponentPanelContainer.getChildren().addAll(
@@ -615,7 +1008,7 @@ public class GameController {
     // =========================================================
     private void buildActionLog() {
         actionLogBg = new ImageView(img(IMG_ACTION_LOG));
-        actionLogBg.setPreserveRatio(true); // never stretch the action log image
+        actionLogBg.setPreserveRatio(true);
 
         actionLine1 = makeLbl("", "white",   TXT_ACTION_LOG, false);
         actionLine2 = makeLbl("", "#aaffaa", TXT_ACTION_LOG, false);
@@ -625,7 +1018,7 @@ public class GameController {
 
         VBox logText = new VBox(2, actionLine1, actionLine2, actionLine3);
         logText.setAlignment(Pos.TOP_LEFT);
-        logText.setPadding(new Insets(26, 8, 6, 10)); // push below printed "ACTION LOG" text
+        logText.setPadding(new Insets(26, 8, 6, 10));
 
         StackPane logPane = new StackPane(actionLogBg, logText);
         StackPane.setAlignment(logText, Pos.TOP_LEFT);
@@ -636,7 +1029,6 @@ public class GameController {
 
     // =========================================================
     //  BUILD CARD OVERLAY
-    //  Lives on backgroundRoot so it is NOT affected by worldBlur
     // =========================================================
     private void buildCardOverlay() {
         cardOverlay = new VBox(14);
@@ -645,7 +1037,6 @@ public class GameController {
         cardOverlay.setVisible(false);
         cardOverlay.setOpacity(0);
 
-        // Back and face in a StackPane — same position always
         cardOverlayBack = new ImageView(cardBack);
         cardOverlayBack.setPreserveRatio(true);
         addDropShadow(cardOverlayBack, 22, Color.BLACK);
@@ -672,13 +1063,12 @@ public class GameController {
             cardStack, cardOverlayName, cardOverlayDesc, cardOverlayEffect, hint);
         cardOverlay.setOnMouseClicked(e -> dismissCardOverlay());
 
-        // Add to backgroundRoot — NOT boardContainer — so blur never touches it
         backgroundRoot.getChildren().add(cardOverlay);
         StackPane.setAlignment(cardOverlay, Pos.CENTER);
     }
 
     // =========================================================
-    //  BUILD MESSAGE OVERLAY (errors / confirms on top layer)
+    //  BUILD MESSAGE OVERLAY
     // =========================================================
     private void buildMessageOverlay() {
         messageOverlay = new StackPane();
@@ -715,7 +1105,8 @@ public class GameController {
         messageOverlay.toFront();
     }
 
-    private void showMessageOverlay(String title, String body, Runnable onConfirm, boolean confirm) {
+    private void showMessageOverlay(String title, String body,
+                                    Runnable onConfirm, boolean confirm) {
         if (messageOverlay == null) return;
 
         messageTitle.setText(title != null ? title : "");
@@ -827,42 +1218,35 @@ public class GameController {
             ((VBox) masterLayout.getRight()).setPrefWidth(panelW);
 
         double pad = H * PANEL_TOP_PAD;
-        // Move left player panel down by increasing top padding
         playerPanelContainer.setStyle("-fx-padding: " + (pad + 170) + " 4 4 60;");
         opponentPanelContainer.setStyle("-fx-padding: " + (pad + 170) + " 4 4 4;");
 
-        // Portrait — width only, height scales automatically (preserveRatio=true)
         double portraitW = panelW * PORTRAIT_W_MULT;
         playerPortrait.setFitWidth(portraitW);
         opponentPortrait.setFitWidth(portraitW);
 
-        // Energy bar — width only (preserveRatio=true keeps aspect ratio)
         double energyW = panelW * ENERGY_BAR_W_MULT;
         playerEnergyBar.setFitWidth(energyW);
         opponentEnergyBar.setFitWidth(energyW);
 
-        // Profile — width only (preserveRatio=true)
         double profileW = panelW * PROFILE_W_MULT;
         if (playerProfileBg   != null) playerProfileBg.setFitWidth(profileW);
         if (opponentProfileBg != null) opponentProfileBg.setFitWidth(profileW);
 
-        // Action log — width only (preserveRatio=true)
         double logW = panelW * ACTION_LOG_W_MULT;
         if (actionLogBg != null) actionLogBg.setFitWidth(logW);
         for (Label l : new Label[]{actionLine1, actionLine2, actionLine3})
             if (l != null) l.setMaxWidth(logW - 18);
 
-        // Lights
         double lightSz = panelW * LIGHT_SIZE_MULT;
         for (ImageView iv : new ImageView[]{
                 pTurnOff, pTurnOn, pConfOff, pConfOn,
                 pFrzOff,  pFrzOn,  pShldOff, pShldOn, pPwrOff, pPwrOn,
                 oTurnOff, oTurnOn, oConfOff, oConfOn,
                 oFrzOff,  oFrzOn,  oShldOff, oShldOn, oPwrOff, oPwrOn}) {
-            if (iv != null) iv.setFitWidth(lightSz); // height auto via preserveRatio
+            if (iv != null) iv.setFitWidth(lightSz);
         }
 
-        // Card overlay — width only
         double centerW   = Math.max(1, W - panelW * 2);
         double boardSide = Math.min(H * BOARD_SIZE_MULT, centerW * 0.92);
         double cardW     = boardSide * CARD_W_MULT;
@@ -870,15 +1254,12 @@ public class GameController {
         if (cardOverlayFace != null) cardOverlayFace.setFitWidth(cardW);
         if (cardOverlay     != null) cardOverlay.setMaxWidth(cardW + 60);
 
-        // Top label
         myLabel.setStyle(
             "-fx-font-family: '" + FONT + "';" +
             "-fx-font-size: " + Math.max(TXT_TOP_LABEL, H * 0.018) + "px;" +
             "-fx-font-weight: bold;" +
             "-fx-padding: 5 0 3 0;" +
             "-fx-text-fill: #00ff88;");
-
-        // ── CONTROL BAR ITEMS ─────────────────────────────────
 
         cardDeckView.setFitWidth(W * DECK_W);
         cardDeckView.setFitHeight(H * DECK_H);
@@ -921,8 +1302,7 @@ public class GameController {
         AnchorPane.setTopAnchor(rollImageBtn,    barH * BTN_TOP_FRAC);
         AnchorPane.setLeftAnchor(rollImageBtn,   null);
         AnchorPane.setBottomAnchor(rollImageBtn, null);
-        
-        // Move action log to bottom left
+
         if (actionLogContainer != null && actionLogBg != null) {
             actionLogContainer.setTranslateX(20);
             actionLogContainer.setTranslateY(H - 200);
@@ -978,6 +1358,7 @@ public class GameController {
             for (int c = 0; c < Constants.BOARD_COLS; c++) {
                 monsterViews[r][c].setImage(null);
                 energyLabels[r][c].setVisible(false);
+                energyLabels[r][c].setUserData(null);
             }
 
         for (int index = 0; index < 100; index++) {
@@ -991,8 +1372,20 @@ public class GameController {
                 if (cell instanceof DoorCell) {
                     DoorCell door = (DoorCell) cell;
                     if (!door.isActivated()) {
-                        energyLabels[rc[0]][rc[1]].setText("!" + door.getEnergy());
-                        energyLabels[rc[0]][rc[1]].setVisible(true);
+                        Label lbl = energyLabels[rc[0]][rc[1]];
+                        lbl.setUserData("door");
+                        lbl.setText("!" + door.getEnergy());
+                        applyDoorEnergyLabelStyle(lbl, cellSize.get());
+                        lbl.setVisible(true);
+                    }
+                } else if (cell instanceof MonsterCell) {
+                    MonsterCell mc = (MonsterCell) cell;
+                    if (mc.getCellMonster() != null) {
+                        Label lbl = energyLabels[rc[0]][rc[1]];
+                        lbl.setUserData("monster");
+                        lbl.setText(String.valueOf(mc.getCellMonster().getEnergy()));
+                        applyMonsterEnergyLabelStyle(lbl, cellSize.get());
+                        lbl.setVisible(true);
                     }
                 }
             } else {
@@ -1102,28 +1495,24 @@ public class GameController {
             "-fx-padding: 5 0 3 0;" +
             "-fx-text-fill: " + (current == player ? "#00ff88" : "#ff6666") + ";");
 
-        // Power light decrement — one turn used per updateUI call
         if (playerPowerTurnsLeft   > 0) playerPowerTurnsLeft--;
         if (opponentPowerTurnsLeft > 0) opponentPowerTurnsLeft--;
 
-        setLight(pTurnOff, pTurnOn, current == player,          pTurnState, v -> pTurnState = v);
-        setLight(pConfOff, pConfOn, player.isConfused(),         pConfState, v -> pConfState = v);
-        setLight(pFrzOff,  pFrzOn,  player.isFrozen(),           pFrzState,  v -> pFrzState  = v);
-        setLight(pShldOff, pShldOn, player.isShielded(),         pShldState, v -> pShldState = v);
-        setLight(pPwrOff,  pPwrOn,  playerPowerTurnsLeft > 0,   pPwrState,  v -> pPwrState  = v);
+        setLight(pTurnOff, pTurnOn, current == player,         pTurnState, v -> pTurnState = v);
+        setLight(pConfOff, pConfOn, player.isConfused(),        pConfState, v -> pConfState = v);
+        setLight(pFrzOff,  pFrzOn,  player.isFrozen(),          pFrzState,  v -> pFrzState  = v);
+        setLight(pShldOff, pShldOn, player.isShielded(),        pShldState, v -> pShldState = v);
+        setLight(pPwrOff,  pPwrOn,  playerPowerTurnsLeft > 0,  pPwrState,  v -> pPwrState  = v);
 
-        setLight(oTurnOff, oTurnOn, current == opponent,         oTurnState, v -> oTurnState = v);
-        setLight(oConfOff, oConfOn, opponent.isConfused(),        oConfState, v -> oConfState = v);
-        setLight(oFrzOff,  oFrzOn,  opponent.isFrozen(),          oFrzState,  v -> oFrzState  = v);
-        setLight(oShldOff, oShldOn, opponent.isShielded(),        oShldState, v -> oShldState = v);
-        setLight(oPwrOff,  oPwrOn,  opponentPowerTurnsLeft > 0,  oPwrState,  v -> oPwrState  = v);
+        setLight(oTurnOff, oTurnOn, current == opponent,        oTurnState, v -> oTurnState = v);
+        setLight(oConfOff, oConfOn, opponent.isConfused(),       oConfState, v -> oConfState = v);
+        setLight(oFrzOff,  oFrzOn,  opponent.isFrozen(),         oFrzState,  v -> oFrzState  = v);
+        setLight(oShldOff, oShldOn, opponent.isShielded(),       oShldState, v -> oShldState = v);
+        setLight(oPwrOff,  oPwrOn,  opponentPowerTurnsLeft > 0, oPwrState,  v -> oPwrState  = v);
     }
 
     // =========================================================
     //  ENERGY BAR ANIMATION
-    //  Uses a StackPane wrapper so overlay is always at the same position.
-    //  New image fades IN on top first, then old image fades OUT.
-    //  Bar is ALWAYS visible — never hidden.
     // =========================================================
     private void animateEnergyBar(ImageView bar, StackPane wrapper,
                                    int energy, boolean isPlayer) {
@@ -1136,7 +1525,7 @@ public class GameController {
         else                target = en0;
 
         Image cur = isPlayer ? playerEnergyBarCurrentImage : opponentEnergyBarCurrentImage;
-        if (cur == target) return; // no change needed
+        if (cur == target) return;
 
         if (isPlayer) playerEnergyBarCurrentImage   = target;
         else          opponentEnergyBarCurrentImage = target;
@@ -1144,23 +1533,18 @@ public class GameController {
         bar.setVisible(true);
         bar.setOpacity(1);
 
-        // Overlay sits in same StackPane as bar — exact same position
         ImageView overlay = new ImageView(target);
         overlay.setFitWidth(bar.getFitWidth());
         overlay.setPreserveRatio(true);
         overlay.setOpacity(0);
-
         wrapper.getChildren().add(overlay);
 
-        // Step 1: new fades IN
         FadeTransition fadeIn = new FadeTransition(Duration.millis(250), overlay);
         fadeIn.setFromValue(0);
         fadeIn.setToValue(1);
         fadeIn.setOnFinished(e -> {
-            // Step 2: swap bar image
             bar.setImage(target);
             bar.setOpacity(1);
-            // Step 3: overlay fades OUT and is removed
             FadeTransition fadeOut = new FadeTransition(Duration.millis(180), overlay);
             fadeOut.setFromValue(1);
             fadeOut.setToValue(0);
@@ -1172,7 +1556,6 @@ public class GameController {
 
     // =========================================================
     //  INDICATOR LIGHT CROSS-FADE
-    //  New state fades IN first, old state fades OUT after
     // =========================================================
     private void setLight(ImageView offView, ImageView onView,
                            boolean active, boolean currentState,
@@ -1209,7 +1592,6 @@ public class GameController {
 
     // =========================================================
     //  CARD OVERLAY
-    //  Blurs masterLayout (everything except card) not boardContainer
     // =========================================================
     private void showCardOverlay(Card card) {
         cardOverlayName.setText(card.getName());
@@ -1222,7 +1604,6 @@ public class GameController {
         cardOverlayFace.setOpacity(0);
         cardOverlay.setVisible(true);
 
-        // Blur the entire game world (masterLayout) — card lives on backgroundRoot above it
         masterLayout.setEffect(worldBlur);
         Timeline blurIn = new Timeline(
             new KeyFrame(Duration.millis(0),
@@ -1235,11 +1616,9 @@ public class GameController {
 
         PauseTransition pause = new PauseTransition(Duration.millis(700));
         pause.setOnFinished(e -> {
-            // Face fades IN on top of back (same StackPane position)
             FadeTransition faceIn = new FadeTransition(Duration.millis(400), cardOverlayFace);
             faceIn.setFromValue(0); faceIn.setToValue(1);
             faceIn.setOnFinished(ev -> {
-                // Back fades OUT after face is fully visible
                 FadeTransition backOut = new FadeTransition(Duration.millis(300), cardOverlayBack);
                 backOut.setFromValue(1); backOut.setToValue(0);
                 backOut.setOnFinished(bev -> cardOverlayBack.setVisible(false));
@@ -1275,7 +1654,7 @@ public class GameController {
     // =========================================================
     @FXML
     private void handleRollDice() {
-        if (game == null || cardOverlay.isVisible() || isAnimating) return;
+        if (game == null || cardOverlay.isVisible() || isAnimating || monsterOverlayVisible) return;
         try {
             isAnimating = true;
             Monster current  = game.getCurrent();
@@ -1299,7 +1678,7 @@ public class GameController {
                 return;
             }
 
-         // Snapshot door states BEFORE the turn
+            // Snapshot door states BEFORE the turn
             boolean[][] doorWasActivated = new boolean[10][10];
             Cell[][] cells = game.getBoard().getBoardCells();
             for (int r = 0; r < 10; r++)
@@ -1366,16 +1745,25 @@ public class GameController {
                         }
                     }
 
-                    // Stationed monster energy popups — delayed to sync with landing
+                    // Stationed monster energy popups after landing
                     for (Monster stationed : Board.getStationedMonsters()) {
                         Integer before = finalStationedBefore.get(stationed.getName());
                         if (before != null && stationed.getEnergy() != before) {
                             int diff = stationed.getEnergy() - before;
-                            int[] src = toRowCol(fn);   // current monster landed here
                             int[] dst = toRowCol(stationed.getPosition());
-                            // Only show popup if stationed monster is on same-role cell
-                            // (energy change was caused by landing interaction)
-                            showEnergyPopup(dst[0], dst[1], diff);
+                            // Locate the cell StackPane and fire the floating popup
+                            for (Node child : grid.getChildren()) {
+                                Integer cIdx = GridPane.getColumnIndex(child);
+                                Integer rIdx = GridPane.getRowIndex(child);
+                                int colCoord = (cIdx == null) ? 0 : cIdx;
+                                int rowCoord = (rIdx == null) ? 0 : rIdx;
+                                if (colCoord == dst[1] && rowCoord == dst[0]
+                                        && child instanceof StackPane) {
+                                    createFloatingPopup(
+                                        (StackPane) child, diff >= 0, Math.abs(diff));
+                                    break;
+                                }
+                            }
                         }
                     }
 
@@ -1386,7 +1774,6 @@ public class GameController {
                     checkWinner();
                     isAnimating = false;
                 }));
-            
 
         } catch (game.engine.exceptions.InvalidMoveException ex) {
             actionLine1.setText("INVALID: " + ex.getMessage());
@@ -1400,116 +1787,14 @@ public class GameController {
             isAnimating = false;
         }
     }
-    private void showEnergyPopup(int row, int col, int diff) {
-        // Find the cell node in the grid
-        for (Node node : grid.getChildren()) {
-            Integer r = GridPane.getRowIndex(node);
-            Integer c = GridPane.getColumnIndex(node);
-            if (r == null) r = 0;
-            if (c == null) c = 0;
-            if (r == row && c == col && node instanceof StackPane) {
-                StackPane cell = (StackPane) node;
-                Label popup = new Label((diff > 0 ? "+" : "") + diff);
-                popup.setStyle(
-                    "-fx-text-fill: " + (diff > 0 ? "#00ff88" : "#ff4444") + ";" +
-                    "-fx-font-size: 11px;" +
-                    "-fx-font-weight: bold;" +
-                    "-fx-background-color: rgba(0,0,0,0.6);" +
-                    "-fx-padding: 1 3 1 3;" +
-                    "-fx-background-radius: 4;"
-                );
-                popup.setMouseTransparent(true);
-                cell.getChildren().add(popup);
-
-                // Float up and fade out
-                TranslateTransition move = new TranslateTransition(Duration.millis(900), popup);
-                move.setByY(-22);
-                FadeTransition fade = new FadeTransition(Duration.millis(900), popup);
-                fade.setFromValue(1.0);
-                fade.setToValue(0.0);
-                ParallelTransition pt = new ParallelTransition(move, fade);
-                pt.setOnFinished(e -> cell.getChildren().remove(popup));
-                pt.play();
-                break;
-            }
-        }
-    }
 
     private Monster getMonsterAtCell(int cellIndex) {
         if (game == null) return null;
-        if (game.getPlayer().getPosition() == cellIndex) return game.getPlayer();
+        if (game.getPlayer().getPosition() == cellIndex)   return game.getPlayer();
         if (game.getOpponent().getPosition() == cellIndex) return game.getOpponent();
         for (Monster m : Board.getStationedMonsters())
             if (m.getPosition() == cellIndex) return m;
         return null;
-    }
-
-    private void showMonsterPopup(Monster m) {
-        String type     = m.getClass().getSimpleName();
-        String role     = m.getRole().toString();
-        String origRole = m.getOriginalRole().toString();
-        boolean confused = m.isConfused();
-
-        StringBuilder info = new StringBuilder();
-        info.append("NAME:      ").append(m.getName()).append("\n");
-        info.append("TYPE:      ").append(type).append("\n");
-        info.append("ROLE:      ").append(role);
-        if (confused) info.append(" (confused: ").append(m.getConfusionTurns()).append("T)");
-        info.append("\n");
-        info.append("ORIG ROLE: ").append(origRole).append("\n");
-        info.append("ENERGY:    ").append(m.getEnergy()).append("\n");
-        info.append("POSITION:  ").append(m.getPosition()).append("\n");
-        info.append("STATUS:    ");
-        if (!m.isShielded() && !m.isFrozen() && !confused) info.append("NORMAL");
-        if (m.isShielded()) info.append("[SHIELD] ");
-        if (m.isFrozen())   info.append("[FROZEN] ");
-        if (confused)       info.append("[CONFUSED] ");
-        info.append("\n\n").append(m.getDescription());
-
-        Label content = new Label(info.toString());
-        content.setStyle(
-            "-fx-font-family: '" + FONT + "';" +
-            "-fx-font-size: 11px;" +
-            "-fx-text-fill: #e0f7ff;" +
-            "-fx-line-spacing: 3;"
-        );
-        content.setWrapText(true);
-
-        Button closeBtn = new Button("CLOSE");
-        closeBtn.setStyle(
-            "-fx-background-color: #1a3a4a;" +
-            "-fx-text-fill: #00ccff;" +
-            "-fx-font-family: '" + FONT + "';" +
-            "-fx-font-size: 11px;" +
-            "-fx-border-color: #00ccff;" +
-            "-fx-border-radius: 4;" +
-            "-fx-background-radius: 4;" +
-            "-fx-cursor: hand;"
-        );
-
-        VBox box = new VBox(10, content, closeBtn);
-        box.setAlignment(Pos.CENTER);
-        box.setPadding(new Insets(16));
-        box.setMaxWidth(260);
-        box.setStyle(
-            "-fx-background-color: rgba(0,15,30,0.88);" +
-            "-fx-border-color: #00ccff;" +
-            "-fx-border-width: 1.5;" +
-            "-fx-border-radius: 8;" +
-            "-fx-background-radius: 8;"
-        );
-
-        StackPane overlay = new StackPane(box);
-        overlay.setStyle("-fx-background-color: rgba(0,0,0,0.45);");
-        overlay.setOnMouseClicked(e -> backgroundRoot.getChildren().remove(overlay));
-        closeBtn.setOnAction(e -> backgroundRoot.getChildren().remove(overlay));
-        box.setOnMouseClicked(javafx.event.Event::consume);
-
-        backgroundRoot.getChildren().add(overlay);
-        overlay.toFront();
-
-        FadeTransition ft = new FadeTransition(Duration.millis(200), overlay);
-        ft.setFromValue(0); ft.setToValue(1); ft.play();
     }
 
     private void checkWinner() {
@@ -1614,13 +1899,13 @@ public class GameController {
     // =========================================================
     @FXML
     private void handlePowerUp() {
-        if (game == null || cardOverlay.isVisible()) return;
+        if (game == null || cardOverlay.isVisible() || monsterOverlayVisible) return;
         if (messageOverlay != null && messageOverlay.isVisible()) return;
         showConfirmDialog("Use Powerup", "Activate Powerup?",
             "Costs " + Constants.POWERUP_COST + " energy. Proceed?",
             () -> {
                 try {
-                    Monster current = game.getCurrent();
+                    Monster current  = game.getCurrent();
                     boolean isPlayer = (current == game.getPlayer());
                     String name = current.getName();
                     game.usePowerup();
@@ -1655,21 +1940,28 @@ public class GameController {
             actionLine1.setText("CHEAT: WARPED!");
             actionLine2.setText(""); actionLine3.setText("");
             refreshBoard(); updateUI(); checkWinner();
+            // Flash all stationed monster cells to show the board state
+            animateStationedMonsterPopups(true, 0, current.getRole());
         } else if (e.getCode() == KeyCode.E) {
-            current.setEnergy(current.getEnergy() + 50);
+            int gained = 50;
+            current.setEnergy(current.getEnergy() + gained);
             actionLine1.setText("CHEAT: +50 ENERGY!");
             actionLine2.setText(""); actionLine3.setText("");
             refreshBoard(); updateUI();
+            // Show +50 floating popup on every MonsterCell matching the current role
+            animateStationedMonsterPopups(true, gained, current.getRole());
         }
     }
 
     // =========================================================
-    //  DIALOGS (in-scene — stays in fullscreen)
+    //  DIALOGS
     // =========================================================
-    private void showConfirmDialog(String title, String header, String content, Runnable onConfirm) {
+    private void showConfirmDialog(String title, String header,
+                                   String content, Runnable onConfirm) {
         String body = header;
         if (content != null && !content.isEmpty()) {
-            body = (header != null && !header.isEmpty()) ? header + "\n" + content : content;
+            body = (header != null && !header.isEmpty())
+                ? header + "\n" + content : content;
         }
         showMessageOverlay(title, body, onConfirm, true);
     }
