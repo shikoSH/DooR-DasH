@@ -7,16 +7,19 @@ import java.net.URL;
 
 public class SoundManager {
 
-    private static SoundManager instance;
     private static final String AUDIO = "/game/resources/audio/";
     private static final double DUCK_VOLUME  = 0.15; // music volume while SFX plays
     private static final double NORMAL_VOLUME = 0.7;  // normal music volume
 
     private SoundManager() {}
 
+    /** Thread-safe initialization-on-demand holder. */
+    private static final class Holder {
+        static final SoundManager INSTANCE = new SoundManager();
+    }
+
     public static SoundManager getInstance() {
-        if (instance == null) instance = new SoundManager();
-        return instance;
+        return Holder.INSTANCE;
     }
 
     public void playDoorOpening() {

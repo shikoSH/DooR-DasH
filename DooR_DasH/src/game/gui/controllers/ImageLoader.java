@@ -1,5 +1,6 @@
 package game.gui.controllers;
 
+import game.gui.controllers.GameUIConstants;
 import javafx.scene.image.Image;
 import java.io.InputStream;
 import java.util.HashMap;
@@ -10,17 +11,16 @@ import java.util.HashMap;
  */
 public class ImageLoader {
     
-    private static ImageLoader instance;
     private final HashMap<String, Image> cache = new HashMap<>();
-    private static final String IMG_BASE = "/game/gui/resources/images/";
-    
     private ImageLoader() {}
-    
+
+    /** Thread-safe initialization-on-demand holder. */
+    private static final class Holder {
+        static final ImageLoader INSTANCE = new ImageLoader();
+    }
+
     public static ImageLoader getInstance() {
-        if (instance == null) {
-            instance = new ImageLoader();
-        }
-        return instance;
+        return Holder.INSTANCE;
     }
     
     /**
@@ -29,7 +29,7 @@ public class ImageLoader {
      * @return The loaded Image, or null if not found
      */
     public Image loadImage(String filename) {
-        String key = IMG_BASE + filename;
+        String key = GameUIConstants.IMG + filename;
         if (cache.containsKey(key)) {
             return cache.get(key);
         }

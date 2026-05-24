@@ -30,7 +30,6 @@ import java.util.HashMap;
 
 public class SceneManager {
 
-    private static SceneManager instance;
     private Stage primaryStage;
     private final StackPane sceneHolder = new StackPane();
     private Scene persistentScene;
@@ -44,11 +43,13 @@ public class SceneManager {
 
     private SceneManager() {}
 
+    /** Thread-safe initialization-on-demand holder. */
+    private static final class Holder {
+        static final SceneManager INSTANCE = new SceneManager();
+    }
+
     public static SceneManager getInstance() {
-        if (instance == null) {
-            instance = new SceneManager();
-        }
-        return instance;
+        return Holder.INSTANCE;
     }
 
     public void initialize(Stage stage) {
