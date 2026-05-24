@@ -153,17 +153,30 @@ public class SceneManager {
 
             addStylesheetOnce("/game/gui/resources/css/styles.css");
             addStylesheetOnce("/game/gui/resources/css/start-screen.css");
+
+            // Always start invisible so the swap never shows a white flash,
+            // then fade in once JavaFX has finished its first layout pass.
+            root.setOpacity(0);
             switchToContent(root, !fullScreenPromptShown);
 
             if (!startScreenShownOnce) {
                 startScreenShownOnce = true;
-                root.setOpacity(0);
-                FadeTransition fadeIn = new FadeTransition(Duration.millis(600), root);
-                fadeIn.setFromValue(0);
-                fadeIn.setToValue(1);
-                fadeIn.play();
+                // Double runLater: first pulse wires bindings, second pulse renders,
+                // third starts the fade — guarantees no white frame is ever visible.
+                Platform.runLater(() -> Platform.runLater(() -> {
+                    FadeTransition fadeIn = new FadeTransition(Duration.millis(700), root);
+                    fadeIn.setFromValue(0);
+                    fadeIn.setToValue(1);
+                    fadeIn.play();
+                }));
             } else {
-                root.setOpacity(1);
+                // Returning from game — quick cross-fade from black
+                Platform.runLater(() -> Platform.runLater(() -> {
+                    FadeTransition fadeIn = new FadeTransition(Duration.millis(400), root);
+                    fadeIn.setFromValue(0);
+                    fadeIn.setToValue(1);
+                    fadeIn.play();
+                }));
             }
 
             showStageIfNeeded();

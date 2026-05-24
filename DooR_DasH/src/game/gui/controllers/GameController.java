@@ -355,139 +355,144 @@ public class GameController {
     // =========================================================
     //  ROLL HANDLER
     // =========================================================
-    @FXML
-    private void handleRollDice() {
-        if (game == null || cardOverlay.isVisible() || isAnimating || monsterOverlayVisible) return;
-        try {
-            isAnimating = true;
-            Monster current  = game.getCurrent();
-            Monster opp      = current == game.getPlayer()
-                ? game.getOpponent() : game.getPlayer();
+ // =========================================================
+//  ROLL HANDLER
+// =========================================================
+@FXML
+private void handleRollDice() {
+    if (game == null || cardOverlay.isVisible() || isAnimating || monsterOverlayVisible) return;
+    try {
+        isAnimating = true;
+        Monster current  = game.getCurrent();
+        Monster opp      = current == game.getPlayer()
+            ? game.getOpponent() : game.getPlayer();
 
-            int  oldPos    = current.getPosition();
-            int  oldEnergy = current.getEnergy();
-            int  oldOppEng = opp.getEnergy();
-            boolean wasShld = current.isShielded();
+        int  oldPos    = current.getPosition();
+        int  oldEnergy = current.getEnergy();
+        int  oldOppEng = opp.getEnergy();
+        boolean wasShld = current.isShielded();
 
-            Card topCard = Board.cards.isEmpty() ? null : Board.cards.get(0);
-            if (Board.cards.isEmpty()) Board.reloadCards();
+        Card topCard = Board.cards.isEmpty() ? null : Board.cards.get(0);
+        if (Board.cards.isEmpty()) Board.reloadCards();
 
-            if (current.isFrozen()) {
-                game.playTurn();
-                actionLine1.setText(current.getName() + " FROZEN - SKIPPED!");
-                actionLine2.setText(""); actionLine3.setText("");
-                refreshBoard(); updateUI();
-                isAnimating = false;
-                return;
-            }
-
-            // Snapshot door activation states before the turn
-            boolean[][] doorWasActivated = new boolean[10][10];
-            Cell[][] cells = game.getBoard().getBoardCells();
-            for (int r = 0; r < 10; r++)
-                for (int c = 0; c < 10; c++)
-                    if (cells[r][c] instanceof DoorCell)
-                        doorWasActivated[r][c] = ((DoorCell) cells[r][c]).isActivated();
-
-            // Snapshot stationed monster energies before the turn
-            java.util.Map<String, Integer> stationedBefore = new java.util.HashMap<>();
-            for (Monster m : Board.getStationedMonsters())
-                stationedBefore.put(m.getName(), m.getEnergy());
-
+        if (current.isFrozen()) {
             game.playTurn();
+            actionLine1.setText(current.getName() + " FROZEN - SKIPPED!");
+            actionLine2.setText(""); actionLine3.setText("");
+            refreshBoard(); updateUI();
+            isAnimating = false;
+            return;
+        }
 
-            int newPos    = current.getPosition();
-            int newEnergy = current.getEnergy();
-            int newOppEng = opp.getEnergy();
-            boolean drawn = topCard != null &&
-                (Board.cards.isEmpty() || Board.cards.get(0) != topCard);
+        // Snapshot door activation states before the turn
+        boolean[][] doorWasActivated = new boolean[10][10];
+        Cell[][] cells = game.getBoard().getBoardCells();
+        for (int r = 0; r < 10; r++)
+            for (int c = 0; c < 10; c++)
+                if (cells[r][c] instanceof DoorCell)
+                    doorWasActivated[r][c] = ((DoorCell) cells[r][c]).isActivated();
 
-            int moved    = newPos - oldPos;
-            if (moved < 0) moved += 100;
-            int diceFace = Math.max(1, Math.min(6, moved));
+        // Snapshot stationed monster energies before the turn
+        java.util.Map<String, Integer> stationedBefore = new java.util.HashMap<>();
+        for (Monster m : Board.getStationedMonsters())
+            stationedBefore.put(m.getName(), m.getEnergy());
 
-            actionLine1.setText(current.getName() + " -> POS " + newPos + " (+" + moved + ")");
-            actionLine2.setText(drawn && topCard != null
-                ? topCard.getName() + ": " + cardEffect(topCard.getName()) : "");
-            if (wasShld && !current.isShielded())
-                actionLine3.setText("SHIELD BLOCKED LOSS!");
-            else if (newEnergy != oldEnergy)
-                actionLine3.setText(current.getName()
-                    + (newEnergy - oldEnergy > 0 ? " +" : " ")
-                    + (newEnergy - oldEnergy) + " -> " + newEnergy);
-            else if (newOppEng != oldOppEng)
-                actionLine3.setText(opp.getName()
-                    + (newOppEng - oldOppEng > 0 ? " +" : " ")
-                    + (newOppEng - oldOppEng) + " -> " + newOppEng);
-            else
-                actionLine3.setText("");
+        game.playTurn();
 
-            final Card    fc   = topCard;
-            final boolean fd   = drawn;
-            final Monster fm   = current;
-            final Monster fo   = opp;
-            final int     fp   = oldPos;
-            final int     fn   = newPos;
-            final boolean[][] finalDoorSnap       = doorWasActivated;
-            final Cell[][]    finalCells          = cells;
-            final java.util.Map<String, Integer> finalStationedBefore = stationedBefore;
+        int newPos    = current.getPosition();
+        int newEnergy = current.getEnergy();
+        int newOppEng = opp.getEnergy();
+        boolean drawn = topCard != null &&
+            (Board.cards.isEmpty() || Board.cards.get(0) != topCard);
 
-            if (diceTimeline != null) diceTimeline.stop();
-            diceTimeline = GameAnimationHelper.animateDice(
-                diceView, diceImages, diceResultLabel, diceFace,
-                () -> GameAnimationHelper.animateMove(
-                    fm, fo, fp, fn,
-                    boardRenderer.getMonsterViews(), grid,
-                    () -> {
-                        refreshBoard(); updateUI();
+        int moved    = newPos - oldPos;
+        if (moved < 0) moved += 100;
+        int diceFace = Math.max(1, Math.min(6, moved));
 
-                        // Door-opening sound
-                        int[] rc = GameAnimationHelper.toRowCol(fn);
-                        Cell landed = finalCells[rc[0]][rc[1]];
-                        if (landed instanceof DoorCell
-                                && !finalDoorSnap[rc[0]][rc[1]]
-                                && ((DoorCell) landed).isActivated()) {
-                            SoundManager.getInstance().playDoorOpening();
-                        }
+        actionLine1.setText(current.getName() + " -> POS " + newPos + " (+" + moved + ")");
+        actionLine2.setText(drawn && topCard != null
+            ? topCard.getName() + ": " + cardEffect(topCard.getName()) : "");
+        if (wasShld && !current.isShielded())
+            actionLine3.setText("SHIELD BLOCKED LOSS!");
+        else if (newEnergy != oldEnergy)
+            actionLine3.setText(current.getName()
+                + (newEnergy - oldEnergy > 0 ? " +" : " ")
+                + (newEnergy - oldEnergy) + " -> " + newEnergy);
+        else if (newOppEng != oldOppEng)
+            actionLine3.setText(opp.getName()
+                + (newOppEng - oldOppEng > 0 ? " +" : " ")
+                + (newOppEng - oldOppEng) + " -> " + newOppEng);
+        else
+            actionLine3.setText("");
 
-                        // Stationed monster energy popups
-                        for (Monster stationed : Board.getStationedMonsters()) {
-                            Integer before = finalStationedBefore.get(stationed.getName());
-                            if (before != null && stationed.getEnergy() != before) {
-                                int diff = stationed.getEnergy() - before;
-                                int[] dst = GameAnimationHelper.toRowCol(stationed.getPosition());
-                                for (Node child : grid.getChildren()) {
-                                    Integer cIdx = GridPane.getColumnIndex(child);
-                                    Integer rIdx = GridPane.getRowIndex(child);
-                                    int col = (cIdx == null) ? 0 : cIdx;
-                                    int row = (rIdx == null) ? 0 : rIdx;
-                                    if (col == dst[1] && row == dst[0] && child instanceof StackPane) {
-                                        GameAnimationHelper.createFloatingPopup(
-                                            (StackPane) child, diff >= 0, Math.abs(diff));
-                                        break;
-                                    }
+        final Card    fc   = topCard;
+        final boolean fd   = drawn;
+        final Monster fm   = current;
+        final Monster fo   = opp;
+        final int     fp   = oldPos;
+        final int     fn   = newPos;
+        final boolean[][] finalDoorSnap       = doorWasActivated;
+        final Cell[][]    finalCells          = cells;
+        final java.util.Map<String, Integer> finalStationedBefore = stationedBefore;
+
+        if (diceTimeline != null) diceTimeline.stop();
+        diceTimeline = GameAnimationHelper.animateDice(
+            diceView, diceImages, diceResultLabel, diceFace,
+            () -> GameAnimationHelper.animateMove(
+                fm, fo, fp, fn,
+                boardRenderer.getMonsterViews(), grid,
+                () -> {
+                    refreshBoard(); updateUI();
+
+                    // Door-opening sound
+                    int[] rc = GameAnimationHelper.toRowCol(fn);
+                    Cell landed = finalCells[rc[0]][rc[1]];
+                    if (landed instanceof DoorCell
+                            && !finalDoorSnap[rc[0]][rc[1]]
+                            && ((DoorCell) landed).isActivated()) {
+                        SoundManager.getInstance().playDoorOpening();
+                    }
+
+                    // Stationed monster energy popups
+                    for (Monster stationed : Board.getStationedMonsters()) {
+                        Integer before = finalStationedBefore.get(stationed.getName());
+                        if (before != null && stationed.getEnergy() != before) {
+                            int diff = stationed.getEnergy() - before;
+                            int[] dst = GameAnimationHelper.toRowCol(stationed.getPosition());
+                            for (Node child : grid.getChildren()) {
+                                Integer cIdx = GridPane.getColumnIndex(child);
+                                Integer rIdx = GridPane.getRowIndex(child);
+                                int col = (cIdx == null) ? 0 : cIdx;
+                                int row = (rIdx == null) ? 0 : rIdx;
+                                if (col == dst[1] && row == dst[0] && child instanceof StackPane) {
+                                    GameAnimationHelper.createFloatingPopup(
+                                        (StackPane) child, diff >= 0, Math.abs(diff));
+                                    break;
                                 }
                             }
                         }
+                    }
 
-                        if (fd && fc != null) showCardOverlay(fc);
-                        checkWinner();
-                        isAnimating = false;
-                    }));
+                    if (fd && fc != null) showCardOverlay(fc);
+                    checkWinner();
+                    isAnimating = false;
+                }));
 
-        } catch (game.engine.exceptions.InvalidMoveException ex) {
-            actionLine1.setText("INVALID: " + ex.getMessage());
-            actionLine2.setText("ROLL AGAIN!"); actionLine3.setText("");
-            refreshBoard(); updateUI();
-            isAnimating = false;
-            showErrorAlert("Invalid Move", ex.getMessage());
-        } catch (Exception ex) {
-            actionLine1.setText("ERROR: " + ex.getMessage());
-            ex.printStackTrace();
-            isAnimating = false;
-        }
+    } catch (game.engine.exceptions.InvalidMoveException ex) {
+        actionLine1.setText("INVALID: " + ex.getMessage());
+        actionLine2.setText("ROLL AGAIN!"); actionLine3.setText("");
+        refreshBoard(); updateUI();
+        isAnimating = false;
+        showErrorAlert("Invalid Move", ex.getMessage());
+    } catch (Exception ex) {
+        String msg = ex.getMessage() != null ? ex.getMessage() : ex.getClass().getSimpleName();
+        actionLine1.setText("ERROR: " + msg);
+        actionLine2.setText(""); actionLine3.setText("");
+        isAnimating = false;
+        showErrorAlert("Error", msg);
+        ex.printStackTrace();
     }
-
+}
     // =========================================================
     //  POWER-UP HANDLER
     // =========================================================
@@ -509,8 +514,13 @@ public class GameController {
                     if (isPlayer) playerPowerTurnsLeft   = POWERUP_DURATION;
                     else          opponentPowerTurnsLeft = POWERUP_DURATION;
                     refreshBoard(); updateUI();
+                } catch (game.engine.exceptions.OutOfEnergyException ex) {
+                    String msg = ex.getMessage() != null ? ex.getMessage()
+                        : "Not enough energy! Need " + Constants.POWERUP_COST + " energy to activate.";
+                    showErrorAlert("Not Enough Energy", msg);
                 } catch (Exception ex) {
-                    showErrorAlert("Powerup Failed", ex.getMessage());
+                    showErrorAlert("Powerup Failed",
+                        ex.getMessage() != null ? ex.getMessage() : "Could not activate powerup.");
                 }
             });
     }
@@ -797,7 +807,7 @@ public class GameController {
     }
 
     /**
-     * Shows a styled overlay for errors (InvalidMoveException, InsufficientEnergyException, etc.)
+     * Shows a styled overlay for errors (InvalidMoveException, OutOfEnergyException, etc.)
      * or confirm dialogs (power-up).
      *
      * @param title     headline text

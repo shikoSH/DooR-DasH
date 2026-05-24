@@ -14,12 +14,16 @@ import static game.gui.controllers.GameUIHelper.*;
 /**
  * GamePanelBuilder
  * ----------------
- * Responsible for constructing the player side-panel, the opponent side-panel,
- * and the action-log widget.  After {@code build*()} is called the caller
- * receives a {@link PlayerPanelRefs} or {@link OpponentPanelRefs} data-class
- * that bundles every widget reference the controller needs to update later.
+ * Constructs the player/opponent side-panels and the action-log widget.
  *
- * Owner: Side-panel / HUD team member
+ * Profile card text is positioned to match the monster_profile.png artwork:
+ *   • Row 1  – MONSTER: <name>  (large slot under "MONSTER:" label in image)
+ *   • Row 2  – CLASS:   <type>  (left column)
+ *   • Row 3  – FACTION: <role>  (left column, beneath CLASS)
+ *   • Row 4  – STATUS:  <value> (bottom STATUS block)
+ *
+ * Action-log: the ACTION LOG label is painted directly above the image
+ * using a StackPane with fixed TOP_LEFT anchoring so it never drifts on resize.
  */
 public final class GamePanelBuilder {
 
@@ -29,23 +33,18 @@ public final class GamePanelBuilder {
     //  PLAYER PANEL
     // =========================================================
 
-    /**
-     * Builds all widgets and adds them to {@code container}.
-     * All text labels are anchored inside a fixed StackPane so they do not
-     * shift when the window is resized.
-     */
     public static PlayerPanelRefs buildPlayerPanel(VBox container, Image en100) {
         container.setAlignment(Pos.TOP_CENTER);
-        container.setSpacing(6);
+        container.setSpacing(4);
 
         PlayerPanelRefs r = new PlayerPanelRefs();
 
         // ── Status lights ─────────────────────────────────────────────────
-        r.turnOff  = makeLight(IMG_TURN_OFF);   r.turnOn  = makeLight(IMG_TURN_ON);
-        r.confOff  = makeLight(IMG_CONF_OFF);   r.confOn  = makeLight(IMG_CONF_ON);
-        r.frzOff   = makeLight(IMG_FREEZE_OFF); r.frzOn   = makeLight(IMG_FREEZE_ON);
-        r.shldOff  = makeLight(IMG_SHIELD_OFF); r.shldOn  = makeLight(IMG_SHIELD_ON);
-        r.pwrOff   = makeLight(IMG_POWER_OFF);  r.pwrOn   = makeLight(IMG_POWER_ON);
+        r.turnOff = makeLight(IMG_TURN_OFF);   r.turnOn  = makeLight(IMG_TURN_ON);
+        r.confOff = makeLight(IMG_CONF_OFF);   r.confOn  = makeLight(IMG_CONF_ON);
+        r.frzOff  = makeLight(IMG_FREEZE_OFF); r.frzOn   = makeLight(IMG_FREEZE_ON);
+        r.shldOff = makeLight(IMG_SHIELD_OFF); r.shldOn  = makeLight(IMG_SHIELD_ON);
+        r.pwrOff  = makeLight(IMG_POWER_OFF);  r.pwrOn   = makeLight(IMG_POWER_ON);
         HBox lights = makeLightRow(
             r.turnOff, r.turnOn, r.confOff, r.confOn,
             r.frzOff,  r.frzOn,  r.shldOff, r.shldOn, r.pwrOff, r.pwrOn);
@@ -58,21 +57,74 @@ public final class GamePanelBuilder {
         StackPane.setAlignment(r.posLbl, Pos.BOTTOM_LEFT);
         StackPane.setMargin(r.posLbl, new Insets(0, 0, 6, 6));
 
-        // ── Profile card: background image + text anchored on top ─────────
+        // ── Profile card ──────────────────────────────────────────────────
+        // The background image has these labelled regions (top→bottom):
+        //   "MONSTER:" header → big name slot → CLASS/FACTION rows → STATUS block
+        // We overlay a GridPane that places our dynamic labels into each slot.
+
         r.profileBg = new ImageView(loadImage(IMG_PROFILE));
         r.profileBg.setPreserveRatio(true);
 
-        r.nameLbl   = makeLbl("-",        "white",    TXT_PLAYER_NAME, true);
-        r.typeLbl   = makeLbl("Type: -",  "#aaaaaa",  TXT_PLAYER_TYPE, false);
-        r.roleLbl   = makeLbl("Role: -",  "white",    TXT_PLAYER_ROLE, false);
+        // Name label — sits in the wide dark box under "MONSTER:"
+        r.nameLbl = makeLbl("-", "#e8f4ff", TXT_PLAYER_NAME, true);
+        r.nameLbl.setWrapText(true);
 
-        VBox profileText = new VBox(2, r.nameLbl, r.typeLbl, r.roleLbl);
-        profileText.setPadding(new Insets(8, 6, 6, 10));
-        profileText.setAlignment(Pos.TOP_LEFT);
-        // Use a StackPane so the text floats on top of the bg image at a
-        // fixed TOP_LEFT anchor — no translate offsets that drift on resize.
-        StackPane profilePane = new StackPane(r.profileBg, profileText);
-        StackPane.setAlignment(profileText, Pos.TOP_LEFT);
+        // CLASS row value — right of "CLASS:" text in image
+        r.typeLbl = makeLbl("-", "#c8e0ff", TXT_PLAYER_TYPE, false);
+
+        // FACTION row value — right of "FACTION:" text in image
+        r.roleLbl = makeLbl("-", "#c8e0ff", TXT_PLAYER_ROLE, false);
+
+        // STATUS value — inside the STATUS block at the bottom
+        r.statusLbl = makeLbl("NORMAL", "#99bbdd", TXT_PLAYER_STATUS, false);
+        r.statusLbl.setWrapText(true);
+
+        // Build an overlay GridPane that matches the image's internal grid
+        // Row 0: name slot (the big dark rectangle)
+        // Row 1: CLASS value
+        // Row 2: FACTION value
+        // Row 3: STATUS value
+        GridPane grid = new GridPane();
+        grid.setVgap(0);
+        grid.setHgap(0);
+
+        // Column 0: left offset (past "CLASS:" / "FACTION:" labels baked into image)
+        ColumnConstraints colLeft  = new ColumnConstraints();
+        colLeft.setPercentWidth(46); // leave room for CLASS:/FACTION: baked text
+        ColumnConstraints colRight = new ColumnConstraints();
+        colRight.setPercentWidth(54);
+        colRight.setHgrow(Priority.ALWAYS);
+        grid.getColumnConstraints().addAll(colLeft, colRight);
+
+        RowConstraints rowName   = new RowConstraints(); rowName.setPercentHeight(30);
+        RowConstraints rowClass  = new RowConstraints(); rowClass.setPercentHeight(20);
+        RowConstraints rowFact   = new RowConstraints(); rowFact.setPercentHeight(20);
+        RowConstraints rowStatus = new RowConstraints(); rowStatus.setPercentHeight(30);
+        grid.getRowConstraints().addAll(rowName, rowClass, rowFact, rowStatus);
+
+        // Name spans both columns in the top name slot
+        grid.add(r.nameLbl, 0, 0, 2, 1);
+        GridPane.setValignment(r.nameLbl, javafx.geometry.VPos.CENTER);
+        GridPane.setMargin(r.nameLbl, new Insets(2, 4, 0, 8));
+
+        // CLASS value — right column, row 1
+        grid.add(r.typeLbl, 1, 1);
+        GridPane.setValignment(r.typeLbl, javafx.geometry.VPos.CENTER);
+        GridPane.setMargin(r.typeLbl, new Insets(1, 4, 0, 2));
+
+        // FACTION value — right column, row 2
+        grid.add(r.roleLbl, 1, 2);
+        GridPane.setValignment(r.roleLbl, javafx.geometry.VPos.CENTER);
+        GridPane.setMargin(r.roleLbl, new Insets(1, 4, 0, 2));
+
+        // STATUS value — spans both columns, row 3 (bottom section)
+        grid.add(r.statusLbl, 0, 3, 2, 1);
+        GridPane.setValignment(r.statusLbl, javafx.geometry.VPos.BOTTOM);
+        GridPane.setMargin(r.statusLbl, new Insets(0, 4, 6, 8));
+
+        // Overlay the grid on top of the profile image
+        StackPane profilePane = new StackPane(r.profileBg, grid);
+        StackPane.setAlignment(grid, Pos.TOP_LEFT);
 
         // ── Energy label ──────────────────────────────────────────────────
         r.energyLbl = makeLbl("-", "#00ff88", TXT_PLAYER_ENERGY, true);
@@ -89,12 +141,6 @@ public final class GamePanelBuilder {
         r.energyWrapper.setAlignment(Pos.CENTER_LEFT);
         r.energyWrapper.setPadding(new Insets(0, 0, 0, 10));
 
-        // ── Status string ─────────────────────────────────────────────────
-        r.statusLbl = makeLbl("NORMAL", "#aaaaaa", TXT_PLAYER_STATUS, false);
-        HBox statusRow = new HBox(r.statusLbl);
-        statusRow.setAlignment(Pos.CENTER_LEFT);
-        statusRow.setPadding(new Insets(0, 0, 0, 10));
-
         // ── Turn label ────────────────────────────────────────────────────
         r.turnLbl = makeLbl("", "#ffcc00", TXT_PLAYER_TURN, true);
         HBox turnRow = new HBox(r.turnLbl);
@@ -102,8 +148,7 @@ public final class GamePanelBuilder {
 
         container.getChildren().addAll(
             lights, portraitPane, profilePane,
-            energyRow, r.energyWrapper,
-            statusRow, turnRow);
+            energyRow, r.energyWrapper, turnRow);
 
         return r;
     }
@@ -112,23 +157,18 @@ public final class GamePanelBuilder {
     //  OPPONENT PANEL
     // =========================================================
 
-    /**
-     * Builds all widgets and adds them to {@code container}.
-     * All text labels are anchored inside a fixed StackPane so they do not
-     * shift when the window is resized.
-     */
     public static OpponentPanelRefs buildOpponentPanel(VBox container, Image en100) {
         container.setAlignment(Pos.TOP_CENTER);
-        container.setSpacing(6);
+        container.setSpacing(4);
 
         OpponentPanelRefs r = new OpponentPanelRefs();
 
         // ── Status lights ─────────────────────────────────────────────────
-        r.turnOff  = makeLight(IMG_TURN_OFF);   r.turnOn  = makeLight(IMG_TURN_ON);
-        r.confOff  = makeLight(IMG_CONF_OFF);   r.confOn  = makeLight(IMG_CONF_ON);
-        r.frzOff   = makeLight(IMG_FREEZE_OFF); r.frzOn   = makeLight(IMG_FREEZE_ON);
-        r.shldOff  = makeLight(IMG_SHIELD_OFF); r.shldOn  = makeLight(IMG_SHIELD_ON);
-        r.pwrOff   = makeLight(IMG_POWER_OFF);  r.pwrOn   = makeLight(IMG_POWER_ON);
+        r.turnOff = makeLight(IMG_TURN_OFF);   r.turnOn  = makeLight(IMG_TURN_ON);
+        r.confOff = makeLight(IMG_CONF_OFF);   r.confOn  = makeLight(IMG_CONF_ON);
+        r.frzOff  = makeLight(IMG_FREEZE_OFF); r.frzOn   = makeLight(IMG_FREEZE_ON);
+        r.shldOff = makeLight(IMG_SHIELD_OFF); r.shldOn  = makeLight(IMG_SHIELD_ON);
+        r.pwrOff  = makeLight(IMG_POWER_OFF);  r.pwrOn   = makeLight(IMG_POWER_ON);
         HBox lights = makeLightRow(
             r.turnOff, r.turnOn, r.confOff, r.confOn,
             r.frzOff,  r.frzOn,  r.shldOff, r.shldOn, r.pwrOff, r.pwrOn);
@@ -145,15 +185,48 @@ public final class GamePanelBuilder {
         r.profileBg = new ImageView(loadImage(IMG_PROFILE));
         r.profileBg.setPreserveRatio(true);
 
-        r.nameLbl = makeLbl("-",        "white",    TXT_PLAYER_NAME, true);
-        r.typeLbl = makeLbl("Type: -",  "#aaaaaa",  TXT_PLAYER_TYPE, false);
-        r.roleLbl = makeLbl("Role: -",  "white",    TXT_PLAYER_ROLE, false);
+        r.nameLbl   = makeLbl("-", "#ffe8e8", TXT_PLAYER_NAME, true);
+        r.nameLbl.setWrapText(true);
+        r.typeLbl   = makeLbl("-", "#ffc8c8", TXT_PLAYER_TYPE, false);
+        r.roleLbl   = makeLbl("-", "#ffc8c8", TXT_PLAYER_ROLE, false);
+        r.statusLbl = makeLbl("NORMAL", "#ddbbbb", TXT_PLAYER_STATUS, false);
+        r.statusLbl.setWrapText(true);
 
-        VBox profileText = new VBox(2, r.nameLbl, r.typeLbl, r.roleLbl);
-        profileText.setPadding(new Insets(8, 6, 6, 10));
-        profileText.setAlignment(Pos.TOP_LEFT);
-        StackPane profilePane = new StackPane(r.profileBg, profileText);
-        StackPane.setAlignment(profileText, Pos.TOP_LEFT);
+        GridPane grid = new GridPane();
+        grid.setVgap(0);
+        grid.setHgap(0);
+
+        ColumnConstraints colLeft  = new ColumnConstraints();
+        colLeft.setPercentWidth(46);
+        ColumnConstraints colRight = new ColumnConstraints();
+        colRight.setPercentWidth(54);
+        colRight.setHgrow(Priority.ALWAYS);
+        grid.getColumnConstraints().addAll(colLeft, colRight);
+
+        RowConstraints rowName   = new RowConstraints(); rowName.setPercentHeight(30);
+        RowConstraints rowClass  = new RowConstraints(); rowClass.setPercentHeight(20);
+        RowConstraints rowFact   = new RowConstraints(); rowFact.setPercentHeight(20);
+        RowConstraints rowStatus = new RowConstraints(); rowStatus.setPercentHeight(30);
+        grid.getRowConstraints().addAll(rowName, rowClass, rowFact, rowStatus);
+
+        grid.add(r.nameLbl, 0, 0, 2, 1);
+        GridPane.setValignment(r.nameLbl, javafx.geometry.VPos.CENTER);
+        GridPane.setMargin(r.nameLbl, new Insets(2, 4, 0, 8));
+
+        grid.add(r.typeLbl, 1, 1);
+        GridPane.setValignment(r.typeLbl, javafx.geometry.VPos.CENTER);
+        GridPane.setMargin(r.typeLbl, new Insets(1, 4, 0, 2));
+
+        grid.add(r.roleLbl, 1, 2);
+        GridPane.setValignment(r.roleLbl, javafx.geometry.VPos.CENTER);
+        GridPane.setMargin(r.roleLbl, new Insets(1, 4, 0, 2));
+
+        grid.add(r.statusLbl, 0, 3, 2, 1);
+        GridPane.setValignment(r.statusLbl, javafx.geometry.VPos.BOTTOM);
+        GridPane.setMargin(r.statusLbl, new Insets(0, 4, 6, 8));
+
+        StackPane profilePane = new StackPane(r.profileBg, grid);
+        StackPane.setAlignment(grid, Pos.TOP_LEFT);
 
         // ── Energy label ──────────────────────────────────────────────────
         r.energyLbl = makeLbl("-", "#ff6666", TXT_PLAYER_ENERGY, true);
@@ -170,16 +243,9 @@ public final class GamePanelBuilder {
         r.energyWrapper.setAlignment(Pos.CENTER_LEFT);
         r.energyWrapper.setPadding(new Insets(0, 0, 0, 10));
 
-        // ── Status string ─────────────────────────────────────────────────
-        r.statusLbl = makeLbl("NORMAL", "#aaaaaa", TXT_PLAYER_STATUS, false);
-        HBox statusRow = new HBox(r.statusLbl);
-        statusRow.setAlignment(Pos.CENTER_LEFT);
-        statusRow.setPadding(new Insets(0, 0, 0, 10));
-
         container.getChildren().addAll(
             lights, portPane, profilePane,
-            energyRow, r.energyWrapper,
-            statusRow);
+            energyRow, r.energyWrapper);
 
         return r;
     }
@@ -189,27 +255,75 @@ public final class GamePanelBuilder {
     // =========================================================
 
     /**
-     * Builds and inserts the action-log widget.
-     * Returns an {@link ActionLogRefs} so the caller can bind widths and
-     * update labels without relying on a hidden {@code userData} trick.
+     * Builds the action-log widget.
+     *
+     * Layout (from top to bottom inside the container):
+     *   1. A fixed "ACTION LOG" label in the game font — anchored to TOP_LEFT of
+     *      the StackPane so it sits directly above the monitor image and never
+     *      moves when the window is resized.
+     *   2. A StackPane containing the Action_Log.png image as background and
+     *      the three scrolling log lines overlaid on the dark screen area.
+     *
+     * The header label uses a fixed pixel size so it always sits flush against
+     * the top edge of the image, matching the pixel font of the baked-in
+     * "ACTION LOG" strip on the image bezel.
      */
     public static ActionLogRefs buildActionLog(VBox container) {
+        // ── Background image ──────────────────────────────────────────────
         ImageView bg = new ImageView(loadImage(IMG_ACTION_LOG));
         bg.setPreserveRatio(true);
 
+        // ── Log text lines (appear inside the dark monitor screen) ─────────
+        // The screen occupies roughly the top 58% of the image height.
+        // We push the text down ~12% from the top of the image to clear any
+        // baked-in border, and use a fixed padding that doesn't move on resize.
         Label line1 = makeLbl("", "white",   TXT_ACTION_LOG, false);
         Label line2 = makeLbl("", "#aaffaa", TXT_ACTION_LOG, false);
         Label line3 = makeLbl("", "#aaaaff", TXT_ACTION_LOG, false);
-        for (Label l : new Label[]{line1, line2, line3}) l.setWrapText(true);
+        for (Label l : new Label[]{line1, line2, line3}) {
+            l.setWrapText(true);
+            // Fixed-size font so text never scales with window
+            l.setStyle(l.getStyle() +
+                "-fx-font-size:" + TXT_ACTION_LOG + "px;" +
+                "-fx-font-family:'" + FONT + "';");
+        }
 
         VBox logText = new VBox(2, line1, line2, line3);
         logText.setAlignment(Pos.TOP_LEFT);
-        logText.setPadding(new Insets(26, 8, 6, 10));
+        // Top padding pushes text below the monitor bezel in the image;
+        // this is a fixed pixel value — does not scale with the window.
+        logText.setPadding(new Insets(14, 8, 6, 14));
+        logText.setMouseTransparent(true);
 
+        // Image + text overlay
         StackPane logPane = new StackPane(bg, logText);
         StackPane.setAlignment(logText, Pos.TOP_LEFT);
 
-        container.getChildren().add(logPane);
+        // ── "ACTION LOG" header label ──────────────────────────────────────
+        // Rendered in the same pixel font as the rest of the HUD.
+        // Uses a fixed pixel size and is placed ABOVE the image via VBox ordering.
+        // Because VBox respects its children's preferred sizes and the label has
+        // a fixed preferred height, the label never moves relative to the image
+        // regardless of window size.
+        Label header = new Label("ACTION LOG");
+        header.setStyle(
+            "-fx-font-family:'" + FONT + "';" +
+            "-fx-font-size:11px;" +          // fixed, never scales
+            "-fx-font-weight:bold;" +
+            "-fx-text-fill:#d4a843;" +        // amber — matches bezel colour in image
+            "-fx-letter-spacing: 1;" +
+            "-fx-padding: 0 0 2 2;");
+        header.setMouseTransparent(true);
+        // Anchor to the left so it sits directly above the image's left edge
+        HBox headerRow = new HBox(header);
+        headerRow.setAlignment(Pos.CENTER_LEFT);
+        headerRow.setPadding(new Insets(0, 0, 0, 2));
+
+        // Put header above the log image in the VBox
+        VBox actionLogGroup = new VBox(0, headerRow, logPane);
+        actionLogGroup.setAlignment(Pos.TOP_LEFT);
+
+        container.getChildren().add(actionLogGroup);
         container.setStyle("-fx-padding: 4;");
 
         return new ActionLogRefs(line1, line2, line3, bg);
@@ -219,20 +333,16 @@ public final class GamePanelBuilder {
     //  DATA CLASSES
     // =========================================================
 
-    /** Holds every reference the controller needs from the action-log widget. */
     public static class ActionLogRefs {
         public final Label     line1, line2, line3;
         public final ImageView background;
 
-        public ActionLogRefs(Label line1, Label line2, Label line3, ImageView background) {
-            this.line1      = line1;
-            this.line2      = line2;
-            this.line3      = line3;
-            this.background = background;
+        public ActionLogRefs(Label l1, Label l2, Label l3, ImageView bg) {
+            this.line1 = l1; this.line2 = l2; this.line3 = l3;
+            this.background = bg;
         }
     }
 
-    /** All mutable widget references for the player side-panel. */
     public static class PlayerPanelRefs {
         public final ImageView portrait    = new ImageView();
         public final ImageView energyBar   = new ImageView();
@@ -251,7 +361,6 @@ public final class GamePanelBuilder {
         public Image   energyBarCurrentImage;
     }
 
-    /** All mutable widget references for the opponent side-panel. */
     public static class OpponentPanelRefs {
         public final ImageView portrait    = new ImageView();
         public final ImageView energyBar   = new ImageView();
