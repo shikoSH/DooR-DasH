@@ -53,6 +53,19 @@ public final class GamePanelBuilder {
         r.portrait.setPreserveRatio(true);
         addDropShadow(r.portrait, 12, Color.BLACK);
         r.posLbl = makeLbl("0", "#00ff88", TXT_PLAYER_POS, true);
+        // Black filled pill with a bright green text and glow — clearly readable over any portrait
+        r.posLbl.setStyle(
+            "-fx-font-family: '" + FONT + "';" +
+            "-fx-font-size: " + (TXT_PLAYER_POS + 2) + "px;" +
+            "-fx-font-weight: bold;" +
+            "-fx-text-fill: #00ff88;" +
+            "-fx-background-color: rgba(0,0,0,0.85);" +
+            "-fx-background-radius: 6;" +
+            "-fx-border-color: #00ff88;" +
+            "-fx-border-width: 1.5;" +
+            "-fx-border-radius: 6;" +
+            "-fx-padding: 2 7 2 7;" +
+            "-fx-effect: dropshadow(three-pass-box,rgba(0,255,136,0.7),6,0.4,0,0);");
         StackPane portraitPane = new StackPane(r.portrait, r.posLbl);
         StackPane.setAlignment(r.posLbl, Pos.BOTTOM_LEFT);
         StackPane.setMargin(r.posLbl, new Insets(0, 0, 6, 6));
@@ -177,6 +190,18 @@ public final class GamePanelBuilder {
         r.portrait.setPreserveRatio(true);
         addDropShadow(r.portrait, 12, Color.BLACK);
         r.posLbl = makeLbl("0", "#ff6666", TXT_PLAYER_POS, true);
+        r.posLbl.setStyle(
+            "-fx-font-family: '" + FONT + "';" +
+            "-fx-font-size: " + (TXT_PLAYER_POS + 2) + "px;" +
+            "-fx-font-weight: bold;" +
+            "-fx-text-fill: #ff6666;" +
+            "-fx-background-color: rgba(0,0,0,0.85);" +
+            "-fx-background-radius: 6;" +
+            "-fx-border-color: #ff6666;" +
+            "-fx-border-width: 1.5;" +
+            "-fx-border-radius: 6;" +
+            "-fx-padding: 2 7 2 7;" +
+            "-fx-effect: dropshadow(three-pass-box,rgba(255,102,102,0.7),6,0.4,0,0);");
         StackPane portPane = new StackPane(r.portrait, r.posLbl);
         StackPane.setAlignment(r.posLbl, Pos.BOTTOM_LEFT);
         StackPane.setMargin(r.posLbl, new Insets(0, 0, 6, 6));

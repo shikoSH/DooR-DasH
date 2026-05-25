@@ -132,8 +132,17 @@ public class SceneManager {
             }
             FXMLLoader loader = new FXMLLoader(fxmlUrl);
             Parent root = loader.load();
+            // Start transparent to prevent white flash on first render
+            root.setOpacity(0);
             switchToContent(root, true);
             showStageIfNeeded();
+            // Fade in after JavaFX has completed its first layout pass
+            Platform.runLater(() -> Platform.runLater(() -> {
+                FadeTransition fadeIn = new FadeTransition(Duration.millis(400), root);
+                fadeIn.setFromValue(0);
+                fadeIn.setToValue(1);
+                fadeIn.play();
+            }));
         } catch (Exception e) {
             System.err.println("ERROR: Failed to load IntroScreen");
             e.printStackTrace();

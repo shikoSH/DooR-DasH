@@ -40,13 +40,13 @@ public final class GameUIConstants {
     // =========================================================
     //  LAYOUT MULTIPLIERS  (fractions of scene width / height)
     // =========================================================
-    public static final double BOARD_SIZE_MULT   = 0.70;
-    public static final double SIDE_PANEL_W      = 0.155;
-    public static final double PORTRAIT_W_MULT   = 0.88;
-    public static final double ENERGY_BAR_W_MULT = 0.2;
-    public static final double PANEL_TOP_PAD     = 0.08;
-    public static final double LIGHT_SIZE_MULT   = 0.16;
-    public static final double PROFILE_W_MULT    = 0.90;
+    public static final double BOARD_SIZE_MULT   = 0.84;
+    public static final double SIDE_PANEL_W      = 0.108;
+    public static final double PORTRAIT_W_MULT   = 0.92;
+    public static final double ENERGY_BAR_W_MULT = 0.22;
+    public static final double PANEL_TOP_PAD     = 0.04;
+    public static final double LIGHT_SIZE_MULT   = 0.18;
+    public static final double PROFILE_W_MULT    = 0.95;
     public static final double ACTION_LOG_W_MULT = 0.90;
     public static final double CONTROL_BAR_H     = 0.16;
     public static final double DECK_LEFT         = 0.25;

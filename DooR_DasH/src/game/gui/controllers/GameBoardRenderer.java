@@ -7,6 +7,11 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Color;
+import javafx.scene.paint.CycleMethod;
+import javafx.scene.paint.RadialGradient;
+import javafx.scene.paint.Stop;
+import javafx.scene.shape.Rectangle;
 import javafx.beans.property.DoubleProperty;
 import game.engine.Board;
 import game.engine.Constants;
@@ -37,6 +42,7 @@ public class GameBoardRenderer {
     private ImageView[][] bgViews;
     private ImageView[][] monsterViews;
     private Label[][]     energyLabels;
+    private javafx.scene.shape.Rectangle[][] spotlightViews;
 
     // ── Cell images ──────────────────────────────────────────
     private final Image normalImage;
@@ -77,9 +83,10 @@ public class GameBoardRenderer {
     public void buildGrid() {
         cellSize.bind(grid.heightProperty().divide(Constants.BOARD_ROWS));
 
-        bgViews      = new ImageView[Constants.BOARD_ROWS][Constants.BOARD_COLS];
-        monsterViews = new ImageView[Constants.BOARD_ROWS][Constants.BOARD_COLS];
-        energyLabels = new Label[Constants.BOARD_ROWS][Constants.BOARD_COLS];
+        bgViews        = new ImageView[Constants.BOARD_ROWS][Constants.BOARD_COLS];
+        monsterViews   = new ImageView[Constants.BOARD_ROWS][Constants.BOARD_COLS];
+        energyLabels   = new Label[Constants.BOARD_ROWS][Constants.BOARD_COLS];
+        spotlightViews = new Rectangle[Constants.BOARD_ROWS][Constants.BOARD_COLS];
 
         for (int row = 0; row < Constants.BOARD_ROWS; row++) {
             for (int col = 0; col < Constants.BOARD_COLS; col++) {
@@ -142,6 +149,23 @@ public class GameBoardRenderer {
                 energyLabel.setVisible(false);
                 StackPane.setAlignment(energyLabel, Pos.BOTTOM_CENTER);
 
+                // Spotlight overlay — invisible by default, pulsed during monster movement
+                Rectangle spotlight = new Rectangle();
+                spotlight.setMouseTransparent(true);
+                spotlight.setOpacity(0);
+                spotlight.widthProperty().bind(
+                    grid.widthProperty().divide(Constants.BOARD_COLS));
+                spotlight.heightProperty().bind(
+                    grid.heightProperty().divide(Constants.BOARD_ROWS));
+                // Warm yellow-white radial gradient: bright centre, transparent edge
+                spotlight.setFill(new RadialGradient(
+                    0, 0, 0.5, 0.5, 0.65, true, CycleMethod.NO_CYCLE,
+                    new Stop(0.00, Color.color(1.0, 0.95, 0.60, 0.90)),
+                    new Stop(0.35, Color.color(1.0, 0.85, 0.30, 0.55)),
+                    new Stop(0.70, Color.color(0.8, 0.60, 0.10, 0.20)),
+                    new Stop(1.00, Color.color(0.0, 0.00, 0.00, 0.00))));
+                spotlightViews[row][col] = spotlight;
+
                 bgViews[row][col]      = bgView;
                 monsterViews[row][col] = mView;
                 energyLabels[row][col] = energyLabel;
@@ -152,7 +176,7 @@ public class GameBoardRenderer {
                     cellStack.setOnMouseClicked(e -> onMonsterCellClick.accept(idx));
                 }
 
-                cellStack.getChildren().addAll(bgView, mView, indexLabel, energyLabel);
+                cellStack.getChildren().addAll(bgView, spotlight, mView, indexLabel, energyLabel);
                 grid.add(cellStack, col, row);
             }
         }
@@ -223,6 +247,7 @@ public class GameBoardRenderer {
     public ImageView[][] getMonsterViews() { return monsterViews; }
     public ImageView[][] getBgViews()      { return bgViews; }
     public Label[][]     getEnergyLabels() { return energyLabels; }
+    public javafx.scene.shape.Rectangle[][] getSpotlightViews() { return spotlightViews; }
 
     // =========================================================
     //  PRIVATE HELPERS

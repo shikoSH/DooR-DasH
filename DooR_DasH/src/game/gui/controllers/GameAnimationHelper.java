@@ -77,11 +77,12 @@ public final class GameAnimationHelper {
 
     /**
      * Animates the moving monster step-by-step (or in one hop for large jumps),
-     * then invokes {@code onFinished}.
+     * pulsing a spotlight on the moving cell, then invokes {@code onFinished}.
      */
     public static void animateMove(Monster current, Monster opponent,
                                     int oldPos, int newPos,
                                     ImageView[][] monsterViews,
+                                    javafx.scene.shape.Rectangle[][] spotlightViews,
                                     GridPane grid,
                                     Runnable onFinished) {
         // Reset all sprite views
@@ -90,6 +91,7 @@ public final class GameAnimationHelper {
                 monsterViews[r][c].setTranslateX(0);
                 monsterViews[r][c].setTranslateY(0);
                 monsterViews[r][c].setImage(null);
+                if (spotlightViews != null) spotlightViews[r][c].setOpacity(0);
             }
         // Re-draw stationed monsters
         for (Monster m : Board.getStationedMonsters()) {
@@ -104,20 +106,31 @@ public final class GameAnimationHelper {
         SequentialTransition seq = new SequentialTransition();
         int dist = Math.abs(newPos - oldPos);
         if (dist > 12 || oldPos == newPos) {
-            seq.getChildren().add(makeHop(current, opponent, oldPos, newPos, 600, monsterViews, grid));
+            seq.getChildren().add(makeHop(current, opponent, oldPos, newPos, 600,
+                monsterViews, spotlightViews, grid));
         } else {
             int step = newPos > oldPos ? 1 : -1;
             for (int pos = oldPos; pos != newPos; pos += step)
-                seq.getChildren().add(makeHop(current, opponent, pos, pos + step, 250, monsterViews, grid));
+                seq.getChildren().add(makeHop(current, opponent, pos, pos + step, 250,
+                    monsterViews, spotlightViews, grid));
         }
-        seq.setOnFinished(e -> onFinished.run());
+        seq.setOnFinished(e -> {
+            // Clear all spotlights when movement ends
+            if (spotlightViews != null)
+                for (int r = 0; r < Constants.BOARD_ROWS; r++)
+                    for (int c = 0; c < Constants.BOARD_COLS; c++)
+                        spotlightViews[r][c].setOpacity(0);
+            onFinished.run();
+        });
         seq.play();
     }
 
     /** Builds a single-cell hop animation for the moving monster. */
     private static Animation makeHop(Monster moving, Monster stationary,
                                       int from, int to, int ms,
-                                      ImageView[][] monsterViews, GridPane grid) {
+                                      ImageView[][] monsterViews,
+                                      javafx.scene.shape.Rectangle[][] spotlightViews,
+                                      GridPane grid) {
         int[] fRC = toRowCol(from);
         int[] tRC = toRowCol(to);
         double cellW = grid.getWidth()  / Constants.BOARD_COLS;
@@ -135,9 +148,23 @@ public final class GameAnimationHelper {
             if (stationary.getPosition() == from && mv.getImage() == null)
                 mv.setImage(monsterSprite(stationary.getName()));
             monsterViews[tRC[0]][tRC[1]].setImage(monsterSprite(moving.getName()));
+
+            // Move spotlight to destination cell
+            if (spotlightViews != null) {
+                spotlightViews[fRC[0]][fRC[1]].setOpacity(0);
+                spotlightViews[tRC[0]][tRC[1]].setOpacity(1.0);
+            }
         });
+
+        // Fade spotlight into the destination just before the hop lands
         PauseTransition front = new PauseTransition(Duration.millis(1));
-        front.setOnFinished(e -> mv.getParent().toFront());
+        front.setOnFinished(e -> {
+            mv.getParent().toFront();
+            // Light up source cell at start of hop
+            if (spotlightViews != null) {
+                spotlightViews[fRC[0]][fRC[1]].setOpacity(0.85);
+            }
+        });
         return new SequentialTransition(front, tt);
     }
 

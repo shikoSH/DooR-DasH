@@ -97,52 +97,108 @@ public class GameOverController {
     }
 
     // =========================================================
-    //  ACTION BUTTONS (image)
+    //  ACTION BUTTONS  (real JavaFX Buttons — no image dependency)
     // =========================================================
     private void setupActionButtons() {
-        if (retryButton != null) {
-            Image playAgain = tryLoadSmall(IMG + "play_again_glow.png", 480, 144);
-            if (playAgain != null) retryButton.setImage(playAgain);
-            retryButton.fitHeightProperty().bind(rootPane.heightProperty().multiply(0.15));
-            addImageButtonHover(retryButton, Color.web("#00ff88"));
-        }
-        if (mainMenuButton != null) {
-            Image mainMenu = tryLoadSmall(IMG + "main_menu_glow_button.png", 480, 144);
-            if (mainMenu != null) mainMenuButton.setImage(mainMenu);
-            mainMenuButton.fitHeightProperty().bind(rootPane.heightProperty().multiply(0.15));
-            addImageButtonHover(mainMenuButton, Color.web("#ff6666"));
+        // The FXML still declares retryButton and mainMenuButton as ImageView fields,
+        // but we hide them and inject proper Buttons into the overlayPane instead,
+        // so we never depend on play_again_glow.png / main_menu_glow_button.png.
+        if (retryButton    != null) retryButton.setVisible(false);
+        if (mainMenuButton != null) mainMenuButton.setVisible(false);
+
+        Button playAgainBtn = buildGameOverButton("▶  PLAY AGAIN",
+            "#00ff88", "#001a0d", "#00ff88");
+        Button mainMenuBtn  = buildGameOverButton("⌂  MAIN MENU",
+            "#ff6666", "#1a0000", "#ff6666");
+
+        playAgainBtn.setOnAction(e -> {
+            if (lastPlayerRole != null)
+                SceneManager.getInstance().startGameScreen(lastPlayerRole);
+        });
+        mainMenuBtn.setOnAction(e -> SceneManager.getInstance().switchToStartScreen());
+
+        HBox btnRow = new HBox(28, playAgainBtn, mainMenuBtn);
+        btnRow.setAlignment(Pos.CENTER);
+
+        // Bind button row width to root so it centers at any window size
+        overlayPane.getChildren().add(btnRow);
+        AnchorPane.setBottomAnchor(btnRow, 60.0);
+        AnchorPane.setLeftAnchor(btnRow,   0.0);
+        AnchorPane.setRightAnchor(btnRow,  0.0);
+
+        // Scale buttons with window height
+        if (rootPane != null) {
+            rootPane.heightProperty().addListener((obs, oldH, newH) -> {
+                double h = newH.doubleValue();
+                String newFontSize = (int) Math.max(14, h * 0.022) + "px";
+                for (Button b : new Button[]{playAgainBtn, mainMenuBtn}) {
+                    b.setStyle(b.getStyle()
+                        .replaceAll("-fx-font-size:[^;]+;", "-fx-font-size:" + newFontSize + ";"));
+                }
+                double btnH2 = Math.max(48, h * 0.072);
+                playAgainBtn.setPrefHeight(btnH2);
+                mainMenuBtn.setPrefHeight(btnH2);
+            });
         }
     }
 
-    private void addImageButtonHover(ImageView btn, Color glowColor) {
-        DropShadow glow = new DropShadow();
-        glow.setColor(glowColor);
-        glow.setRadius(22);
-        glow.setSpread(0.5);
+    /**
+     * Creates a polished arcade-style button for the game-over screen.
+     * Uses inline CSS only — no image files required.
+     */
+    private Button buildGameOverButton(String text,
+                                        String borderColor,
+                                        String bgColor,
+                                        String glowColor) {
+        Button btn = new Button(text);
+        String baseStyle =
+            "-fx-font-family: 'ARCADECLASSIC', 'Courier New', monospace;" +
+            "-fx-font-size: 18px;" +
+            "-fx-font-weight: bold;" +
+            "-fx-text-fill: " + borderColor + ";" +
+            "-fx-background-color: " + bgColor + ";" +
+            "-fx-border-color: " + borderColor + ";" +
+            "-fx-border-width: 2.5;" +
+            "-fx-border-radius: 10;" +
+            "-fx-background-radius: 10;" +
+            "-fx-padding: 14 38;" +
+            "-fx-cursor: hand;" +
+            "-fx-effect: dropshadow(three-pass-box, " + borderColor + ", 10, 0.3, 0, 0);";
+        btn.setStyle(baseStyle);
+        btn.setPrefWidth(220);
+        btn.setPrefHeight(56);
 
-        DropShadow shadow = new DropShadow();
-        shadow.setColor(Color.BLACK);
-        shadow.setRadius(12);
-        shadow.setSpread(0.35);
-        btn.setEffect(shadow);
+        String hoverStyle =
+            "-fx-font-family: 'ARCADECLASSIC', 'Courier New', monospace;" +
+            "-fx-font-size: 18px;" +
+            "-fx-font-weight: bold;" +
+            "-fx-text-fill: " + bgColor + ";" +
+            "-fx-background-color: " + borderColor + ";" +
+            "-fx-border-color: " + borderColor + ";" +
+            "-fx-border-width: 2.5;" +
+            "-fx-border-radius: 10;" +
+            "-fx-background-radius: 10;" +
+            "-fx-padding: 14 38;" +
+            "-fx-cursor: hand;" +
+            "-fx-effect: dropshadow(three-pass-box, " + borderColor + ", 22, 0.6, 0, 0);";
 
-        ScaleTransition scaleUp = new ScaleTransition(Duration.millis(150), btn);
-        scaleUp.setToX(1.06);
-        scaleUp.setToY(1.06);
-        ScaleTransition scaleDown = new ScaleTransition(Duration.millis(150), btn);
-        scaleDown.setToX(1.0);
-        scaleDown.setToY(1.0);
+        ScaleTransition scaleUp = new ScaleTransition(Duration.millis(120), btn);
+        scaleUp.setToX(1.07); scaleUp.setToY(1.07);
+        ScaleTransition scaleDown = new ScaleTransition(Duration.millis(120), btn);
+        scaleDown.setToX(1.0); scaleDown.setToY(1.0);
 
         btn.setOnMouseEntered(e -> {
-            scaleDown.stop();
-            scaleUp.playFromStart();
-            btn.setEffect(glow);
+            scaleDown.stop(); scaleUp.playFromStart();
+            btn.setStyle(hoverStyle);
         });
         btn.setOnMouseExited(e -> {
-            scaleUp.stop();
-            scaleDown.playFromStart();
-            btn.setEffect(shadow);
+            scaleUp.stop(); scaleDown.playFromStart();
+            btn.setStyle(baseStyle);
         });
+        btn.setOnMousePressed(e  -> btn.setOpacity(0.80));
+        btn.setOnMouseReleased(e -> btn.setOpacity(1.00));
+
+        return btn;
     }
 
     // =========================================================

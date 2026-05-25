@@ -440,7 +440,9 @@ private void handleRollDice() {
             diceView, diceImages, diceResultLabel, diceFace,
             () -> GameAnimationHelper.animateMove(
                 fm, fo, fp, fn,
-                boardRenderer.getMonsterViews(), grid,
+                boardRenderer.getMonsterViews(),
+                boardRenderer.getSpotlightViews(),
+                grid,
                 () -> {
                     refreshBoard(); updateUI();
 
