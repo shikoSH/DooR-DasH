@@ -55,14 +55,19 @@ public class GameBoardRenderer {
     /** Callback so GameController can handle monster-cell clicks. */
     private final java.util.function.IntConsumer onMonsterCellClick;
 
+    /** Callback so GameController can handle conveyor-cell clicks (shows destination pointer). */
+    private final java.util.function.IntConsumer onConveyorCellClick;
+
     // =========================================================
     //  CONSTRUCTOR
     // =========================================================
     public GameBoardRenderer(GridPane grid, DoubleProperty cellSize,
-                              java.util.function.IntConsumer onMonsterCellClick) {
-        this.grid               = grid;
-        this.cellSize           = cellSize;
-        this.onMonsterCellClick = onMonsterCellClick;
+                              java.util.function.IntConsumer onMonsterCellClick,
+                              java.util.function.IntConsumer onConveyorCellClick) {
+        this.grid                = grid;
+        this.cellSize             = cellSize;
+        this.onMonsterCellClick   = onMonsterCellClick;
+        this.onConveyorCellClick  = onConveyorCellClick;
 
         normalImage      = loadImage(IMG_NORMAL);
         doorSC           = loadImage(IMG_DOOR_SC);
@@ -79,7 +84,7 @@ public class GameBoardRenderer {
     //  GRID CONSTRUCTION
     // =========================================================
 
-    /** Builds every cell StackPane and registers click handlers for monster slots. */
+    /** Builds every cell StackPane and registers click handlers for monster and conveyor slots. */
     public void buildGrid() {
         cellSize.bind(grid.heightProperty().divide(Constants.BOARD_ROWS));
 
@@ -100,6 +105,10 @@ public class GameBoardRenderer {
                 boolean isMonsterSlot = false;
                 for (int mi : Constants.MONSTER_CELL_INDICES)
                     if (mi == boardIndex) { isMonsterSlot = true; break; }
+
+                boolean isConveyorSlot = false;
+                for (int ci : Constants.CONVEYOR_CELL_INDICES)
+                    if (ci == boardIndex) { isConveyorSlot = true; break; }
 
                 // Background image view
                 ImageView bgView = new ImageView();
@@ -174,6 +183,10 @@ public class GameBoardRenderer {
                     final int idx = boardIndex;
                     cellStack.setCursor(Cursor.HAND);
                     cellStack.setOnMouseClicked(e -> onMonsterCellClick.accept(idx));
+                } else if (isConveyorSlot) {
+                    final int idx = boardIndex;
+                    cellStack.setCursor(Cursor.HAND);
+                    cellStack.setOnMouseClicked(e -> onConveyorCellClick.accept(idx));
                 }
 
                 cellStack.getChildren().addAll(bgView, spotlight, mView, indexLabel, energyLabel);

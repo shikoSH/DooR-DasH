@@ -21,7 +21,8 @@ import game.engine.monsters.Monster;
  * GameAnimationHelper
  * --------------------
  * Pure animation logic: dice roll, monster hop, energy-bar cross-fade,
- * floating energy popup, and card-overlay blur/reveal transitions.
+ * floating energy popup, conveyor-belt destination pointer, and card-overlay
+ * blur/reveal transitions.
  *
  * Every method is package-private static and references only the data
  * structures it receives as parameters — no hidden mutable state.
@@ -37,8 +38,10 @@ public final class GameAnimationHelper {
     // =========================================================
 
     /**
-     * Spins the dice through random faces with accelerating delays,
-     * then lands on {@code finalFace} and fires {@code onFinished}.
+     * Spins the dice through random faces with an eased eased-out cadence
+     * (fast at first, slowing smoothly into the landing), avoids showing
+     * the same face twice in a row, then lands on {@code finalFace} with a
+     * small overshoot bounce and fires {@code onFinished}.
      *
      * @param diceView   the ImageView showing the dice
      * @param diceImages six dice-face images (index 0 = face 1)
@@ -52,21 +55,41 @@ public final class GameAnimationHelper {
                                         Runnable onFinished) {
         Timeline tl = new Timeline();
         java.util.Random rand = new java.util.Random();
-        int[] delays = {60, 80, 100, 130, 160, 200, 250, 320, 400};
-        int elapsed = 0;
-        for (int d : delays) {
-            elapsed += d;
-            final int f = rand.nextInt(6);
-            tl.getKeyFrames().add(new KeyFrame(Duration.millis(elapsed),
-                e -> diceView.setImage(diceImages[f])));
+
+        // Smooth ease-out cadence: many fast frames early, fewer/slower near landing.
+        int totalSpins = 18;
+        int totalMillis = 900;
+        double[] times = new double[totalSpins];
+        for (int i = 0; i < totalSpins; i++) {
+            double t = (double) (i + 1) / totalSpins;       // 0..1
+            double eased = 1 - Math.pow(1 - t, 3);            // ease-out cubic
+            times[i] = eased * totalMillis;
         }
-        elapsed += 300;
-        final int total = elapsed;
-        tl.getKeyFrames().add(new KeyFrame(Duration.millis(total), e -> {
+
+        int lastFace = -1;
+        for (int i = 0; i < totalSpins; i++) {
+            int f;
+            do { f = rand.nextInt(6); } while (f == lastFace);
+            lastFace = f;
+            final int face = f;
+            tl.getKeyFrames().add(new KeyFrame(Duration.millis(times[i]),
+                e -> diceView.setImage(diceImages[face])));
+        }
+
+        double landTime = totalMillis + 120;
+        tl.getKeyFrames().add(new KeyFrame(Duration.millis(landTime), e -> {
             diceView.setImage(diceImages[finalFace - 1]);
             if (resultLbl != null) resultLbl.setText(String.valueOf(finalFace));
-            if (onFinished != null) onFinished.run();
+
+            diceView.setScaleX(1.0); diceView.setScaleY(1.0);
+            ScaleTransition bounce = new ScaleTransition(Duration.millis(160), diceView);
+            bounce.setFromX(1.18); bounce.setFromY(1.18);
+            bounce.setToX(1.0);    bounce.setToY(1.0);
+            bounce.setInterpolator(Interpolator.EASE_OUT);
+            bounce.setOnFinished(ev -> { if (onFinished != null) onFinished.run(); });
+            bounce.play();
         }));
+
         tl.play();
         return tl;
     }
@@ -78,6 +101,8 @@ public final class GameAnimationHelper {
     /**
      * Animates the moving monster step-by-step (or in one hop for large jumps),
      * pulsing a spotlight on the moving cell, then invokes {@code onFinished}.
+     * Each step glides with ease-in/ease-out and a light vertical "hop" bounce
+     * instead of a flat linear slide.
      */
     public static void animateMove(Monster current, Monster opponent,
                                     int oldPos, int newPos,
@@ -90,6 +115,7 @@ public final class GameAnimationHelper {
             for (int c = 0; c < Constants.BOARD_COLS; c++) {
                 monsterViews[r][c].setTranslateX(0);
                 monsterViews[r][c].setTranslateY(0);
+                monsterViews[r][c].setScaleY(1.0);
                 monsterViews[r][c].setImage(null);
                 if (spotlightViews != null) spotlightViews[r][c].setOpacity(0);
             }
@@ -106,13 +132,17 @@ public final class GameAnimationHelper {
         SequentialTransition seq = new SequentialTransition();
         int dist = Math.abs(newPos - oldPos);
         if (dist > 12 || oldPos == newPos) {
-            seq.getChildren().add(makeHop(current, opponent, oldPos, newPos, 600,
-                monsterViews, spotlightViews, grid));
+            seq.getChildren().add(makeHop(current, opponent, oldPos, newPos, 650,
+                monsterViews, spotlightViews, grid, true));
         } else {
             int step = newPos > oldPos ? 1 : -1;
-            for (int pos = oldPos; pos != newPos; pos += step)
-                seq.getChildren().add(makeHop(current, opponent, pos, pos + step, 250,
-                    monsterViews, spotlightViews, grid));
+            int stepCount = dist;
+            int i = 0;
+            for (int pos = oldPos; pos != newPos; pos += step, i++) {
+                int ms = stepDuration(i, stepCount);
+                seq.getChildren().add(makeHop(current, opponent, pos, pos + step, ms,
+                    monsterViews, spotlightViews, grid, false));
+            }
         }
         seq.setOnFinished(e -> {
             // Clear all spotlights when movement ends
@@ -125,12 +155,25 @@ public final class GameAnimationHelper {
         seq.play();
     }
 
+    /**
+     * Eases per-step duration across a multi-step move: a touch quicker in
+     * the middle of the sequence, slightly gentler at the start and end, so
+     * longer moves don't feel mechanically uniform.
+     */
+    private static int stepDuration(int index, int total) {
+        if (total <= 1) return 220;
+        double mid = (total - 1) / 2.0;
+        double distFromMid = Math.abs(index - mid) / mid; // 0 at middle, 1 at ends
+        return (int) (170 + distFromMid * 60); // 170ms mid, up to 230ms at ends
+    }
+
     /** Builds a single-cell hop animation for the moving monster. */
     private static Animation makeHop(Monster moving, Monster stationary,
                                       int from, int to, int ms,
                                       ImageView[][] monsterViews,
                                       javafx.scene.shape.Rectangle[][] spotlightViews,
-                                      GridPane grid) {
+                                      GridPane grid,
+                                      boolean isLongJump) {
         int[] fRC = toRowCol(from);
         int[] tRC = toRowCol(to);
         double cellW = grid.getWidth()  / Constants.BOARD_COLS;
@@ -139,10 +182,25 @@ public final class GameAnimationHelper {
         double dy    = (tRC[0] - fRC[0]) * cellH;
 
         ImageView mv = monsterViews[fRC[0]][fRC[1]];
+
+        // Horizontal/vertical glide, eased rather than linear
         TranslateTransition tt = new TranslateTransition(Duration.millis(ms), mv);
         tt.setByX(dx); tt.setByY(dy);
-        tt.setOnFinished(e -> {
-            mv.setTranslateX(0); mv.setTranslateY(0); mv.setImage(null);
+        tt.setInterpolator(Interpolator.EASE_BOTH);
+
+        // Light vertical "hop" bounce layered on top of the glide via a scale
+        // pulse, so each step reads as a hop rather than a flat slide.
+        double hopHeight = isLongJump ? 24 : 10;
+        Timeline arc = new Timeline(
+            new KeyFrame(Duration.millis(0),       new KeyValue(mv.scaleYProperty(), 1.0)),
+            new KeyFrame(Duration.millis(ms * 0.5), new KeyValue(mv.scaleYProperty(), 1.0 + hopHeight / 400.0)),
+            new KeyFrame(Duration.millis(ms),       new KeyValue(mv.scaleYProperty(), 1.0))
+        );
+
+        ParallelTransition glideAndArc = new ParallelTransition(tt, arc);
+
+        glideAndArc.setOnFinished(e -> {
+            mv.setTranslateX(0); mv.setTranslateY(0); mv.setScaleY(1.0); mv.setImage(null);
             for (Monster s : Board.getStationedMonsters())
                 if (s.getPosition() == from) { mv.setImage(monsterSprite(s.getName())); break; }
             if (stationary.getPosition() == from && mv.getImage() == null)
@@ -165,7 +223,111 @@ public final class GameAnimationHelper {
                 spotlightViews[fRC[0]][fRC[1]].setOpacity(0.85);
             }
         });
-        return new SequentialTransition(front, tt);
+        return new SequentialTransition(front, glideAndArc);
+    }
+
+    // =========================================================
+    //  CONVEYOR BELT DESTINATION POINTER
+    // =========================================================
+
+    /**
+     * Draws a brief animated arrow from a conveyor-belt cell to the cell it
+     * will transport a monster to, plus a pulsing ring on the destination
+     * cell, then fades both out. Purely visual — does not move any monster
+     * or touch engine state.
+     *
+     * @param fromIndex board index of the conveyor cell that was tapped
+     * @param toIndex   board index of the destination cell
+     * @param grid      the board GridPane (used to locate cell panes and sizing)
+     */
+    public static void animateConveyorPointer(int fromIndex, int toIndex, GridPane grid) {
+        StackPane fromPane = findCellPane(grid, fromIndex);
+        StackPane toPane   = findCellPane(grid, toIndex);
+        if (fromPane == null || toPane == null) return;
+
+        double cellW = grid.getWidth()  / Constants.BOARD_COLS;
+        double cellH = grid.getHeight() / Constants.BOARD_ROWS;
+
+        int[] fRC = toRowCol(fromIndex);
+        int[] tRC = toRowCol(toIndex);
+        double dx = (tRC[1] - fRC[1]) * cellW;
+        double dy = (tRC[0] - fRC[0]) * cellH;
+        double angleDeg = Math.toDegrees(Math.atan2(dy, dx));
+
+        // Arrow glyph, centered on the source cell, rotated to point at target
+        Label arrow = new Label("\u279C"); // ➜
+        arrow.setStyle(
+            "-fx-font-size: " + Math.max(18, cellW * 0.5) + "px;" +
+            "-fx-text-fill: #ffdd33;" +
+            "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.85), 4, 0.4, 0, 0);" +
+            "-fx-font-weight: bold;");
+        arrow.setMouseTransparent(true);
+        arrow.setRotate(angleDeg);
+        arrow.setOpacity(0);
+        StackPane.setAlignment(arrow, Pos.CENTER);
+        fromPane.getChildren().add(arrow);
+
+        // Pulsing ring on the destination cell
+        Label destPing = new Label("\u25CE"); // ◎
+        destPing.setStyle(
+            "-fx-font-size: " + Math.max(20, cellW * 0.55) + "px;" +
+            "-fx-text-fill: #ffdd33;" +
+            "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.85), 4, 0.4, 0, 0);");
+        destPing.setMouseTransparent(true);
+        destPing.setOpacity(0);
+        StackPane.setAlignment(destPing, Pos.CENTER);
+        toPane.getChildren().add(destPing);
+
+        arrow.setTranslateX(0); arrow.setTranslateY(0);
+        FadeTransition arrowIn = new FadeTransition(Duration.millis(150), arrow);
+        arrowIn.setFromValue(0); arrowIn.setToValue(1);
+
+        TranslateTransition slide = new TranslateTransition(Duration.millis(550), arrow);
+        double dist = Math.min(cellW, cellH) * 0.35;
+        double rad  = Math.toRadians(angleDeg);
+        slide.setByX(Math.cos(rad) * dist);
+        slide.setByY(Math.sin(rad) * dist);
+        slide.setCycleCount(2);
+        slide.setAutoReverse(true);
+        slide.setInterpolator(Interpolator.EASE_BOTH);
+
+        PauseTransition hold = new PauseTransition(Duration.millis(750));
+
+        FadeTransition arrowOut = new FadeTransition(Duration.millis(250), arrow);
+        arrowOut.setFromValue(1); arrowOut.setToValue(0);
+        arrowOut.setOnFinished(e -> fromPane.getChildren().remove(arrow));
+
+        FadeTransition pingIn = new FadeTransition(Duration.millis(200), destPing);
+        pingIn.setFromValue(0); pingIn.setToValue(1);
+        ScaleTransition pingPulse = new ScaleTransition(Duration.millis(500), destPing);
+        pingPulse.setFromX(0.6); pingPulse.setFromY(0.6);
+        pingPulse.setToX(1.3);   pingPulse.setToY(1.3);
+        pingPulse.setCycleCount(2);
+        pingPulse.setAutoReverse(true);
+        FadeTransition pingOut = new FadeTransition(Duration.millis(300), destPing);
+        pingOut.setFromValue(1); pingOut.setToValue(0);
+        pingOut.setOnFinished(e -> toPane.getChildren().remove(destPing));
+
+        SequentialTransition fullSeq = new SequentialTransition(
+            new ParallelTransition(arrowIn, pingIn),
+            new ParallelTransition(slide, pingPulse, hold),
+            new ParallelTransition(arrowOut, pingOut)
+        );
+        fullSeq.play();
+    }
+
+    /** Locates the StackPane cell at a given board index by scanning grid children. */
+    private static StackPane findCellPane(GridPane grid, int boardIndex) {
+        int[] rc = toRowCol(boardIndex);
+        for (Node child : grid.getChildren()) {
+            Integer cIdx = GridPane.getColumnIndex(child);
+            Integer rIdx = GridPane.getRowIndex(child);
+            int col = (cIdx == null) ? 0 : cIdx;
+            int row = (rIdx == null) ? 0 : rIdx;
+            if (col == rc[1] && row == rc[0] && child instanceof StackPane)
+                return (StackPane) child;
+        }
+        return null;
     }
 
     // =========================================================

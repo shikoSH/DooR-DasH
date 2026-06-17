@@ -35,7 +35,8 @@ import static game.gui.controllers.GameUIHelper.*;
  *   • {@link GameUIHelper}       – label / light / shadow factories
  *   • {@link GamePanelBuilder}   – side-panel and action-log construction
  *   • {@link GameBoardRenderer}  – grid building and board refresh
- *   • {@link GameAnimationHelper}– dice, move, energy-bar, popup, card animations
+ *   • {@link GameAnimationHelper}– dice, move, energy-bar, popup, conveyor
+ *                                  pointer, and card animations
  *
  * Owner: Integration / GameController team member
  */
@@ -169,7 +170,8 @@ public class GameController {
             grid.minHeightProperty().bind(boardSize);
 
             // ── Delegate to helpers ──────────────────────────────────────
-            boardRenderer = new GameBoardRenderer(grid, cellSize, this::handleMonsterCellClick);
+            boardRenderer = new GameBoardRenderer(grid, cellSize,
+                this::handleMonsterCellClick, this::handleConveyorCellClick);
             boardRenderer.buildGrid();
 
             player   = GamePanelBuilder.buildPlayerPanel(playerPanelContainer, energyTiers[4]);
@@ -348,153 +350,151 @@ public class GameController {
         setLight(opponent.turnOff, opponent.turnOn, cur == o,                    opponent.turnState, v -> opponent.turnState = v);
         setLight(opponent.confOff, opponent.confOn, o.isConfused(),              opponent.confState, v -> opponent.confState = v);
         setLight(opponent.frzOff,  opponent.frzOn,  o.isFrozen(),                opponent.frzState,  v -> opponent.frzState  = v);
-        setLight(opponent.shldOff, opponent.shldOn, o.isShielded(),              opponent.shldState, v -> opponent.shldState = v);
+        setLight(opponent.shldOff, opponent.shldOn, o.isShielded(),              opponent.shldState, v -> opponent.shldState  = v);
         setLight(opponent.pwrOff,  opponent.pwrOn,  opponentPowerTurnsLeft > 0, opponent.pwrState,  v -> opponent.pwrState  = v);
     }
 
     // =========================================================
     //  ROLL HANDLER
     // =========================================================
- // =========================================================
-//  ROLL HANDLER
-// =========================================================
-@FXML
-private void handleRollDice() {
-    if (game == null || cardOverlay.isVisible() || isAnimating || monsterOverlayVisible) return;
-    try {
-        isAnimating = true;
-        Monster current  = game.getCurrent();
-        Monster opp      = current == game.getPlayer()
-            ? game.getOpponent() : game.getPlayer();
+    @FXML
+    private void handleRollDice() {
+        if (game == null || cardOverlay.isVisible() || isAnimating || monsterOverlayVisible) return;
+        try {
+            isAnimating = true;
+            Monster current  = game.getCurrent();
+            Monster opp      = current == game.getPlayer()
+                ? game.getOpponent() : game.getPlayer();
 
-        int  oldPos    = current.getPosition();
-        int  oldEnergy = current.getEnergy();
-        int  oldOppEng = opp.getEnergy();
-        boolean wasShld = current.isShielded();
+            int  oldPos    = current.getPosition();
+            int  oldEnergy = current.getEnergy();
+            int  oldOppEng = opp.getEnergy();
+            boolean wasShld = current.isShielded();
 
-        Card topCard = Board.cards.isEmpty() ? null : Board.cards.get(0);
-        if (Board.cards.isEmpty()) Board.reloadCards();
+            Card topCard = Board.cards.isEmpty() ? null : Board.cards.get(0);
+            if (Board.cards.isEmpty()) Board.reloadCards();
 
-        if (current.isFrozen()) {
+            if (current.isFrozen()) {
+                game.playTurn();
+                actionLine1.setText(current.getName() + " FROZEN - SKIPPED!");
+                actionLine2.setText(""); actionLine3.setText("");
+                refreshBoard(); updateUI();
+                isAnimating = false;
+                return;
+            }
+
+            // Snapshot door activation states before the turn
+            boolean[][] doorWasActivated = new boolean[10][10];
+            Cell[][] cells = game.getBoard().getBoardCells();
+            for (int r = 0; r < 10; r++)
+                for (int c = 0; c < 10; c++)
+                    if (cells[r][c] instanceof DoorCell)
+                        doorWasActivated[r][c] = ((DoorCell) cells[r][c]).isActivated();
+
+            // Snapshot stationed monster energies before the turn
+            java.util.Map<String, Integer> stationedBefore = new java.util.HashMap<>();
+            for (Monster m : Board.getStationedMonsters())
+                stationedBefore.put(m.getName(), m.getEnergy());
+
             game.playTurn();
-            actionLine1.setText(current.getName() + " FROZEN - SKIPPED!");
-            actionLine2.setText(""); actionLine3.setText("");
-            refreshBoard(); updateUI();
-            isAnimating = false;
-            return;
-        }
 
-        // Snapshot door activation states before the turn
-        boolean[][] doorWasActivated = new boolean[10][10];
-        Cell[][] cells = game.getBoard().getBoardCells();
-        for (int r = 0; r < 10; r++)
-            for (int c = 0; c < 10; c++)
-                if (cells[r][c] instanceof DoorCell)
-                    doorWasActivated[r][c] = ((DoorCell) cells[r][c]).isActivated();
+            int newPos    = current.getPosition();
+            int newEnergy = current.getEnergy();
+            int newOppEng = opp.getEnergy();
+            boolean drawn = topCard != null &&
+                (Board.cards.isEmpty() || Board.cards.get(0) != topCard);
 
-        // Snapshot stationed monster energies before the turn
-        java.util.Map<String, Integer> stationedBefore = new java.util.HashMap<>();
-        for (Monster m : Board.getStationedMonsters())
-            stationedBefore.put(m.getName(), m.getEnergy());
+            int moved    = newPos - oldPos;
+            if (moved < 0) moved += 100;
+            int diceFace = Math.max(1, Math.min(6, moved));
 
-        game.playTurn();
+            actionLine1.setText(current.getName() + " -> POS " + newPos + " (+" + moved + ")");
+            actionLine2.setText(drawn && topCard != null
+                ? topCard.getName() + ": " + cardEffect(topCard.getName()) : "");
+            if (wasShld && !current.isShielded())
+                actionLine3.setText("SHIELD BLOCKED LOSS!");
+            else if (newEnergy != oldEnergy)
+                actionLine3.setText(current.getName()
+                    + (newEnergy - oldEnergy > 0 ? " +" : " ")
+                    + (newEnergy - oldEnergy) + " -> " + newEnergy);
+            else if (newOppEng != oldOppEng)
+                actionLine3.setText(opp.getName()
+                    + (newOppEng - oldOppEng > 0 ? " +" : " ")
+                    + (newOppEng - oldOppEng) + " -> " + newOppEng);
+            else
+                actionLine3.setText("");
 
-        int newPos    = current.getPosition();
-        int newEnergy = current.getEnergy();
-        int newOppEng = opp.getEnergy();
-        boolean drawn = topCard != null &&
-            (Board.cards.isEmpty() || Board.cards.get(0) != topCard);
+            final Card    fc   = topCard;
+            final boolean fd   = drawn;
+            final Monster fm   = current;
+            final Monster fo   = opp;
+            final int     fp   = oldPos;
+            final int     fn   = newPos;
+            final boolean[][] finalDoorSnap       = doorWasActivated;
+            final Cell[][]    finalCells          = cells;
+            final java.util.Map<String, Integer> finalStationedBefore = stationedBefore;
 
-        int moved    = newPos - oldPos;
-        if (moved < 0) moved += 100;
-        int diceFace = Math.max(1, Math.min(6, moved));
+            if (diceTimeline != null) diceTimeline.stop();
+            diceTimeline = GameAnimationHelper.animateDice(
+                diceView, diceImages, diceResultLabel, diceFace,
+                () -> GameAnimationHelper.animateMove(
+                    fm, fo, fp, fn,
+                    boardRenderer.getMonsterViews(),
+                    boardRenderer.getSpotlightViews(),
+                    grid,
+                    () -> {
+                        refreshBoard(); updateUI();
 
-        actionLine1.setText(current.getName() + " -> POS " + newPos + " (+" + moved + ")");
-        actionLine2.setText(drawn && topCard != null
-            ? topCard.getName() + ": " + cardEffect(topCard.getName()) : "");
-        if (wasShld && !current.isShielded())
-            actionLine3.setText("SHIELD BLOCKED LOSS!");
-        else if (newEnergy != oldEnergy)
-            actionLine3.setText(current.getName()
-                + (newEnergy - oldEnergy > 0 ? " +" : " ")
-                + (newEnergy - oldEnergy) + " -> " + newEnergy);
-        else if (newOppEng != oldOppEng)
-            actionLine3.setText(opp.getName()
-                + (newOppEng - oldOppEng > 0 ? " +" : " ")
-                + (newOppEng - oldOppEng) + " -> " + newOppEng);
-        else
-            actionLine3.setText("");
+                        // Door-opening sound
+                        int[] rc = GameAnimationHelper.toRowCol(fn);
+                        Cell landed = finalCells[rc[0]][rc[1]];
+                        if (landed instanceof DoorCell
+                                && !finalDoorSnap[rc[0]][rc[1]]
+                                && ((DoorCell) landed).isActivated()) {
+                            SoundManager.getInstance().playDoorOpening();
+                        }
 
-        final Card    fc   = topCard;
-        final boolean fd   = drawn;
-        final Monster fm   = current;
-        final Monster fo   = opp;
-        final int     fp   = oldPos;
-        final int     fn   = newPos;
-        final boolean[][] finalDoorSnap       = doorWasActivated;
-        final Cell[][]    finalCells          = cells;
-        final java.util.Map<String, Integer> finalStationedBefore = stationedBefore;
-
-        if (diceTimeline != null) diceTimeline.stop();
-        diceTimeline = GameAnimationHelper.animateDice(
-            diceView, diceImages, diceResultLabel, diceFace,
-            () -> GameAnimationHelper.animateMove(
-                fm, fo, fp, fn,
-                boardRenderer.getMonsterViews(),
-                boardRenderer.getSpotlightViews(),
-                grid,
-                () -> {
-                    refreshBoard(); updateUI();
-
-                    // Door-opening sound
-                    int[] rc = GameAnimationHelper.toRowCol(fn);
-                    Cell landed = finalCells[rc[0]][rc[1]];
-                    if (landed instanceof DoorCell
-                            && !finalDoorSnap[rc[0]][rc[1]]
-                            && ((DoorCell) landed).isActivated()) {
-                        SoundManager.getInstance().playDoorOpening();
-                    }
-
-                    // Stationed monster energy popups
-                    for (Monster stationed : Board.getStationedMonsters()) {
-                        Integer before = finalStationedBefore.get(stationed.getName());
-                        if (before != null && stationed.getEnergy() != before) {
-                            int diff = stationed.getEnergy() - before;
-                            int[] dst = GameAnimationHelper.toRowCol(stationed.getPosition());
-                            for (Node child : grid.getChildren()) {
-                                Integer cIdx = GridPane.getColumnIndex(child);
-                                Integer rIdx = GridPane.getRowIndex(child);
-                                int col = (cIdx == null) ? 0 : cIdx;
-                                int row = (rIdx == null) ? 0 : rIdx;
-                                if (col == dst[1] && row == dst[0] && child instanceof StackPane) {
-                                    GameAnimationHelper.createFloatingPopup(
-                                        (StackPane) child, diff >= 0, Math.abs(diff));
-                                    break;
+                        // Stationed monster energy popups
+                        for (Monster stationed : Board.getStationedMonsters()) {
+                            Integer before = finalStationedBefore.get(stationed.getName());
+                            if (before != null && stationed.getEnergy() != before) {
+                                int diff = stationed.getEnergy() - before;
+                                int[] dst = GameAnimationHelper.toRowCol(stationed.getPosition());
+                                for (Node child : grid.getChildren()) {
+                                    Integer cIdx = GridPane.getColumnIndex(child);
+                                    Integer rIdx = GridPane.getRowIndex(child);
+                                    int col = (cIdx == null) ? 0 : cIdx;
+                                    int row = (rIdx == null) ? 0 : rIdx;
+                                    if (col == dst[1] && row == dst[0] && child instanceof StackPane) {
+                                        GameAnimationHelper.createFloatingPopup(
+                                            (StackPane) child, diff >= 0, Math.abs(diff));
+                                        break;
+                                    }
                                 }
                             }
                         }
-                    }
 
-                    if (fd && fc != null) showCardOverlay(fc);
-                    checkWinner();
-                    isAnimating = false;
-                }));
+                        if (fd && fc != null) showCardOverlay(fc);
+                        checkWinner();
+                        isAnimating = false;
+                    }));
 
-    } catch (game.engine.exceptions.InvalidMoveException ex) {
-        actionLine1.setText("INVALID: " + ex.getMessage());
-        actionLine2.setText("ROLL AGAIN!"); actionLine3.setText("");
-        refreshBoard(); updateUI();
-        isAnimating = false;
-        showErrorAlert("Invalid Move", ex.getMessage());
-    } catch (Exception ex) {
-        String msg = ex.getMessage() != null ? ex.getMessage() : ex.getClass().getSimpleName();
-        actionLine1.setText("ERROR: " + msg);
-        actionLine2.setText(""); actionLine3.setText("");
-        isAnimating = false;
-        showErrorAlert("Error", msg);
-        ex.printStackTrace();
+        } catch (game.engine.exceptions.InvalidMoveException ex) {
+            actionLine1.setText("INVALID: " + ex.getMessage());
+            actionLine2.setText("ROLL AGAIN!"); actionLine3.setText("");
+            refreshBoard(); updateUI();
+            isAnimating = false;
+            showErrorAlert("Invalid Move", ex.getMessage());
+        } catch (Exception ex) {
+            String msg = ex.getMessage() != null ? ex.getMessage() : ex.getClass().getSimpleName();
+            actionLine1.setText("ERROR: " + msg);
+            actionLine2.setText(""); actionLine3.setText("");
+            isAnimating = false;
+            showErrorAlert("Error", msg);
+            ex.printStackTrace();
+        }
     }
-}
+
     // =========================================================
     //  POWER-UP HANDLER
     // =========================================================
@@ -544,6 +544,33 @@ private void handleRollDice() {
         for (Monster m : Board.getStationedMonsters())
             if (m.getPosition() == cellIndex) return m;
         return null;
+    }
+
+    // =========================================================
+    //  CONVEYOR CELL CLICK
+    // =========================================================
+
+    /**
+     * Shows an animated pointer from the tapped conveyor-belt cell to the
+     * cell it will transport a monster to. Purely visual: reads the
+     * destination from the engine's ConveyorBelt cell but never mutates
+     * game state or moves any monster.
+     */
+    private void handleConveyorCellClick(int boardIndex) {
+        if (game == null || isAnimating) return;
+
+        Cell[][] cells = game.getBoard().getBoardCells();
+        int row = boardIndex / Constants.BOARD_COLS;
+        int col = boardIndex % Constants.BOARD_COLS;
+        if (row < 0 || row >= cells.length || col < 0 || col >= cells[0].length) return;
+
+        Cell cell = cells[row][col];
+        if (!(cell instanceof ConveyorBelt)) return;
+
+        int destIndex = boardIndex + ((ConveyorBelt) cell).getEffect();
+        destIndex = Math.max(0, Math.min(Constants.BOARD_SIZE - 1, destIndex));
+
+        GameAnimationHelper.animateConveyorPointer(boardIndex, destIndex, grid);
     }
 
     // =========================================================
@@ -743,6 +770,88 @@ private void handleRollDice() {
         cardOverlayFace.setImage(cardFace(card.getName()));
         cardOverlayBack.setOpacity(1); cardOverlayBack.setVisible(true);
         cardOverlayFace.setOpacity(0);
+        // cardOverlay itself stays hidden until the flight animation lands —
+        // the flying copy is what the user sees during the travel.
+        cardOverlay.setOpacity(0);
+        cardOverlay.setVisible(false);
+
+        playCardDrawFlight(() -> revealCardOverlay());
+    }
+
+    /**
+     * Spawns a temporary card-back ImageView at the deck's current on-screen
+     * position and animates it flying to the centre of the board, growing to
+     * roughly the overlay's target size along the way, with a gentle rotation
+     * for flair. Purely a "travel" animation — does not touch cardOverlay or
+     * any of its children. Calls {@code onArrived} once the flight finishes,
+     * which is where the existing blur/reveal choreography takes over.
+     */
+    private void playCardDrawFlight(Runnable onArrived) {
+        if (cardDeckView == null || cardBack == null) {
+            onArrived.run();
+            return;
+        }
+
+        // Deck's current on-screen bounds, converted into backgroundRoot's
+        // local coordinate space (backgroundRoot is the common StackPane
+        // ancestor for both the deck and the overlay).
+        javafx.geometry.Bounds deckBoundsInScene = cardDeckView.localToScene(cardDeckView.getBoundsInLocal());
+        javafx.geometry.Point2D deckCenterLocal = backgroundRoot.sceneToLocal(
+            (deckBoundsInScene.getMinX() + deckBoundsInScene.getMaxX()) / 2,
+            (deckBoundsInScene.getMinY() + deckBoundsInScene.getMaxY()) / 2);
+
+        double rootW = backgroundRoot.getWidth();
+        double rootH = backgroundRoot.getHeight();
+        double centerX = rootW / 2.0;
+        double centerY = rootH / 2.0;
+
+        // Target size roughly matches the card overlay's current back-image size,
+        // falling back to a sane default if layout hasn't run yet.
+        double targetW = cardOverlayBack.getFitWidth() > 0 ? cardOverlayBack.getFitWidth() : 160;
+
+        ImageView flying = new ImageView(cardBack);
+        flying.setPreserveRatio(true);
+        flying.setFitWidth(Math.max(40, deckBoundsInScene.getWidth() * 0.9));
+        addDropShadow(flying, 18, Color.BLACK);
+
+        // Position it at the deck's centre using translate offsets from the
+        // StackPane's own centre (StackPane children default to centred).
+        flying.setTranslateX(deckCenterLocal.getX() - centerX);
+        flying.setTranslateY(deckCenterLocal.getY() - centerY);
+        flying.setRotate(-8);
+        flying.setOpacity(0);
+
+        backgroundRoot.getChildren().add(flying);
+        flying.toFront();
+
+        FadeTransition popIn = new FadeTransition(Duration.millis(120), flying);
+        popIn.setFromValue(0); popIn.setToValue(1);
+
+        TranslateTransition fly = new TranslateTransition(Duration.millis(480), flying);
+        fly.setToX(0); fly.setToY(0);
+        fly.setInterpolator(Interpolator.EASE_BOTH);
+
+        double scaleFactor = targetW / flying.getFitWidth();
+        ScaleTransition grow = new ScaleTransition(Duration.millis(480), flying);
+        grow.setToX(scaleFactor); grow.setToY(scaleFactor);
+        grow.setInterpolator(Interpolator.EASE_BOTH);
+
+        RotateTransition straighten = new RotateTransition(Duration.millis(480), flying);
+        straighten.setToAngle(0);
+        straighten.setInterpolator(Interpolator.EASE_BOTH);
+
+        ParallelTransition travel = new ParallelTransition(fly, grow, straighten);
+
+        SequentialTransition flight = new SequentialTransition(popIn, travel);
+        flight.setOnFinished(e -> {
+            backgroundRoot.getChildren().remove(flying);
+            onArrived.run();
+        });
+        flight.play();
+    }
+
+    /** Runs the original blur/reveal card-overlay choreography, unchanged. */
+    private void revealCardOverlay() {
         cardOverlay.setVisible(true);
 
         masterLayout.setEffect(worldBlur);
