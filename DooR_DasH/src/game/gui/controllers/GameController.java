@@ -79,7 +79,9 @@ public class GameController {
     // Action-log labels
     private Label actionLine1, actionLine2, actionLine3;
     private ImageView actionLogBg;   // stored for resize-binding in applyAllLayout
+    private VBox actionLogTextBox;   // NEW
 
+    
     // =========================================================
     //  CARD OVERLAY
     // =========================================================
@@ -184,6 +186,7 @@ public class GameController {
             actionLine2  = logRefs.line2;
             actionLine3  = logRefs.line3;
             actionLogBg  = logRefs.background;
+            actionLogTextBox = logRefs.textBox;   // NEW
 
             buildCardOverlay();
             buildMessageOverlay();
@@ -1166,10 +1169,38 @@ arrive.play();
         if (player.profileBg   != null) player.profileBg.setFitWidth(panelW * PROFILE_W_MULT);
         if (opponent.profileBg != null) opponent.profileBg.setFitWidth(panelW * PROFILE_W_MULT);
 
-        if (actionLogBg != null) actionLogBg.setFitWidth(panelW * ACTION_LOG_W_MULT);
-        for (Label l : new Label[]{actionLine1, actionLine2, actionLine3})
-            if (l != null) l.setMaxWidth(panelW * ACTION_LOG_W_MULT - 18);
+        if (actionLogBg != null) {
+            double logW = panelW * ACTION_LOG_W_MULT;
+            actionLogBg.setFitWidth(logW);
 
+            Image logImg = actionLogBg.getImage();
+            double logH = (logImg != null && logImg.getWidth() > 0)
+                ? logW * (logImg.getHeight() / logImg.getWidth())
+                : logW * 0.6; // fallback ratio if the image hasn't finished loading yet
+
+            double topPad   = logH * ACTION_LOG_TOP_PAD_FRAC;
+            double leftPad  = logW * ACTION_LOG_LEFT_PAD_FRAC;
+            double rightPad = logW * ACTION_LOG_RIGHT_PAD_FRAC;
+            double botPad   = logH * ACTION_LOG_BOTTOM_PAD_FRAC;
+
+            if (actionLogTextBox != null)
+                actionLogTextBox.setPadding(new Insets(topPad, rightPad, botPad, leftPad));
+
+            double lineFontPx   = Math.max(9, logH * ACTION_LOG_FONT_FRAC);
+            double maxTextWidth = Math.max(10, logW - leftPad - rightPad);
+
+            String[] colors = { ACTION_LOG_LINE1_COLOR, ACTION_LOG_LINE2_COLOR, ACTION_LOG_LINE3_COLOR };
+            Label[]  lines  = { actionLine1, actionLine2, actionLine3 };
+            for (int i = 0; i < lines.length; i++) {
+                Label l = lines[i];
+                if (l == null) continue;
+                l.setMaxWidth(maxTextWidth);
+                l.setStyle(
+                    "-fx-font-family: '" + FONT + "';" +
+                    "-fx-font-size: " + lineFontPx + "px;" +
+                    "-fx-text-fill: " + colors[i] + ";");
+            }
+        }
         double lightSz = panelW * LIGHT_SIZE_MULT;
         for (ImageView iv : new ImageView[]{
                 player.turnOff,   player.turnOn,   player.confOff,   player.confOn,
@@ -1233,10 +1264,7 @@ arrive.play();
         AnchorPane.setLeftAnchor(rollImageBtn,  null);
         AnchorPane.setBottomAnchor(rollImageBtn,null);
 
-        if (actionLogContainer != null && actionLogBg != null) {
-            actionLogContainer.setTranslateX(20);
-            actionLogContainer.setTranslateY(H - 200);
-        }
+
     }
 
     // =========================================================

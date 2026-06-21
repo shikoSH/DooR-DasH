@@ -24,6 +24,8 @@ import static game.gui.controllers.GameUIHelper.*;
  *
  * Action-log: the ACTION LOG label is painted directly above the image
  * using a StackPane with fixed TOP_LEFT anchoring so it never drifts on resize.
+ * The log-line text box is exposed via ActionLogRefs.textBox so the
+ * controller can rescale its padding/font in step with the image at runtime.
  */
 public final class GamePanelBuilder {
 
@@ -289,9 +291,10 @@ public final class GamePanelBuilder {
      *   2. A StackPane containing the Action_Log.png image as background and
      *      the three scrolling log lines overlaid on the dark screen area.
      *
-     * The header label uses a fixed pixel size so it always sits flush against
-     * the top edge of the image, matching the pixel font of the baked-in
-     * "ACTION LOG" strip on the image bezel.
+     * The three log-line labels start with a sane default style, but the
+     * controller rescales their font size and the wrapping textBox's padding
+     * every layout pass (see ActionLogRefs.textBox) so the text always tracks
+     * the image's actual rendered size instead of using fixed pixel values.
      */
     public static ActionLogRefs buildActionLog(VBox container) {
         // ── Background image ──────────────────────────────────────────────
@@ -299,15 +302,13 @@ public final class GamePanelBuilder {
         bg.setPreserveRatio(true);
 
         // ── Log text lines (appear inside the dark monitor screen) ─────────
-        // The screen occupies roughly the top 58% of the image height.
-        // We push the text down ~12% from the top of the image to clear any
-        // baked-in border, and use a fixed padding that doesn't move on resize.
-        Label line1 = makeLbl("", "white",   TXT_ACTION_LOG, false);
-        Label line2 = makeLbl("", "#aaffaa", TXT_ACTION_LOG, false);
-        Label line3 = makeLbl("", "#aaaaff", TXT_ACTION_LOG, false);
+        Label line1 = makeLbl("", ACTION_LOG_LINE1_COLOR, TXT_ACTION_LOG, false);
+        Label line2 = makeLbl("", ACTION_LOG_LINE2_COLOR, TXT_ACTION_LOG, false);
+        Label line3 = makeLbl("", ACTION_LOG_LINE3_COLOR, TXT_ACTION_LOG, false);
         for (Label l : new Label[]{line1, line2, line3}) {
             l.setWrapText(true);
-            // Fixed-size font so text never scales with window
+            // Initial fallback sizing — the controller overrides this with a
+            // size proportional to the rendered image on the first layout pass.
             l.setStyle(l.getStyle() +
                 "-fx-font-size:" + TXT_ACTION_LOG + "px;" +
                 "-fx-font-family:'" + FONT + "';");
@@ -315,8 +316,8 @@ public final class GamePanelBuilder {
 
         VBox logText = new VBox(2, line1, line2, line3);
         logText.setAlignment(Pos.TOP_LEFT);
-        // Top padding pushes text below the monitor bezel in the image;
-        // this is a fixed pixel value — does not scale with the window.
+        // Initial fallback padding — replaced by the controller with values
+        // proportional to the rendered image size every layout pass.
         logText.setPadding(new Insets(14, 8, 6, 14));
         logText.setMouseTransparent(true);
 
@@ -325,11 +326,6 @@ public final class GamePanelBuilder {
         StackPane.setAlignment(logText, Pos.TOP_LEFT);
 
         // ── "ACTION LOG" header label ──────────────────────────────────────
-        // Rendered in the same pixel font as the rest of the HUD.
-        // Uses a fixed pixel size and is placed ABOVE the image via VBox ordering.
-        // Because VBox respects its children's preferred sizes and the label has
-        // a fixed preferred height, the label never moves relative to the image
-        // regardless of window size.
         Label header = new Label("ACTION LOG");
         header.setStyle(
             "-fx-font-family:'" + FONT + "';" +
@@ -339,7 +335,6 @@ public final class GamePanelBuilder {
             "-fx-letter-spacing: 1;" +
             "-fx-padding: 0 0 2 2;");
         header.setMouseTransparent(true);
-        // Anchor to the left so it sits directly above the image's left edge
         HBox headerRow = new HBox(header);
         headerRow.setAlignment(Pos.CENTER_LEFT);
         headerRow.setPadding(new Insets(0, 0, 0, 2));
@@ -351,7 +346,7 @@ public final class GamePanelBuilder {
         container.getChildren().add(actionLogGroup);
         container.setStyle("-fx-padding: 4;");
 
-        return new ActionLogRefs(line1, line2, line3, bg);
+        return new ActionLogRefs(line1, line2, line3, bg, logText);
     }
 
     // =========================================================
@@ -361,10 +356,12 @@ public final class GamePanelBuilder {
     public static class ActionLogRefs {
         public final Label     line1, line2, line3;
         public final ImageView background;
+        public final VBox      textBox;   // wraps line1-3; controller rescales its padding to match the image
 
-        public ActionLogRefs(Label l1, Label l2, Label l3, ImageView bg) {
+        public ActionLogRefs(Label l1, Label l2, Label l3, ImageView bg, VBox textBox) {
             this.line1 = l1; this.line2 = l2; this.line3 = l3;
             this.background = bg;
+            this.textBox = textBox;
         }
     }
 

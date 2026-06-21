@@ -47,7 +47,7 @@ public final class GameUIConstants {
     public static final double PANEL_TOP_PAD     = 0.04;
     public static final double LIGHT_SIZE_MULT   = 0.18;
     public static final double PROFILE_W_MULT    = 0.95;
-    public static final double ACTION_LOG_W_MULT = 0.90;
+    public static final double ACTION_LOG_W_MULT = 1.30;   // was 0.90 — bump up/down to resize the action log
     public static final double CONTROL_BAR_H     = 0.16;
     public static final double DECK_LEFT         = 0.25;
     public static final double DECK_TOP_FRAC     = -1.8;
@@ -65,6 +65,24 @@ public final class GameUIConstants {
     public static final double BG_OVERSIZE       = 1.08;
     public static final double CARD_W_MULT       = 0.38;
     public static final double CARD_H_MULT       = 0.50;
+
+    // =========================================================
+    //  ACTION LOG — TEXT OVERLAY
+    // =========================================================
+    // All expressed as fractions of the *rendered* Action_Log.png size
+    // (recomputed every layout pass), so the three log lines always sit
+    // inside the image's screen area and scale together with it instead of
+    // drifting at different window sizes like fixed-pixel padding would.
+    // Nudge these to match your artwork once you see it rendered.
+    public static final double ACTION_LOG_TOP_PAD_FRAC    = 0.11;
+    public static final double ACTION_LOG_LEFT_PAD_FRAC   = 0.07;
+    public static final double ACTION_LOG_RIGHT_PAD_FRAC  = 0.05;
+    public static final double ACTION_LOG_BOTTOM_PAD_FRAC = 0.05;
+    public static final double ACTION_LOG_FONT_FRAC       = 0.085;
+
+    public static final String ACTION_LOG_LINE1_COLOR = "white";
+    public static final String ACTION_LOG_LINE2_COLOR = "#aaffaa";
+    public static final String ACTION_LOG_LINE3_COLOR = "#aaaaff";
 
     // =========================================================
     //  IMAGE ROOT PATH
