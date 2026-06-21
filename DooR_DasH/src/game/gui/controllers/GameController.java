@@ -769,9 +769,12 @@ public class GameController {
         cardOverlayEffect.setText(cardEffect(card.getName()));
         cardOverlayFace.setImage(cardFace(card.getName()));
         cardOverlayBack.setOpacity(1); cardOverlayBack.setVisible(true);
-        cardOverlayFace.setOpacity(0);
+        cardOverlayBack.setRotate(0);
+        cardOverlayFace.setOpacity(0); cardOverlayFace.setVisible(false);
+        cardOverlayFace.setRotate(0);
+
         // cardOverlay itself stays hidden until the flight animation lands —
-        // the flying copy is what the user sees during the travel.
+        // the flying copy is what the user sees travelling from the deck.
         cardOverlay.setOpacity(0);
         cardOverlay.setVisible(false);
 
@@ -784,7 +787,7 @@ public class GameController {
      * roughly the overlay's target size along the way, with a gentle rotation
      * for flair. Purely a "travel" animation — does not touch cardOverlay or
      * any of its children. Calls {@code onArrived} once the flight finishes,
-     * which is where the existing blur/reveal choreography takes over.
+     * which is where the blur/flip reveal choreography takes over.
      */
     private void playCardDrawFlight(Runnable onArrived) {
         if (cardDeckView == null || cardBack == null) {
@@ -850,29 +853,57 @@ public class GameController {
         flight.play();
     }
 
-    /** Runs the original blur/reveal card-overlay choreography, unchanged. */
+    /**
+     * Runs the blur-in + overlay fade-in, then performs a real Y-axis card
+     * flip: the back rotates out of view, swaps to the front at the 90°
+     * midpoint, then the front rotates in. Timing matches the original
+     * cross-fade duration; only the back→front transition mechanic changed.
+     */
+    /**
+     * Runs the blur-in + overlay fade-in, then performs a real Y-axis card
+     * flip immediately after — no dead pause between arrival and flip, so
+     * the flight and the flip read as one continuous motion.
+     */
     private void revealCardOverlay() {
         cardOverlay.setVisible(true);
 
         masterLayout.setEffect(worldBlur);
         Timeline blurIn = new Timeline(
             new KeyFrame(Duration.millis(0),   e -> { worldBlur.setWidth(0);  worldBlur.setHeight(0); }),
-            new KeyFrame(Duration.millis(400), e -> { worldBlur.setWidth(14); worldBlur.setHeight(14); }));
-        FadeTransition cardIn = new FadeTransition(Duration.millis(350), cardOverlay);
+            new KeyFrame(Duration.millis(250), e -> { worldBlur.setWidth(14); worldBlur.setHeight(14); }));
+        FadeTransition cardIn = new FadeTransition(Duration.millis(200), cardOverlay);
         cardIn.setFromValue(0); cardIn.setToValue(1);
-        PauseTransition pause = new PauseTransition(Duration.millis(700));
-        pause.setOnFinished(e -> {
-            FadeTransition faceIn = new FadeTransition(Duration.millis(400), cardOverlayFace);
-            faceIn.setFromValue(0); faceIn.setToValue(1);
-            faceIn.setOnFinished(ev -> {
-                FadeTransition backOut = new FadeTransition(Duration.millis(300), cardOverlayBack);
-                backOut.setFromValue(1); backOut.setToValue(0);
-                backOut.setOnFinished(bev -> cardOverlayBack.setVisible(false));
-                backOut.play();
+
+        ParallelTransition arrive = new ParallelTransition(blurIn, cardIn);
+        arrive.setOnFinished(e -> {
+            // Real card-flip: rotate the back out on the Y axis, swap to the
+            // front at the 90° midpoint, then rotate the front in. Starts
+            // immediately — no pause — so it flows straight from the flight.
+            cardOverlayFace.setOpacity(1);
+            cardOverlayFace.setVisible(false);
+            cardOverlayBack.setVisible(true);
+            cardOverlayBack.setOpacity(1);
+
+            RotateTransition flipOutBack = new RotateTransition(Duration.millis(220), cardOverlayBack);
+            flipOutBack.setAxis(javafx.scene.transform.Rotate.Y_AXIS);
+            flipOutBack.setFromAngle(0);
+            flipOutBack.setToAngle(90);
+            flipOutBack.setInterpolator(Interpolator.EASE_IN);
+            flipOutBack.setOnFinished(ev -> {
+                cardOverlayBack.setVisible(false);
+                cardOverlayFace.setVisible(true);
+                cardOverlayFace.setRotate(-90);
+
+                RotateTransition flipInFace = new RotateTransition(Duration.millis(220), cardOverlayFace);
+                flipInFace.setAxis(javafx.scene.transform.Rotate.Y_AXIS);
+                flipInFace.setFromAngle(-90);
+                flipInFace.setToAngle(0);
+                flipInFace.setInterpolator(Interpolator.EASE_OUT);
+                flipInFace.play();
             });
-            faceIn.play();
+            flipOutBack.play();
         });
-        new SequentialTransition(blurIn, cardIn, pause).play();
+        arrive.play();
     }
 
     private void dismissCardOverlay() {
@@ -882,10 +913,15 @@ public class GameController {
                                                        masterLayout.setEffect(null); }));
         FadeTransition cardOut = new FadeTransition(Duration.millis(280), cardOverlay);
         cardOut.setFromValue(1); cardOut.setToValue(0);
-        cardOut.setOnFinished(e -> { cardOverlay.setVisible(false); refreshBoard(); updateUI(); });
+        cardOut.setOnFinished(e -> {
+            cardOverlay.setVisible(false);
+            // Reset flip rotation so the next card draw starts clean.
+            cardOverlayBack.setRotate(0);
+            cardOverlayFace.setRotate(0);
+            refreshBoard(); updateUI();
+        });
         new ParallelTransition(blurOut, cardOut).play();
     }
-
     // =========================================================
     //  MESSAGE / EXCEPTION OVERLAY  (confirm dialog + error alert)
     // =========================================================

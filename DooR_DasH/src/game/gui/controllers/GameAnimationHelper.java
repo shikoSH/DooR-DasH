@@ -500,4 +500,122 @@ public final class GameAnimationHelper {
         int[] rc = toRowCol(m.getPosition());
         monsterViews[rc[0]][rc[1]].setImage(monsterSprite(m.getName()));
     }
+    
+ // =========================================================
+//  TRANSPORT SLIDE  (conveyor belt / contamination sock — real movement)
+// =========================================================
+
+/**
+ * Slides the monster sprite smoothly along a connecting line from the
+ * transport cell it landed on to the cell it's been transported to.
+ * Conveyor belts and contamination socks get visually distinct line
+ * colors/styles so the two hazards read differently at a glance.
+ * Calls {@code onFinished} once the slide completes.
+ *
+ * @param moving      the monster being transported
+ * @param fromIndex   the conveyor/sock cell's board index (where it landed)
+ * @param toIndex     the transport destination board index
+ * @param isConveyor  true = conveyor belt styling (forward/cyan), false = sock styling (backward/purple)
+ * @param monsterViews shared sprite-view grid
+ * @param grid        the board GridPane
+ * @param onFinished  callback invoked after the slide + cleanup completes
+ */
+public static void animateTransportSlide(Monster moving, int fromIndex, int toIndex,
+                                           boolean isConveyor,
+                                           ImageView[][] monsterViews,
+                                           GridPane grid,
+                                           Runnable onFinished) {
+    StackPane fromPane = findCellPane(grid, fromIndex);
+    StackPane toPane    = findCellPane(grid, toIndex);
+    int[] fRC = toRowCol(fromIndex);
+    int[] tRC = toRowCol(toIndex);
+
+    if (fromPane == null || toPane == null) {
+        // Fallback: just snap the sprite to the destination, no visual line.
+        monsterViews[fRC[0]][fRC[1]].setImage(null);
+        monsterViews[tRC[0]][tRC[1]].setImage(monsterSprite(moving.getName()));
+        if (onFinished != null) onFinished.run();
+        return;
+    }
+
+    double cellW = grid.getWidth()  / Constants.BOARD_COLS;
+    double cellH = grid.getHeight() / Constants.BOARD_ROWS;
+    double dx = (tRC[1] - fRC[1]) * cellW;
+    double dy = (tRC[0] - fRC[0]) * cellH;
+    double lineLength = Math.hypot(dx, dy);
+    double angleDeg = Math.toDegrees(Math.atan2(dy, dx));
+
+    // Style: conveyor = energetic cyan/green dashed line; sock = sickly purple/grey dashed line.
+    String lineColor   = isConveyor ? "#33ffaa" : "#9966cc";
+    String glowColor   = isConveyor ? "rgba(50,255,170,0.9)" : "rgba(150,80,200,0.85)";
+    String dashPattern = isConveyor ? "10,6" : "4,7"; // conveyor = even mechanical dashes, sock = irregular/sickly
+
+    javafx.scene.shape.Line track = new javafx.scene.shape.Line(0, 0, lineLength, 0);
+    track.setStroke(javafx.scene.paint.Color.web(lineColor));
+    track.setStrokeWidth(3);
+    track.getStrokeDashArray().setAll(
+        Double.parseDouble(dashPattern.split(",")[0]),
+        Double.parseDouble(dashPattern.split(",")[1]));
+    track.setEffect(new javafx.scene.effect.Glow(0.8));
+    track.setMouseTransparent(true);
+    track.setOpacity(0);
+    track.setRotate(angleDeg);
+
+    // Anchor the line's start at the source cell's centre; StackPane
+    // children are centred by default, so translate from there.
+    track.setTranslateX((dx / 2.0));
+    track.setTranslateY((dy / 2.0));
+    fromPane.getChildren().add(track);
+    track.toFront();
+
+    // Hide the static sprite at the source cell; a separate sliding
+    // sprite copy travels along the line so it isn't clipped by either
+    // cell's StackPane bounds.
+    ImageView sourceSprite = monsterViews[fRC[0]][fRC[1]];
+    Image spriteImage = monsterSprite(moving.getName());
+    sourceSprite.setImage(null);
+
+    ImageView slidingSprite = new ImageView(spriteImage);
+    slidingSprite.setPreserveRatio(true);
+    slidingSprite.setFitWidth(sourceSprite.getFitWidth() > 0 ? sourceSprite.getFitWidth() : cellW * 0.8);
+    slidingSprite.setMouseTransparent(true);
+    slidingSprite.setEffect(new javafx.scene.effect.DropShadow(10, javafx.scene.paint.Color.web(glowColor)));
+    fromPane.getChildren().add(slidingSprite);
+    slidingSprite.toFront();
+
+    FadeTransition trackIn = new FadeTransition(Duration.millis(150), track);
+    trackIn.setFromValue(0); trackIn.setToValue(0.95);
+
+    TranslateTransition slide = new TranslateTransition(Duration.millis(550), slidingSprite);
+    slide.setToX(dx); slide.setToY(dy);
+    slide.setInterpolator(isConveyor ? Interpolator.EASE_BOTH : Interpolator.LINEAR);
+
+    // Conveyor: confident, slightly accelerating glide.
+    // Sock: a little unsteady — small wobble pulses layered on top.
+    Animation motion;
+    if (isConveyor) {
+        motion = slide;
+    } else {
+        Timeline wobble = new Timeline(
+            new KeyFrame(Duration.millis(0),   new KeyValue(slidingSprite.rotateProperty(), 0.0)),
+            new KeyFrame(Duration.millis(140), new KeyValue(slidingSprite.rotateProperty(), -6.0)),
+            new KeyFrame(Duration.millis(280), new KeyValue(slidingSprite.rotateProperty(), 5.0)),
+            new KeyFrame(Duration.millis(420), new KeyValue(slidingSprite.rotateProperty(), -3.0)),
+            new KeyFrame(Duration.millis(550), new KeyValue(slidingSprite.rotateProperty(), 0.0))
+        );
+        motion = new ParallelTransition(slide, wobble);
+    }
+
+    FadeTransition trackOut = new FadeTransition(Duration.millis(200), track);
+    trackOut.setFromValue(0.95); trackOut.setToValue(0);
+
+    SequentialTransition seq = new SequentialTransition(trackIn, motion, trackOut);
+    seq.setOnFinished(e -> {
+        fromPane.getChildren().remove(track);
+        fromPane.getChildren().remove(slidingSprite);
+        monsterViews[tRC[0]][tRC[1]].setImage(spriteImage);
+        if (onFinished != null) onFinished.run();
+    });
+    seq.play();
+}
 }
