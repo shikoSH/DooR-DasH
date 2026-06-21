@@ -618,4 +618,114 @@ public static void animateTransportSlide(Monster moving, int fromIndex, int toIn
     });
     seq.play();
 }
+
+
+//=========================================================
+//POWER-UP ACTIVATION FX
+//=========================================================
+
+/**
+* Plays a short "power surge" visual on a successful powerup activation: a
+* golden glow + scale pulse on the activating monster's portrait, a floating
+* "POWER UP!" label rising away from it, and a brief full-screen golden
+* flash. Purely cosmetic — does not touch game state.
+*/
+public static void animatePowerUpActivation(StackPane backgroundRoot, ImageView portrait) {
+if (backgroundRoot == null) return;
+
+if (portrait != null) {
+    javafx.scene.effect.DropShadow glow =
+        new javafx.scene.effect.DropShadow(0, javafx.scene.paint.Color.web("#ffcc00"));
+    glow.setSpread(0.45);
+    javafx.scene.effect.Effect original = portrait.getEffect();
+    portrait.setEffect(glow);
+
+    Timeline glowPulse = new Timeline(
+        new KeyFrame(Duration.millis(0),   new KeyValue(glow.radiusProperty(), 0)),
+        new KeyFrame(Duration.millis(220), new KeyValue(glow.radiusProperty(), 45)),
+        new KeyFrame(Duration.millis(600), new KeyValue(glow.radiusProperty(), 0))
+    );
+    glowPulse.setOnFinished(e -> portrait.setEffect(original));
+
+    ScaleTransition pulse = new ScaleTransition(Duration.millis(260), portrait);
+    pulse.setFromX(1.0); pulse.setFromY(1.0);
+    pulse.setToX(1.12);  pulse.setToY(1.12);
+    pulse.setCycleCount(2);
+    pulse.setAutoReverse(true);
+    pulse.setInterpolator(Interpolator.EASE_BOTH);
+
+    new ParallelTransition(glowPulse, pulse).play();
+
+    javafx.geometry.Bounds bounds = portrait.localToScene(portrait.getBoundsInLocal());
+    javafx.geometry.Point2D topCenter = backgroundRoot.sceneToLocal(
+        (bounds.getMinX() + bounds.getMaxX()) / 2, bounds.getMinY());
+
+    Label burst = new Label("POWER UP!");
+    burst.setStyle(
+        "-fx-font-family: 'ARCADECLASSIC';" +
+        "-fx-font-size: 15px;" +
+        "-fx-font-weight: bold;" +
+        "-fx-text-fill: #ffdd33;" +
+        "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.85), 5, 0.5, 0, 0);");
+    burst.setMouseTransparent(true);
+    burst.setOpacity(0);
+
+    double rootW = backgroundRoot.getWidth();
+    double rootH = backgroundRoot.getHeight();
+    burst.setTranslateX(topCenter.getX() - rootW / 2.0 - 35);
+    burst.setTranslateY(topCenter.getY() - rootH / 2.0 - 8);
+
+    backgroundRoot.getChildren().add(burst);
+    burst.toFront();
+
+    FadeTransition burstIn = new FadeTransition(Duration.millis(150), burst);
+    burstIn.setFromValue(0); burstIn.setToValue(1);
+    TranslateTransition burstUp = new TranslateTransition(Duration.millis(900), burst);
+    burstUp.setByY(-40);
+    burstUp.setInterpolator(Interpolator.EASE_OUT);
+    FadeTransition burstOut = new FadeTransition(Duration.millis(300), burst);
+    burstOut.setFromValue(1); burstOut.setToValue(0);
+
+    SequentialTransition fadeSeq = new SequentialTransition(
+        burstIn, new PauseTransition(Duration.millis(450)), burstOut);
+    ParallelTransition full = new ParallelTransition(burstUp, fadeSeq);
+    full.setOnFinished(e -> backgroundRoot.getChildren().remove(burst));
+    full.play();
+}
+
+javafx.scene.shape.Rectangle flash = new javafx.scene.shape.Rectangle();
+flash.widthProperty().bind(backgroundRoot.widthProperty());
+flash.heightProperty().bind(backgroundRoot.heightProperty());
+flash.setFill(javafx.scene.paint.Color.web("#ffdd33"));
+flash.setOpacity(0);
+flash.setMouseTransparent(true);
+backgroundRoot.getChildren().add(flash);
+flash.toFront();
+
+FadeTransition flashIn = new FadeTransition(Duration.millis(70), flash);
+flashIn.setFromValue(0); flashIn.setToValue(0.30);
+FadeTransition flashOut = new FadeTransition(Duration.millis(250), flash);
+flashOut.setFromValue(0.30); flashOut.setToValue(0);
+SequentialTransition flashSeq = new SequentialTransition(flashIn, flashOut);
+flashSeq.setOnFinished(e -> backgroundRoot.getChildren().remove(flash));
+flashSeq.play();
+}
+
+//=========================================================
+//GENERIC "DENIED" SHAKE
+//=========================================================
+
+/** Quick horizontal shake to draw the eye to a blocked/failed action without resizing or hiding the node. */
+public static void shakeNode(Node node) {
+if (node == null) return;
+Timeline shake = new Timeline(
+    new KeyFrame(Duration.millis(0),   new KeyValue(node.translateXProperty(), 0)),
+    new KeyFrame(Duration.millis(60),  new KeyValue(node.translateXProperty(), -10)),
+    new KeyFrame(Duration.millis(120), new KeyValue(node.translateXProperty(), 9)),
+    new KeyFrame(Duration.millis(180), new KeyValue(node.translateXProperty(), -7)),
+    new KeyFrame(Duration.millis(240), new KeyValue(node.translateXProperty(), 4)),
+    new KeyFrame(Duration.millis(300), new KeyValue(node.translateXProperty(), 0))
+);
+shake.play();
+}
 }

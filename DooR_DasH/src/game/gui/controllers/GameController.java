@@ -95,6 +95,8 @@ public class GameController {
     private VBox      messageBox;
     private Label     messageTitle, messageBody;
     private HBox      messageButtons;
+    private Animation messageOverlayTransition;   // NEW
+    private int        messageOverlayToken = 0;   // NEW
 
     // =========================================================
     //  IMAGES
@@ -502,6 +504,16 @@ public class GameController {
     private void handlePowerUp() {
         if (game == null || cardOverlay.isVisible() || monsterOverlayVisible) return;
         if (messageOverlay != null && messageOverlay.isVisible()) return;
+
+        if (powerUpImageBtn != null) {
+            ScaleTransition press = new ScaleTransition(Duration.millis(90), powerUpImageBtn);
+            press.setFromX(1.0); press.setFromY(1.0);
+            press.setToX(0.90);  press.setToY(0.90);
+            press.setCycleCount(2);
+            press.setAutoReverse(true);
+            press.play();
+        }
+
         showConfirmDialog("Use Powerup", "Activate Powerup?",
             "Costs " + Constants.POWERUP_COST + " energy. Proceed?",
             () -> {
@@ -510,12 +522,17 @@ public class GameController {
                     boolean isPlayer = (current == game.getPlayer());
                     String name = current.getName();
                     game.usePowerup();
+
                     actionLine1.setText(name + " POWERUP ACTIVATED!");
                     actionLine2.setText(""); actionLine3.setText("");
                     int POWERUP_DURATION = 3;
                     if (isPlayer) playerPowerTurnsLeft   = POWERUP_DURATION;
                     else          opponentPowerTurnsLeft = POWERUP_DURATION;
                     refreshBoard(); updateUI();
+
+                    SoundManager.getInstance().playPowerUp();
+                    GameAnimationHelper.animatePowerUpActivation(
+                        backgroundRoot, isPlayer ? player.portrait : opponent.portrait);
                 } catch (game.engine.exceptions.OutOfEnergyException ex) {
                     String msg = ex.getMessage() != null ? ex.getMessage()
                         : "Not enough energy! Need " + Constants.POWERUP_COST + " energy to activate.";
@@ -963,81 +980,95 @@ public class GameController {
      * @param confirm   true = confirm dialog (OK + CANCEL), false = error alert (OK only)
      */
     private void showMessageOverlay(String title, String body,
-                                     Runnable onConfirm, boolean confirm) {
-        if (messageOverlay == null) return;
+            Runnable onConfirm, boolean confirm) {
+if (messageOverlay == null) return;
 
-        // ── Icon + colours per mode ───────────────────────────────────────
-        String iconText, titleColor, borderColor, boxBg;
-        if (confirm) {
-            iconText    = "⚡";
-            titleColor  = "#e0e0e0";
-            borderColor = "#444444";
-            boxBg       = "linear-gradient(to bottom,rgba(18,18,28,0.98),rgba(10,10,18,0.99))";
-        } else {
-            iconText    = "✕";
-            titleColor  = "#ffffff";
-            borderColor = "#3a3a3a";
-            boxBg       = "linear-gradient(to bottom,rgba(22,10,10,0.98),rgba(12,4,4,0.99))";
-        }
+// Cancel any overlay transition in flight (e.g. a confirm dialog still
+// fading out) so it can't sneak in later and hide content we're about
+// to show — this is what was killing the insufficient-energy alert.
+final int myToken = ++messageOverlayToken;
+if (messageOverlayTransition != null) messageOverlayTransition.stop();
 
-        // box style
-        messageBox.setStyle(
-            "-fx-background-color:" + boxBg + ";" +
-            "-fx-background-radius:18;" +
-            "-fx-border-color:" + borderColor + ";" +
-            "-fx-border-radius:18;" +
-            "-fx-border-width:1.5;");
-        addDropShadow(messageBox, 50, Color.BLACK);
+// ── Icon + colours per mode ───────────────────────────────────────
+String iconText, titleColor, borderColor, boxBg;
+if (confirm) {
+iconText    = "⚡";
+titleColor  = "#e0e0e0";
+borderColor = "#444444";
+boxBg       = "linear-gradient(to bottom,rgba(18,18,28,0.98),rgba(10,10,18,0.99))";
+} else {
+iconText    = "⚠";
+titleColor  = "#ff6b6b";
+borderColor = "#aa3333";
+boxBg       = "linear-gradient(to bottom,rgba(28,10,10,0.98),rgba(14,4,4,0.99))";
+}
 
-        // icon label above the title
-        Label iconLbl = makeLbl(iconText, titleColor, 28, true);
-        iconLbl.setAlignment(Pos.CENTER);
+messageBox.setStyle(
+"-fx-background-color:" + boxBg + ";" +
+"-fx-background-radius:18;" +
+"-fx-border-color:" + borderColor + ";" +
+"-fx-border-radius:18;" +
+"-fx-border-width:1.5;");
+addDropShadow(messageBox, 50, Color.BLACK);
 
-        messageTitle.setText(title != null ? title.toUpperCase() : "");
-        messageTitle.setStyle(
-            "-fx-font-family:'" + FONT + "';" +
-            "-fx-font-size:16px;" +
-            "-fx-font-weight:bold;" +
-            "-fx-text-fill:" + titleColor + ";" +
-            "-fx-alignment:center;");
+Label iconLbl = makeLbl(iconText, titleColor, 28, true);
+iconLbl.setAlignment(Pos.CENTER);
 
-        // thin separator
-        javafx.scene.shape.Rectangle sep = new javafx.scene.shape.Rectangle(320, 1);
-        sep.setFill(javafx.scene.paint.Color.web(borderColor));
+messageTitle.setText(title != null ? title.toUpperCase() : "");
+messageTitle.setStyle(
+"-fx-font-family:'" + FONT + "';" +
+"-fx-font-size:16px;" +
+"-fx-font-weight:bold;" +
+"-fx-text-fill:" + titleColor + ";" +
+"-fx-alignment:center;");
 
-        messageBody.setText(body != null ? body : "");
-        messageBody.setStyle(
-            "-fx-font-family:'" + FONT + "';" +
-            "-fx-font-size:12px;" +
-            "-fx-text-fill:#aaaaaa;" +
-            "-fx-alignment:center;");
+javafx.scene.shape.Rectangle sep = new javafx.scene.shape.Rectangle(320, 1);
+sep.setFill(javafx.scene.paint.Color.web(borderColor));
 
-        messageButtons.getChildren().clear();
-        messageBox.getChildren().setAll(iconLbl, messageTitle, sep, messageBody, messageButtons);
+messageBody.setText(body != null ? body : "");
+messageBody.setStyle(
+"-fx-font-family:'" + FONT + "';" +
+"-fx-font-size:12px;" +
+"-fx-text-fill:#aaaaaa;" +
+"-fx-alignment:center;");
 
-        if (confirm) {
-            Button ok = overlayActionButton("CONFIRM", "#e0e0e0", "#1a1a2a");
-            ok.setOnAction(e -> { hideMessageOverlay(); if (onConfirm != null) onConfirm.run(); });
-            Button cancel = overlayActionButton("CANCEL", "#555555", "#111111");
-            cancel.setOnAction(e -> hideMessageOverlay());
-            messageButtons.getChildren().addAll(ok, cancel);
-        } else {
-            Button ok = overlayActionButton("DISMISS", "#e0e0e0", "#1a1a1a");
-            ok.setOnAction(e -> hideMessageOverlay());
-            messageButtons.getChildren().add(ok);
-        }
+messageButtons.getChildren().clear();
+messageBox.getChildren().setAll(iconLbl, messageTitle, sep, messageBody, messageButtons);
 
-        messageOverlay.setVisible(true);
-        messageOverlay.toFront();
-        messageBox.setScaleX(0.88); messageBox.setScaleY(0.88);
-        FadeTransition fadeIn = new FadeTransition(Duration.millis(220), messageOverlay);
-        fadeIn.setFromValue(0); fadeIn.setToValue(1);
-        ScaleTransition scaleIn = new ScaleTransition(Duration.millis(220), messageBox);
-        scaleIn.setFromX(0.88); scaleIn.setFromY(0.88);
-        scaleIn.setToX(1.0);   scaleIn.setToY(1.0);
-        scaleIn.setInterpolator(Interpolator.EASE_OUT);
-        new ParallelTransition(fadeIn, scaleIn).play();
-    }
+if (confirm) {
+Button ok = overlayActionButton("CONFIRM", "#e0e0e0", "#1a1a2a");
+ok.setOnAction(e -> { hideMessageOverlay(); if (onConfirm != null) onConfirm.run(); });
+Button cancel = overlayActionButton("CANCEL", "#555555", "#111111");
+cancel.setOnAction(e -> hideMessageOverlay());
+messageButtons.getChildren().addAll(ok, cancel);
+} else {
+Button ok = overlayActionButton("DISMISS", "#e0e0e0", "#1a1a1a");
+ok.setOnAction(e -> hideMessageOverlay());
+messageButtons.getChildren().add(ok);
+}
+
+messageOverlay.setVisible(true);
+messageOverlay.toFront();
+messageOverlay.setOpacity(0);
+messageBox.setTranslateX(0);
+messageBox.setScaleX(0.88); messageBox.setScaleY(0.88);
+
+FadeTransition fadeIn = new FadeTransition(Duration.millis(220), messageOverlay);
+fadeIn.setFromValue(0); fadeIn.setToValue(1);
+ScaleTransition scaleIn = new ScaleTransition(Duration.millis(220), messageBox);
+scaleIn.setFromX(0.88); scaleIn.setFromY(0.88);
+scaleIn.setToX(1.0);   scaleIn.setToY(1.0);
+scaleIn.setInterpolator(Interpolator.EASE_OUT);
+
+ParallelTransition arrive = new ParallelTransition(fadeIn, scaleIn);
+arrive.setOnFinished(e -> {
+if (myToken != messageOverlayToken) return;
+// Give failed/blocked actions a clear "denied" cue.
+if (!confirm) GameAnimationHelper.shakeNode(messageBox);
+});
+messageOverlayTransition = arrive;
+arrive.play();
+}
 
     /** Builds a flat, minimal button for the message overlay. */
     private Button overlayActionButton(String text, String fgColor, String bgColor) {
@@ -1072,9 +1103,17 @@ public class GameController {
 
     private void hideMessageOverlay() {
         if (messageOverlay == null) return;
+        final int myToken = ++messageOverlayToken;
+        if (messageOverlayTransition != null) messageOverlayTransition.stop();
+
         FadeTransition fadeOut = new FadeTransition(Duration.millis(180), messageOverlay);
         fadeOut.setFromValue(messageOverlay.getOpacity()); fadeOut.setToValue(0);
-        fadeOut.setOnFinished(e -> { messageOverlay.setVisible(false); messageButtons.getChildren().clear(); });
+        fadeOut.setOnFinished(e -> {
+            if (myToken != messageOverlayToken) return;   // superseded — don't hide new content
+            messageOverlay.setVisible(false);
+            messageButtons.getChildren().clear();
+        });
+        messageOverlayTransition = fadeOut;
         fadeOut.play();
     }
 

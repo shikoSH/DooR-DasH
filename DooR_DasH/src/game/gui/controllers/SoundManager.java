@@ -29,6 +29,10 @@ public class SoundManager {
         playSFX("card_draw.mp3");
     }
 
+    public void playPowerUp() {
+        playSFX("power_up.mp3");
+    }
+
     /**
      * Plays a short SFX clip using AudioClip (fires immediately, no buffering delay)
      * and briefly ducks the background music while it plays.
@@ -40,23 +44,15 @@ public class SoundManager {
                 System.err.println("SFX not found: " + AUDIO + fileName);
                 return;
             }
-
             MediaPlayer music = SceneManager.getInstance().getMediaPlayer();
             final double volumeBeforeSfx = (music != null) ? music.getVolume() : NORMAL_VOLUME;
             final boolean musicWasAudible = volumeBeforeSfx > 0;
-
             if (music != null && musicWasAudible) {
                 music.setVolume(DUCK_VOLUME);
             }
-
-            // AudioClip plays synchronously without MediaPlayer's async init delay —
-            // this is the correct JavaFX API for short sound effects.
             AudioClip clip = new AudioClip(url.toString());
             clip.setVolume(0.85);
             clip.play();
-
-            // Restore music volume after the clip's estimated duration.
-            // AudioClip has no onEndOfMedia, so we use a PauseTransition as a timer.
             javafx.animation.PauseTransition restore =
                 new javafx.animation.PauseTransition(javafx.util.Duration.seconds(2.5));
             restore.setOnFinished(e -> {
@@ -65,7 +61,6 @@ public class SoundManager {
                 }
             });
             restore.play();
-
         } catch (Exception e) {
             System.err.println("Failed to play SFX: " + fileName + " — " + e.getMessage());
         }
