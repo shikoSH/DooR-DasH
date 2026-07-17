@@ -440,9 +440,12 @@ public class GameController {
             final java.util.Map<String, Integer> finalStationedBefore = stationedBefore;
 
             if (diceTimeline != null) diceTimeline.stop();
+            SoundManager.getInstance().playDiceRoll();
             diceTimeline = GameAnimationHelper.animateDice(
                 diceView, diceImages, diceResultLabel, diceFace,
-                () -> GameAnimationHelper.animateMove(
+                () -> {
+                SoundManager.getInstance().playMovement();
+                 GameAnimationHelper.animateMove(
                     fm, fo, fp, fn,
                     boardRenderer.getMonsterViews(),
                     boardRenderer.getSpotlightViews(),
@@ -450,13 +453,18 @@ public class GameController {
                     () -> {
                         refreshBoard(); updateUI();
 
-                        // Door-opening sound
-                        int[] rc = GameAnimationHelper.toRowCol(fn);
-                        Cell landed = finalCells[rc[0]][rc[1]];
-                        if (landed instanceof DoorCell
-                                && !finalDoorSnap[rc[0]][rc[1]]
-                                && ((DoorCell) landed).isActivated()) {
-                            SoundManager.getInstance().playDoorOpening();
+                     // Door-opening sound — use the engine's own indexing (game.getBoard().getCell),
+                     // not GameAnimationHelper.toRowCol, which applies a visual-only row flip for
+                     // GridPane rendering and does not match the engine's Cell[][] layout.
+                     Cell landed = game.getBoard().getCell(fn);
+                     int[] rc = game.getBoard().indexToRowCol(fn);
+                     if (landed instanceof DoorCell
+                             && !finalDoorSnap[rc[0]][rc[1]]
+                             && ((DoorCell) landed).isActivated()) {
+                         SoundManager.getInstance().playDoorOpening();
+                     }
+                        if (landed instanceof ConveyorBelt) {
+                            SoundManager.getInstance().playTransport();
                         }
 
                         // Stationed monster energy popups
@@ -482,8 +490,8 @@ public class GameController {
                         if (fd && fc != null) showCardOverlay(fc);
                         checkWinner();
                         isAnimating = false;
-                    }));
-
+                    });
+                });
         } catch (game.engine.exceptions.InvalidMoveException ex) {
             actionLine1.setText("INVALID: " + ex.getMessage());
             actionLine2.setText("ROLL AGAIN!"); actionLine3.setText("");
@@ -784,6 +792,7 @@ public class GameController {
     }
 
     private void showCardOverlay(Card card) {
+    	SoundManager.getInstance().playCardDraw();
         cardOverlayName.setText(card.getName());
         cardOverlayDesc.setText(card.getDescription());
         cardOverlayEffect.setText(cardEffect(card.getName()));

@@ -74,6 +74,7 @@ public class StartController {
         setupLogoBeams();
         setupAudio();
         setupHoverEffects();
+        SoundManager.getInstance().preloadAll();
     }
 
     // =========================================================

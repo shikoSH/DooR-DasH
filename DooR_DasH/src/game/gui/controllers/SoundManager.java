@@ -9,7 +9,7 @@ public class SoundManager {
     private static final String AUDIO = "/game/resources/audio/";
     private static final double DUCK_VOLUME   = 0.15;
     private static final double NORMAL_VOLUME = 0.7;
-
+    private final java.util.Map<String, AudioClip> clipCache = new java.util.HashMap<>();
     private SoundManager() {}
 
     /** Thread-safe initialization-on-demand holder. */
@@ -22,15 +22,27 @@ public class SoundManager {
     }
 
     public void playDoorOpening() {
-        playSFX("door_opening.mp3");
+        playSFX("door_opening.wav");   // was "door_opening.mp3"
     }
 
     public void playCardDraw() {
-        playSFX("card_draw.mp3");
+        playSFX("card_draw.wav");      // was "card_draw.mp3" — same MP3-decode delay applies here too
     }
 
     public void playPowerUp() {
-        playSFX("power_up.mp3");
+        playSFX("power_up.wav");
+    }
+
+    public void playDiceRoll() {
+        playSFX("dice_roll.wav");
+    }
+
+    public void playMovement() {
+        playSFX("movement.wav");
+    }
+
+    public void playTransport() {
+        playSFX("transport.wav");
     }
 
     /**
@@ -50,7 +62,7 @@ public class SoundManager {
             if (music != null && musicWasAudible) {
                 music.setVolume(DUCK_VOLUME);
             }
-            AudioClip clip = new AudioClip(url.toString());
+            AudioClip clip = clipCache.computeIfAbsent(fileName, f -> new AudioClip(url.toString()));   // NEW
             clip.setVolume(0.85);
             clip.play();
             javafx.animation.PauseTransition restore =
@@ -63,6 +75,16 @@ public class SoundManager {
             restore.play();
         } catch (Exception e) {
             System.err.println("Failed to play SFX: " + fileName + " — " + e.getMessage());
+        }
+    }
+    public void preloadAll() {
+        String[] files = {
+            "door_opening.wav", "card_draw.wav", "power_up.wav",
+            "dice_roll.wav", "movement.wav", "transport.wav"
+        };
+        for (String f : files) {
+            URL url = getClass().getResource(AUDIO + f);
+            if (url != null) clipCache.putIfAbsent(f, new AudioClip(url.toString()));
         }
     }
 }

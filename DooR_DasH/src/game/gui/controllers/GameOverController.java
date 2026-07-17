@@ -52,7 +52,7 @@ public class GameOverController {
     private static Image   BG                = null;
     private static boolean BG_LOAD_ATTEMPTED = false;
     private AudioClip winClip;
-
+    private AudioClip loseClip;
     // =========================================================
     //  INITIALIZE
     // =========================================================
@@ -87,10 +87,16 @@ public class GameOverController {
 
         // Load a short win sound if present at /game/resources/audio/win.wav
         try {
-            java.net.URL url = getClass().getResource("/game/resources/audio/win.wav");
+            java.net.URL url = getClass().getResource("/game/resources/audio/win.mp3");
             if (url != null) winClip = new AudioClip(url.toString());
         } catch (Exception ex) {
             System.err.println("Could not load win sound: " + ex.getMessage());
+        }
+        try {
+            java.net.URL loseUrl = getClass().getResource("/game/resources/audio/lose.wav");
+            if (loseUrl != null) loseClip = new AudioClip(loseUrl.toString());
+        } catch (Exception ex) {
+            System.err.println("Could not load lose sound: " + ex.getMessage());
         }
 
         buildStatCards();
@@ -288,8 +294,8 @@ public class GameOverController {
         opponentCardEnergy.setText("Final Energy: " + opponentEnergy);
 
         animateCardsIn();
-        playWinSound();
-        playConfetti();
+        playResultSound(playerWon);      // NEW
+        if (playerWon) playConfetti();   // NEW — confetti only for an actual win
     }
 
     // Fallback 3-arg for any other call path
@@ -447,15 +453,17 @@ public class GameOverController {
         remove.play();
     }
 
-    private void playWinSound() {
+    private void playResultSound(boolean playerWon) {
         try {
-            if (winClip != null) {
-                winClip.play();
+            if (playerWon) {
+                if (winClip != null) winClip.play();
+                else playSynthWinTone();
             } else {
-                playSynthWinTone();
+                if (loseClip != null) loseClip.play();
+                else playSynthWinTone();
             }
         } catch (Exception e) {
-            System.err.println("Failed to play win sound: " + e.getMessage());
+            System.err.println("Failed to play result sound: " + e.getMessage());
         }
     }
 
