@@ -443,9 +443,7 @@ public class GameController {
             SoundManager.getInstance().playDiceRoll();
             diceTimeline = GameAnimationHelper.animateDice(
                 diceView, diceImages, diceResultLabel, diceFace,
-                () -> {
-                SoundManager.getInstance().playMovement();
-                 GameAnimationHelper.animateMove(
+                () -> GameAnimationHelper.animateMove(
                     fm, fo, fp, fn,
                     boardRenderer.getMonsterViews(),
                     boardRenderer.getSpotlightViews(),
@@ -490,8 +488,7 @@ public class GameController {
                         if (fd && fc != null) showCardOverlay(fc);
                         checkWinner();
                         isAnimating = false;
-                    });
-                });
+                    }));        
         } catch (game.engine.exceptions.InvalidMoveException ex) {
             actionLine1.setText("INVALID: " + ex.getMessage());
             actionLine2.setText("ROLL AGAIN!"); actionLine3.setText("");

@@ -218,6 +218,7 @@ public final class GameAnimationHelper {
         PauseTransition front = new PauseTransition(Duration.millis(1));
         front.setOnFinished(e -> {
             mv.getParent().toFront();
+            SoundManager.getInstance().playMovement();
             // Light up source cell at start of hop
             if (spotlightViews != null) {
                 spotlightViews[fRC[0]][fRC[1]].setOpacity(0.85);
