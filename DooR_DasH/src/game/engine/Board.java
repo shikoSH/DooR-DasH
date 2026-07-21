@@ -13,6 +13,7 @@ public class Board {
 	private static ArrayList<Monster> stationedMonsters; 
 	private static ArrayList<Card> originalCards;
 	public static ArrayList<Card> cards;
+	private int lastRawLandingPos;
 	
 	public Board(ArrayList<Card> readCards) {
 		this.boardCells = new Cell[Constants.BOARD_ROWS][Constants.BOARD_COLS];
@@ -129,6 +130,7 @@ public class Board {
 	    int oldPosition = currentMonster.getPosition();
 	    
 	    currentMonster.move(roll);
+	    this.lastRawLandingPos = currentMonster.getPosition();
 
 	    getCell(currentMonster.getPosition()).onLand(currentMonster, opponentMonster);
 
@@ -153,5 +155,8 @@ public class Board {
 		
 		getCell(player.getPosition()).setMonster(player);
 		getCell(opponent.getPosition()).setMonster(opponent);
+	}
+	public int getLastRawLandingPos() {
+	    return lastRawLandingPos;
 	}
 }

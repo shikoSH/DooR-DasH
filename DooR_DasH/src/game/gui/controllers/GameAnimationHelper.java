@@ -105,11 +105,22 @@ public final class GameAnimationHelper {
      * instead of a flat linear slide.
      */
     public static void animateMove(Monster current, Monster opponent,
-                                    int oldPos, int newPos,
-                                    ImageView[][] monsterViews,
-                                    javafx.scene.shape.Rectangle[][] spotlightViews,
-                                    GridPane grid,
-                                    Runnable onFinished) {
+            int oldPos, int newPos,
+            ImageView[][] monsterViews,
+            javafx.scene.shape.Rectangle[][] spotlightViews,
+            GridPane grid,
+            Runnable onFinished) {
+animateMove(current, opponent, oldPos, newPos, monsterViews, spotlightViews,
+grid, onFinished, false);
+}
+    
+    public static void animateMove(Monster current, Monster opponent,
+            int oldPos, int newPos,
+            ImageView[][] monsterViews,
+            javafx.scene.shape.Rectangle[][] spotlightViews,
+            GridPane grid,
+            Runnable onFinished,
+            boolean forceSingleHop) {
         // Reset all sprite views
         for (int r = 0; r < Constants.BOARD_ROWS; r++)
             for (int c = 0; c < Constants.BOARD_COLS; c++) {
@@ -131,7 +142,7 @@ public final class GameAnimationHelper {
 
         SequentialTransition seq = new SequentialTransition();
         int dist = Math.abs(newPos - oldPos);
-        if (dist > 12 || oldPos == newPos) {
+        if (forceSingleHop || dist > 12 || oldPos == newPos) {
             seq.getChildren().add(makeHop(current, opponent, oldPos, newPos, 650,
                 monsterViews, spotlightViews, grid, true));
         } else {

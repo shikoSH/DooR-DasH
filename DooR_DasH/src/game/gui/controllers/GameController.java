@@ -403,17 +403,18 @@ public class GameController {
 
             game.playTurn();
 
-            int newPos    = current.getPosition();
+            int diceRoll  = game.getLastRoll();
+            int rawLandingPos = game.getBoard().getLastRawLandingPos();
+            int newPos    = current.getPosition();          // final resting position, AFTER any transport
             int newEnergy = current.getEnergy();
             int newOppEng = opp.getEnergy();
             boolean drawn = topCard != null &&
                 (Board.cards.isEmpty() || Board.cards.get(0) != topCard);
 
-            int moved    = newPos - oldPos;
-            if (moved < 0) moved += 100;
-            int diceFace = Math.max(1, Math.min(6, moved));
+            int diceFace = Math.max(1, Math.min(6, diceRoll));   // FIXED: use the real roll, not (newPos - oldPos),
+                                                                   // which was wrong whenever a transport cell fired
 
-            actionLine1.setText(current.getName() + " -> POS " + newPos + " (+" + moved + ")");
+            actionLine1.setText(current.getName() + " -> POS " + newPos + " (+" + diceRoll + ")");
             actionLine2.setText(drawn && topCard != null
                 ? topCard.getName() + ": " + cardEffect(topCard.getName()) : "");
             if (wasShld && !current.isShielded())
@@ -434,66 +435,87 @@ public class GameController {
             final Monster fm   = current;
             final Monster fo   = opp;
             final int     fp   = oldPos;
-            final int     fn   = newPos;
-            final boolean[][] finalDoorSnap       = doorWasActivated;
-            final Cell[][]    finalCells          = cells;
+            final int     frl  = rawLandingPos;         // where the dice roll actually lands
+            final int     fn   = newPos;                // where the monster ends up after any transport
+            final Cell    rawLandingCell = game.getBoard().getCell(rawLandingPos);
+            final boolean[][] finalDoorSnap = doorWasActivated;
             final java.util.Map<String, Integer> finalStationedBefore = stationedBefore;
 
             if (diceTimeline != null) diceTimeline.stop();
             SoundManager.getInstance().playDiceRoll();
             diceTimeline = GameAnimationHelper.animateDice(
                 diceView, diceImages, diceResultLabel, diceFace,
-                () -> GameAnimationHelper.animateMove(
-                    fm, fo, fp, fn,
-                    boardRenderer.getMonsterViews(),
-                    boardRenderer.getSpotlightViews(),
-                    grid,
-                    () -> {
-                        refreshBoard(); updateUI();
+                () -> {
+                    SoundManager.getInstance().playMovement();
+                    // LEG 1: walk from the old position to the raw dice-landing cell
+                    GameAnimationHelper.animateMove(
+                        fm, fo, fp, frl,
+                        boardRenderer.getMonsterViews(),
+                        boardRenderer.getSpotlightViews(),
+                        grid,
+                        () -> {
+                            Runnable finishTurn = () -> {
+                                refreshBoard(); updateUI();
 
-                     // Door-opening sound — use the engine's own indexing (game.getBoard().getCell),
-                     // not GameAnimationHelper.toRowCol, which applies a visual-only row flip for
-                     // GridPane rendering and does not match the engine's Cell[][] layout.
-                     Cell landed = game.getBoard().getCell(fn);
-                     int[] rc = game.getBoard().indexToRowCol(fn);
-                     if (landed instanceof DoorCell
-                             && !finalDoorSnap[rc[0]][rc[1]]
-                             && ((DoorCell) landed).isActivated()) {
-                         SoundManager.getInstance().playDoorOpening();
-                     }
-                        if (landed instanceof ConveyorBelt) {
-                            SoundManager.getInstance().playTransport();
-                        }
+                                // Door-opening sound
+                                Cell landed = game.getBoard().getCell(fn);
+                                int[] rc = game.getBoard().indexToRowCol(fn);
+                                if (landed instanceof DoorCell
+                                        && !finalDoorSnap[rc[0]][rc[1]]
+                                        && ((DoorCell) landed).isActivated()) {
+                                    SoundManager.getInstance().playDoorOpening();
+                                }
 
-                        // Stationed monster energy popups
-                        for (Monster stationed : Board.getStationedMonsters()) {
-                            Integer before = finalStationedBefore.get(stationed.getName());
-                            if (before != null && stationed.getEnergy() != before) {
-                                int diff = stationed.getEnergy() - before;
-                                int[] dst = GameAnimationHelper.toRowCol(stationed.getPosition());
-                                for (Node child : grid.getChildren()) {
-                                    Integer cIdx = GridPane.getColumnIndex(child);
-                                    Integer rIdx = GridPane.getRowIndex(child);
-                                    int col = (cIdx == null) ? 0 : cIdx;
-                                    int row = (rIdx == null) ? 0 : rIdx;
-                                    if (col == dst[1] && row == dst[0] && child instanceof StackPane) {
-                                        GameAnimationHelper.createFloatingPopup(
-                                            (StackPane) child, diff >= 0, Math.abs(diff));
-                                        break;
+                                // Stationed monster energy popups
+                                for (Monster stationed : Board.getStationedMonsters()) {
+                                    Integer before = finalStationedBefore.get(stationed.getName());
+                                    if (before != null && stationed.getEnergy() != before) {
+                                        int diff = stationed.getEnergy() - before;
+                                        int[] dst = GameAnimationHelper.toRowCol(stationed.getPosition());
+                                        for (Node child : grid.getChildren()) {
+                                            Integer cIdx = GridPane.getColumnIndex(child);
+                                            Integer rIdx = GridPane.getRowIndex(child);
+                                            int col = (cIdx == null) ? 0 : cIdx;
+                                            int row = (rIdx == null) ? 0 : rIdx;
+                                            if (col == dst[1] && row == dst[0] && child instanceof StackPane) {
+                                                GameAnimationHelper.createFloatingPopup(
+                                                    (StackPane) child, diff >= 0, Math.abs(diff));
+                                                break;
+                                            }
+                                        }
                                     }
                                 }
-                            }
-                        }
 
-                        if (fd && fc != null) showCardOverlay(fc);
-                        checkWinner();
-                        isAnimating = false;
-                    }));        
+                                if (fd && fc != null) showCardOverlay(fc);
+                                checkWinner();
+                                isAnimating = false;
+                            };
+
+                            // LEG 2: only runs if the raw landing cell actually transported the monster
+                            if (frl != fn) {
+                                if (rawLandingCell instanceof ConveyorBelt) {
+                                    SoundManager.getInstance().playConveyorBelt();
+                                } else if (rawLandingCell instanceof ContaminationSock) {
+                                    SoundManager.getInstance().playContaminationSock();
+                                }
+                                GameAnimationHelper.animateMove(
+                                    fm, fo, frl, fn,
+                                    boardRenderer.getMonsterViews(),
+                                    boardRenderer.getSpotlightViews(),
+                                    grid,
+                                    finishTurn,
+                                    true);
+                            } else {
+                                finishTurn.run();
+                            }
+                        });
+                });  
         } catch (game.engine.exceptions.InvalidMoveException ex) {
             actionLine1.setText("INVALID: " + ex.getMessage());
             actionLine2.setText("ROLL AGAIN!"); actionLine3.setText("");
             refreshBoard(); updateUI();
             isAnimating = false;
+            SoundManager.getInstance().playInvalidMove();
             showErrorAlert("Invalid Move", ex.getMessage());
         } catch (Exception ex) {
             String msg = ex.getMessage() != null ? ex.getMessage() : ex.getClass().getSimpleName();
@@ -544,6 +566,7 @@ public class GameController {
                 } catch (game.engine.exceptions.OutOfEnergyException ex) {
                     String msg = ex.getMessage() != null ? ex.getMessage()
                         : "Not enough energy! Need " + Constants.POWERUP_COST + " energy to activate.";
+                    SoundManager.getInstance().playInvalidMove();
                     showErrorAlert("Not Enough Energy", msg);
                 } catch (Exception ex) {
                     showErrorAlert("Powerup Failed",

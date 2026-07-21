@@ -40,11 +40,19 @@ public class SoundManager {
     public void playMovement() {
         playSFX("movement.wav");
     }
-
-    public void playTransport() {
-        playSFX("transport.wav");
+    
+    public void playInvalidMove() {
+        playSFX("invalid_move.wav");
+    }
+    
+    public void playConveyorBelt() {
+        playSFX("conveyor_belt.wav");
     }
 
+    public void playContaminationSock() {
+        playSFX("contamination_sock.wav");
+    }
+    
     /**
      * Plays a short SFX clip using AudioClip (fires immediately, no buffering delay)
      * and briefly ducks the background music while it plays.
@@ -80,7 +88,8 @@ public class SoundManager {
     public void preloadAll() {
         String[] files = {
             "door_opening.wav", "card_draw.wav", "power_up.wav",
-            "dice_roll.wav", "movement.wav", "transport.wav"
+            "dice_roll.wav", "movement.wav" ,
+            "invalid_move.wav" , "conveyor_belt.wav" , "contamination_sock.wav"
         };
         for (String f : files) {
             URL url = getClass().getResource(AUDIO + f);
