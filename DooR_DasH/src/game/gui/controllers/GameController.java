@@ -98,14 +98,15 @@ public class GameController {
     private boolean   cardDeckOverlayVisible = false;
 
     // =========================================================
-    //  MESSAGE OVERLAY
+    //  MESSAGE OVERLAY  (centered modal: errors + power-up confirm)
     // =========================================================
     private StackPane messageOverlay;
     private VBox      messageBox;
-    private Label     messageTitle, messageBody;
+    private Label     messageIcon, messageTitle, messageBody;
     private HBox      messageButtons;
-    private Animation messageOverlayTransition;   // NEW
-    private int        messageOverlayToken = 0;   // NEW
+    private javafx.scene.shape.Rectangle messageSep;
+    private Animation messageOverlayTransition;
+    private int       messageOverlayToken = 0;
 
     // =========================================================
     //  IMAGES
@@ -713,54 +714,48 @@ public class GameController {
     }
 
     // =========================================================
-    //  MONSTER INFO OVERLAY  (card-style: back → flip reveal → stats)
+    //  MONSTER INFO OVERLAY  (centered modal panel + CLOSE)
     // =========================================================
 
-    // Reusable card-back for the monster overlay (same as card deck back)
-    private ImageView monsterOverlayBack;
     private ImageView monsterOverlayFace;
-    private VBox      monsterOverlayCard;   // the stats panel revealed after flip
+    private VBox      monsterOverlayCard;
     private StackPane monsterDimLayer;
+    private Label     monsterNameLbl, monsterDescLbl;
+    private VBox      monsterStatsBox;
+    private javafx.scene.shape.Rectangle monsterSep;
+    private Button    monsterCloseBtn;
 
     /**
-     * Shows the stationed-monster popup using the same blur+dim+card-flip
-     * choreography as the card overlay.  Uses the screen portrait as the
-     * "face" image, then reveals a clean dark stats panel.  No colored
-     * highlights — neutral whites and greys only.
+     * Centered dimmed modal with monster portrait, stats, and a CLOSE button.
+     * Panel width / fonts are recomputed from the current window size so the
+     * popup stays centered and readable across resizes (StackPane centering,
+     * no absolute layout coords).
      */
     private void showMonsterInfoOverlay(Monster m) {
+        if (m == null) return;
+        if (monsterDimLayer != null) dismissMonsterOverlayImmediate();
         monsterOverlayVisible = true;
 
-        // ── Compute current proportional sizing (window may have resized) ─
-        // This overlay is rebuilt from scratch every time it opens, so it
-        // just needs to read the CURRENT window size at build time — no
-        // resize listener needed. Was previously fixed pixels (220, 200,
-        // 270, 11px) which is why it looked wrong on other resolutions.
-        double curW = backgroundRoot.getWidth();
-        double curH = backgroundRoot.getHeight();
-        double curScale = Math.min(curW / REF_W, curH / REF_H);
+        double curScale = overlayScale();
         double curBoardSide = REF_BOARD_SIZE * curScale;
-
         final double statFontPx = Math.max(9, curBoardSide * TXT_CARD_BODY_FRAC);
         double nameFontPx = Math.max(11, curBoardSide * TXT_CARD_NAME_FRAC);
         double bodyFontPx = Math.max(9,  curBoardSide * TXT_CARD_BODY_FRAC * 0.9);
 
-        // ── Screen portrait — shown immediately, no card-back flip ────────
         monsterOverlayFace = new ImageView(screenPortrait(m.getName()));
         monsterOverlayFace.setPreserveRatio(true);
-        monsterOverlayFace.setFitWidth(curBoardSide * 0.36);
+        monsterOverlayFace.setFitWidth(curBoardSide * 0.34);
         addDropShadow(monsterOverlayFace, 22, Color.BLACK);
 
-        // ── Stats rows ────────────────────────────────────────────────────
         java.util.function.BiFunction<String, String, HBox> statRow = (key, val) -> {
             Label k = new Label(key);
-            k.setStyle("-fx-font-family:'" + FONT + "';-fx-font-size:" + statFontPx + "px;-fx-text-fill:#999999;");
+            k.setStyle("-fx-font-family:'" + FONT + "';-fx-font-size:" + statFontPx + "px;-fx-text-fill:#888888;");
             Label v = new Label(val);
-            v.setStyle("-fx-font-family:'" + FONT + "';-fx-font-size:" + statFontPx + "px;-fx-font-weight:bold;-fx-text-fill:#dddddd;");
-            javafx.scene.layout.Region sp = new javafx.scene.layout.Region();
+            v.setStyle("-fx-font-family:'" + FONT + "';-fx-font-size:" + statFontPx + "px;-fx-font-weight:bold;-fx-text-fill:#e8e8e8;");
+            Region sp = new Region();
             HBox.setHgrow(sp, Priority.ALWAYS);
             HBox row = new HBox(k, sp, v);
-            row.setSpacing(4);
+            row.setSpacing(6);
             row.setAlignment(Pos.CENTER_LEFT);
             return row;
         };
@@ -772,54 +767,48 @@ public class GameController {
         if (m.isFrozen())   statusSb.append("FROZEN ");
         if (confused)       statusSb.append("CONFUSED(").append(m.getConfusionTurns()).append("T)");
 
-        javafx.scene.shape.Rectangle sep = new javafx.scene.shape.Rectangle(curBoardSide * 0.33, 1);
-        sep.setFill(javafx.scene.paint.Color.web("#333333"));
+        monsterSep = new javafx.scene.shape.Rectangle(curBoardSide * 0.32, 1.5);
+        monsterSep.setFill(Color.web("#c9a227"));
 
-        Label nameLbl = makeLbl(m.getName().toUpperCase(), "white", (int) nameFontPx, true);
-        nameLbl.setAlignment(Pos.CENTER);
+        monsterNameLbl = makeLbl(m.getName().toUpperCase(), "#ffdd55", (int) nameFontPx, true);
+        monsterNameLbl.setAlignment(Pos.CENTER);
 
-        VBox statsBox = new VBox(5);
-        statsBox.setAlignment(Pos.CENTER_LEFT);
-        statsBox.setMaxWidth(curBoardSide * 0.36);
-        statsBox.getChildren().addAll(
+        monsterStatsBox = new VBox(6);
+        monsterStatsBox.setAlignment(Pos.CENTER_LEFT);
+        monsterStatsBox.setMaxWidth(curBoardSide * 0.34);
+        monsterStatsBox.getChildren().addAll(
             statRow.apply("TYPE",     m.getClass().getSimpleName()),
             statRow.apply("ROLE",     m.getRole().toString()),
             statRow.apply("ENERGY",   String.valueOf(m.getEnergy())),
             statRow.apply("POSITION", String.valueOf(m.getPosition())),
-            statRow.apply("STATUS",   statusSb.toString())
+            statRow.apply("STATUS",   statusSb.toString().trim())
         );
 
-        Label descLbl = makeLbl(m.getDescription(), "#777777", (int) bodyFontPx, false);
-        descLbl.setStyle(descLbl.getStyle() + "-fx-font-style:italic;");
-        descLbl.setWrapText(true);
-        descLbl.setMaxWidth(curBoardSide * 0.36);
-        descLbl.setAlignment(Pos.CENTER);
+        monsterDescLbl = makeLbl(m.getDescription(), "#9a9a9a", (int) bodyFontPx, false);
+        monsterDescLbl.setWrapText(true);
+        monsterDescLbl.setMaxWidth(curBoardSide * 0.34);
+        monsterDescLbl.setAlignment(Pos.CENTER);
+        monsterDescLbl.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
 
-        // ── Close button only ─────────────────────────────────────────────
-        Button closeBtn = styledOverlayButton("CLOSE", "rgba(30,30,30,0.90)", "#aaaaaa");
-        closeBtn.setOnAction(e -> dismissMonsterOverlay());
+        monsterCloseBtn = overlayActionButton("CLOSE", "#dddddd", "#1a1a1a", "#888888");
+        monsterCloseBtn.setOnAction(e -> dismissMonsterOverlay());
 
-        Label hint = makeLbl("tap outside to dismiss", "#444444", 9, false);
-        hint.setStyle(hint.getStyle() + "-fx-font-style:italic;");
-
-        monsterOverlayCard = new VBox(10,
-            monsterOverlayFace, nameLbl, sep, statsBox, descLbl, closeBtn, hint);
+        monsterOverlayCard = new VBox(12,
+            monsterOverlayFace, monsterNameLbl, monsterSep, monsterStatsBox,
+            monsterDescLbl, monsterCloseBtn);
         monsterOverlayCard.setAlignment(Pos.TOP_CENTER);
-        monsterOverlayCard.setPadding(new Insets(20, 24, 18, 24));
-        monsterOverlayCard.setMaxWidth(curBoardSide * 0.44);
-        monsterOverlayCard.setStyle(
-            "-fx-background-color:linear-gradient(to bottom,rgba(12,12,18,0.98),rgba(4,4,10,0.99));" +
-            "-fx-background-radius:16;" +
-            "-fx-border-color:#2a2a2a;" +
-            "-fx-border-width:1.5;" +
-            "-fx-border-radius:16;");
-        addDropShadow(monsterOverlayCard, 40, Color.BLACK);
+        monsterOverlayCard.getStyleClass().add("game-modal-panel");
+        applyModalPanelStyle(monsterOverlayCard, "#c9a227",
+            "linear-gradient(to bottom,rgba(16,16,24,0.97),rgba(6,6,12,0.99))");
+        addDropShadow(monsterOverlayCard, 36, Color.BLACK);
+        layoutMonsterOverlayPanel();
 
-        // ── Dim layer ─────────────────────────────────────────────────────
         monsterDimLayer = new StackPane(monsterOverlayCard);
-        monsterDimLayer.setStyle("-fx-background-color:rgba(0,0,0,0.55);");
+        monsterDimLayer.setStyle("-fx-background-color:rgba(0,0,0,0.62);");
         monsterDimLayer.setPickOnBounds(true);
+        monsterDimLayer.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
         monsterDimLayer.setOpacity(0);
+        StackPane.setAlignment(monsterOverlayCard, Pos.CENTER);
         monsterDimLayer.setOnMouseClicked(e -> {
             if (e.getTarget() == monsterDimLayer) dismissMonsterOverlay();
         });
@@ -828,19 +817,75 @@ public class GameController {
         backgroundRoot.getChildren().add(monsterDimLayer);
         monsterDimLayer.toFront();
 
-        // ── Blur + fade in with a gentle scale-up ─────────────────────────
         masterLayout.setEffect(worldBlur);
         Timeline blurIn = new Timeline(
             new KeyFrame(Duration.ZERO,       ev -> { worldBlur.setWidth(0);  worldBlur.setHeight(0); }),
             new KeyFrame(Duration.millis(350), ev -> { worldBlur.setWidth(14); worldBlur.setHeight(14); }));
         FadeTransition dimFade = new FadeTransition(Duration.millis(300), monsterDimLayer);
         dimFade.setFromValue(0); dimFade.setToValue(1);
-        monsterOverlayCard.setScaleX(0.88); monsterOverlayCard.setScaleY(0.88);
-        ScaleTransition scaleIn = new ScaleTransition(Duration.millis(300), monsterOverlayCard);
-        scaleIn.setFromX(0.88); scaleIn.setFromY(0.88);
+        monsterOverlayCard.setScaleX(0.90); monsterOverlayCard.setScaleY(0.90);
+        ScaleTransition scaleIn = new ScaleTransition(Duration.millis(280), monsterOverlayCard);
+        scaleIn.setFromX(0.90); scaleIn.setFromY(0.90);
         scaleIn.setToX(1.0);   scaleIn.setToY(1.0);
         scaleIn.setInterpolator(Interpolator.EASE_OUT);
         new ParallelTransition(blurIn, dimFade, scaleIn).play();
+    }
+
+    /** Recomputes monster modal sizes from the live window — called on open and resize. */
+    private void layoutMonsterOverlayPanel() {
+        if (monsterOverlayCard == null) return;
+        double W = backgroundRoot.getWidth();
+        double H = backgroundRoot.getHeight();
+        if (W <= 0 || H <= 0) return;
+
+        double scale = overlayScale();
+        double curBoardSide = REF_BOARD_SIZE * scale;
+        // Compact floating window: ~square-ish card, clearly inset from edges
+        double panelW = clampModalSize(
+            Math.min(Math.min(W * 0.30, H * 0.42), curBoardSide * 0.40),
+            220 * scale, 300 * scale);
+        double panelH = clampModalSize(
+            Math.min(H * 0.70, curBoardSide * 0.92),
+            280 * scale, 520 * scale);
+        double pad = Math.max(14, panelW * 0.06);
+        double nameFontPx = Math.max(11, panelW * 0.065);
+        double bodyFontPx = Math.max(9,  panelW * 0.048);
+        double statFontPx = Math.max(9,  panelW * 0.050);
+        double btnFontPx  = Math.max(10, panelW * 0.048);
+
+        monsterOverlayCard.setMinWidth(panelW * 0.92);
+        monsterOverlayCard.setMaxWidth(panelW);
+        monsterOverlayCard.setPrefWidth(panelW);
+        monsterOverlayCard.setMaxHeight(panelH);
+        monsterOverlayCard.setPadding(new Insets(pad * 1.1, pad * 1.15, pad, pad * 1.15));
+        if (monsterOverlayFace != null) monsterOverlayFace.setFitWidth(panelW * 0.62);
+        if (monsterSep != null) monsterSep.setWidth(panelW * 0.68);
+        if (monsterStatsBox != null) monsterStatsBox.setMaxWidth(panelW * 0.84);
+        if (monsterNameLbl != null) setFontSize(monsterNameLbl, nameFontPx);
+        if (monsterDescLbl != null) {
+            monsterDescLbl.setMaxWidth(panelW * 0.84);
+            setFontSize(monsterDescLbl, bodyFontPx);
+        }
+        if (monsterCloseBtn != null) restyleOverlayButtonFont(monsterCloseBtn, btnFontPx);
+        if (monsterStatsBox != null) {
+            for (Node row : monsterStatsBox.getChildren()) {
+                if (!(row instanceof HBox)) continue;
+                for (Node child : ((HBox) row).getChildren()) {
+                    if (child instanceof Label) setFontSize((Label) child, statFontPx);
+                }
+            }
+        }
+    }
+
+    private void dismissMonsterOverlayImmediate() {
+        if (monsterDimLayer != null) {
+            backgroundRoot.getChildren().remove(monsterDimLayer);
+            monsterDimLayer = null;
+        }
+        monsterOverlayVisible = false;
+        masterLayout.setEffect(null);
+        worldBlur.setWidth(0);
+        worldBlur.setHeight(0);
     }
 
     private void dismissMonsterOverlay() {
@@ -856,6 +901,7 @@ public class GameController {
             backgroundRoot.getChildren().remove(layer);
             monsterOverlayVisible = false;
             monsterDimLayer = null;
+            monsterOverlayCard = null;
         });
         new ParallelTransition(blurOut, fadeOut).play();
     }
@@ -1255,139 +1301,210 @@ public class GameController {
     // =========================================================
     private void buildMessageOverlay() {
         messageOverlay = new StackPane();
-        messageOverlay.setStyle("-fx-background-color:rgba(0,0,0,0.60);");
+        messageOverlay.setStyle("-fx-background-color:rgba(0,0,0,0.62);");
         messageOverlay.setVisible(false);
         messageOverlay.setOpacity(0);
         messageOverlay.setPickOnBounds(true);
+        // Fill the full window (letterbox included). Do NOT apply the HUD
+        // uniform scale — that was shrinking the dim layer away from the edges.
+        messageOverlay.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
 
-        messageBox = new VBox(16);
+        messageBox = new VBox(14);
         messageBox.setAlignment(Pos.CENTER);
-        messageBox.setPadding(new Insets(28, 32, 24, 32));
-        messageBox.setMaxWidth(460);
+        messageBox.getStyleClass().add("game-modal-panel");
 
-        messageTitle   = makeLbl("", "#ffffff", 16, true);
+        messageIcon  = makeLbl("", "#ffffff", 22, true);
+        messageIcon.setAlignment(Pos.CENTER);
+        messageTitle = makeLbl("", "#ffffff", 16, true);
         messageTitle.setAlignment(Pos.CENTER);
-        messageBody    = makeLbl("", "#cccccc", 12, false);
+        messageTitle.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
+        messageBody  = makeLbl("", "#cccccc", 12, false);
         messageBody.setWrapText(true);
-        messageBody.setMaxWidth(400);
         messageBody.setAlignment(Pos.CENTER);
-        messageButtons = new HBox(16);
+        messageBody.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
+        messageSep = new javafx.scene.shape.Rectangle(200, 1.5);
+        messageSep.setFill(Color.web("#555555"));
+        messageButtons = new HBox(14);
         messageButtons.setAlignment(Pos.CENTER);
 
-        messageBox.getChildren().addAll(messageTitle, messageBody, messageButtons);
+        messageBox.getChildren().addAll(
+            messageIcon, messageTitle, messageSep, messageBody, messageButtons);
         messageOverlay.getChildren().add(messageBox);
         StackPane.setAlignment(messageBox, Pos.CENTER);
+
+        messageOverlay.setOnMouseClicked(e -> {
+            if (e.getTarget() != messageOverlay) return;
+            // Backdrop click: cancel confirm / close alert
+            hideMessageOverlay();
+        });
+        messageBox.setOnMouseClicked(javafx.event.Event::consume);
+
         backgroundRoot.getChildren().add(messageOverlay);
         messageOverlay.toFront();
     }
 
     /**
-     * Shows a styled overlay for errors (InvalidMoveException, OutOfEnergyException, etc.)
-     * or confirm dialogs (power-up).
+     * Shows a centered arcade modal for errors (invalid move, out of energy, …)
+     * or confirm dialogs (power-up). Panel size/fonts track the live window
+     * via {@link #layoutMessageOverlay()}.
      *
      * @param title     headline text
      * @param body      detail text
-     * @param onConfirm callback for OK in confirm mode; null for error mode
-     * @param confirm   true = confirm dialog (OK + CANCEL), false = error alert (OK only)
+     * @param onConfirm callback for CONFIRM; null for error/alert mode
+     * @param confirm   true = CONFIRM + CLOSE, false = CLOSE only
      */
     private void showMessageOverlay(String title, String body,
             Runnable onConfirm, boolean confirm) {
-if (messageOverlay == null) return;
+        if (messageOverlay == null) return;
 
-// Cancel any overlay transition in flight (e.g. a confirm dialog still
-// fading out) so it can't sneak in later and hide content we're about
-// to show — this is what was killing the insufficient-energy alert.
-final int myToken = ++messageOverlayToken;
-if (messageOverlayTransition != null) messageOverlayTransition.stop();
+        // Cancel any overlay transition in flight (e.g. a confirm dialog still
+        // fading out) so it can't sneak in later and hide content we're about
+        // to show — this is what was killing the insufficient-energy alert.
+        final int myToken = ++messageOverlayToken;
+        if (messageOverlayTransition != null) messageOverlayTransition.stop();
 
-// ── Icon + colours per mode ───────────────────────────────────────
-String iconText, titleColor, borderColor, boxBg;
-if (confirm) {
-iconText    = "⚡";
-titleColor  = "#e0e0e0";
-borderColor = "#444444";
-boxBg       = "linear-gradient(to bottom,rgba(18,18,28,0.98),rgba(10,10,18,0.99))";
-} else {
-iconText    = "⚠";
-titleColor  = "#ff6b6b";
-borderColor = "#aa3333";
-boxBg       = "linear-gradient(to bottom,rgba(28,10,10,0.98),rgba(14,4,4,0.99))";
-}
+        String iconText, titleColor, borderColor, boxBg;
+        if (confirm) {
+            iconText    = ">>";
+            titleColor  = "#ffdd55";
+            borderColor = "#c9a227";
+            boxBg       = "linear-gradient(to bottom,rgba(18,18,28,0.98),rgba(8,8,14,0.99))";
+        } else {
+            iconText    = "!";
+            titleColor  = "#ff6b6b";
+            borderColor = "#aa4444";
+            boxBg       = "linear-gradient(to bottom,rgba(28,12,12,0.98),rgba(14,4,4,0.99))";
+        }
 
-messageBox.setStyle(
-"-fx-background-color:" + boxBg + ";" +
-"-fx-background-radius:18;" +
-"-fx-border-color:" + borderColor + ";" +
-"-fx-border-radius:18;" +
-"-fx-border-width:1.5;");
-addDropShadow(messageBox, 50, Color.BLACK);
+        applyModalPanelStyle(messageBox, borderColor, boxBg);
+        addDropShadow(messageBox, 44, Color.BLACK);
 
-// Proportional sizing — this overlay is built fresh every call, so read
-// the current window size directly instead of using fixed pixels.
-double msgScale    = Math.min(backgroundRoot.getWidth() / REF_W, backgroundRoot.getHeight() / REF_H);
-double msgBoardSide = REF_BOARD_SIZE * msgScale;
+        messageIcon.setText(iconText);
+        messageIcon.setStyle(
+            "-fx-font-family:'" + FONT + "';" +
+            "-fx-font-size:22px;" +
+            "-fx-font-weight:bold;" +
+            "-fx-text-fill:" + titleColor + ";" +
+            "-fx-alignment:center;");
 
-Label iconLbl = makeLbl(iconText, titleColor, (int) Math.max(18, msgBoardSide * 0.045), true);
-iconLbl.setAlignment(Pos.CENTER);
+        messageTitle.setText(title != null ? title.toUpperCase() : "");
+        messageTitle.setStyle(
+            "-fx-font-family:'" + FONT + "';" +
+            "-fx-font-size:16px;" +
+            "-fx-font-weight:bold;" +
+            "-fx-text-fill:" + titleColor + ";" +
+            "-fx-alignment:center;");
 
-messageTitle.setText(title != null ? title.toUpperCase() : "");
-messageTitle.setStyle(
-"-fx-font-family:'" + FONT + "';" +
-"-fx-font-size:16px;" +
-"-fx-font-weight:bold;" +
-"-fx-text-fill:" + titleColor + ";" +
-"-fx-alignment:center;");
+        messageSep.setFill(Color.web(borderColor));
 
-javafx.scene.shape.Rectangle sep = new javafx.scene.shape.Rectangle(msgBoardSide * 0.52, 1);
-sep.setFill(javafx.scene.paint.Color.web(borderColor));
+        messageBody.setText(body != null ? body : "");
+        messageBody.setStyle(
+            "-fx-font-family:'" + FONT + "';" +
+            "-fx-font-size:12px;" +
+            "-fx-text-fill:#bbbbbb;" +
+            "-fx-alignment:center;");
 
-messageBody.setText(body != null ? body : "");
-messageBody.setStyle(
-"-fx-font-family:'" + FONT + "';" +
-"-fx-font-size:12px;" +
-"-fx-text-fill:#aaaaaa;" +
-"-fx-alignment:center;");
+        messageButtons.getChildren().clear();
+        if (confirm) {
+            Button ok = overlayActionButton("CONFIRM", "#1a1a12", "#ffdd55", "#c9a227");
+            ok.setOnAction(e -> {
+                hideMessageOverlay();
+                if (onConfirm != null) onConfirm.run();
+            });
+            Button close = overlayActionButton("CLOSE", "#dddddd", "#1a1a1a", "#666666");
+            close.setOnAction(e -> hideMessageOverlay());
+            messageButtons.getChildren().addAll(ok, close);
+        } else {
+            Button close = overlayActionButton("CLOSE", "#dddddd", "#1a1a1a", "#888888");
+            close.setOnAction(e -> hideMessageOverlay());
+            messageButtons.getChildren().add(close);
+        }
 
-messageButtons.getChildren().clear();
-messageBox.getChildren().setAll(iconLbl, messageTitle, sep, messageBody, messageButtons);
+        layoutMessageOverlay();
 
-if (confirm) {
-Button ok = overlayActionButton("CONFIRM", "#e0e0e0", "#1a1a2a");
-ok.setOnAction(e -> { hideMessageOverlay(); if (onConfirm != null) onConfirm.run(); });
-Button cancel = overlayActionButton("CANCEL", "#555555", "#111111");
-cancel.setOnAction(e -> hideMessageOverlay());
-messageButtons.getChildren().addAll(ok, cancel);
-} else {
-Button ok = overlayActionButton("DISMISS", "#e0e0e0", "#1a1a1a");
-ok.setOnAction(e -> hideMessageOverlay());
-messageButtons.getChildren().add(ok);
-}
+        messageOverlay.setVisible(true);
+        messageOverlay.toFront();
+        messageOverlay.setOpacity(0);
+        messageBox.setTranslateX(0);
+        messageBox.setScaleX(0.90); messageBox.setScaleY(0.90);
 
-messageOverlay.setVisible(true);
-messageOverlay.toFront();
-messageOverlay.setOpacity(0);
-messageBox.setTranslateX(0);
-messageBox.setScaleX(0.88); messageBox.setScaleY(0.88);
+        FadeTransition fadeIn = new FadeTransition(Duration.millis(220), messageOverlay);
+        fadeIn.setFromValue(0); fadeIn.setToValue(1);
+        ScaleTransition scaleIn = new ScaleTransition(Duration.millis(220), messageBox);
+        scaleIn.setFromX(0.90); scaleIn.setFromY(0.90);
+        scaleIn.setToX(1.0);   scaleIn.setToY(1.0);
+        scaleIn.setInterpolator(Interpolator.EASE_OUT);
 
-FadeTransition fadeIn = new FadeTransition(Duration.millis(220), messageOverlay);
-fadeIn.setFromValue(0); fadeIn.setToValue(1);
-ScaleTransition scaleIn = new ScaleTransition(Duration.millis(220), messageBox);
-scaleIn.setFromX(0.88); scaleIn.setFromY(0.88);
-scaleIn.setToX(1.0);   scaleIn.setToY(1.0);
-scaleIn.setInterpolator(Interpolator.EASE_OUT);
+        ParallelTransition arrive = new ParallelTransition(fadeIn, scaleIn);
+        arrive.setOnFinished(e -> {
+            if (myToken != messageOverlayToken) return;
+            if (!confirm) GameAnimationHelper.shakeNode(messageBox);
+        });
+        messageOverlayTransition = arrive;
+        arrive.play();
+    }
 
-ParallelTransition arrive = new ParallelTransition(fadeIn, scaleIn);
-arrive.setOnFinished(e -> {
-if (myToken != messageOverlayToken) return;
-// Give failed/blocked actions a clear "denied" cue.
-if (!confirm) GameAnimationHelper.shakeNode(messageBox);
-});
-messageOverlayTransition = arrive;
-arrive.play();
-}
+    /** Live proportional layout for the message modal (open + window resize). */
+    private void layoutMessageOverlay() {
+        if (messageOverlay == null || messageBox == null) return;
+        double W = backgroundRoot.getWidth();
+        double H = backgroundRoot.getHeight();
+        if (W <= 0 || H <= 0) return;
 
-    /** Builds a flat, minimal button for the message overlay. */
-    private Button overlayActionButton(String text, String fgColor, String bgColor) {
+        double scale = overlayScale();
+        double boardSide = REF_BOARD_SIZE * scale;
+        // Compact centered dialogue — modest rectangle, never edge-hugging
+        double panelW = clampModalSize(
+            Math.min(Math.min(W * 0.28, H * 0.50), boardSide * 0.48),
+            220 * scale, 340 * scale);
+        double panelH = clampModalSize(
+            Math.min(H * 0.48, boardSide * 0.55),
+            160 * scale, 320 * scale);
+        double titlePx = Math.max(13, panelW * 0.055);
+        double bodyPx  = Math.max(11, panelW * 0.042);
+        double iconPx  = Math.max(16, panelW * 0.070);
+        double btnPx   = Math.max(10, panelW * 0.045);
+        double pad     = Math.max(16, panelW * 0.07);
+
+        messageBox.setMinWidth(panelW * 0.92);
+        messageBox.setMaxWidth(panelW);
+        messageBox.setPrefWidth(panelW);
+        messageBox.setMaxHeight(panelH);
+        messageBox.setPadding(new Insets(pad * 1.1, pad * 1.2, pad, pad * 1.2));
+        messageBody.setMaxWidth(panelW * 0.86);
+        messageSep.setWidth(panelW * 0.62);
+
+        setFontSize(messageIcon, iconPx);
+        setFontSize(messageTitle, titlePx);
+        setFontSize(messageBody, bodyPx);
+        for (Node n : messageButtons.getChildren()) {
+            if (n instanceof Button) restyleOverlayButtonFont((Button) n, btnPx);
+        }
+    }
+
+    /** Clamps a modal dimension so it scales with the window but stays inset. */
+    private static double clampModalSize(double value, double min, double max) {
+        return Math.max(min, Math.min(value, max));
+    }
+
+    private double overlayScale() {
+        double W = backgroundRoot.getWidth();
+        double H = backgroundRoot.getHeight();
+        if (W <= 0 || H <= 0) return 1.0;
+        return Math.min(W / REF_W, H / REF_H);
+    }
+
+    private void applyModalPanelStyle(Region panel, String borderColor, String boxBg) {
+        panel.setStyle(
+            "-fx-background-color:" + boxBg + ";" +
+            "-fx-background-radius:14;" +
+            "-fx-border-color:" + borderColor + ";" +
+            "-fx-border-radius:14;" +
+            "-fx-border-width:2;");
+    }
+
+    /** Flat arcade button used by message + monster modals. */
+    private Button overlayActionButton(String text, String fgColor, String bgColor, String borderColor) {
         Button btn = new Button(text);
         btn.setStyle(
             "-fx-font-family:'" + FONT + "';" +
@@ -1395,26 +1512,33 @@ arrive.play();
             "-fx-font-weight:bold;" +
             "-fx-text-fill:" + fgColor + ";" +
             "-fx-background-color:" + bgColor + ";" +
-            "-fx-border-color:" + fgColor + ";" +
-            "-fx-border-width:1;" +
+            "-fx-border-color:" + borderColor + ";" +
+            "-fx-border-width:1.5;" +
             "-fx-border-radius:8;" +
             "-fx-background-radius:8;" +
-            "-fx-padding:8 28;" +
+            "-fx-padding:9 26;" +
             "-fx-cursor:hand;");
-        btn.setOnMouseEntered(e -> btn.setOpacity(0.75));
+        btn.setOnMouseEntered(e -> btn.setOpacity(0.78));
         btn.setOnMouseExited(e  -> btn.setOpacity(1.00));
         return btn;
     }
 
-    private void styleOverlayButton(Button btn, String color) {
-        // kept for any remaining callers — delegates to overlayActionButton styling
-        btn.setStyle(
-            "-fx-font-family:'" + FONT + "';" +
-            "-fx-background-color:" + color + ";" +
-            "-fx-text-fill:white;" +
-            "-fx-font-weight:bold;" +
-            "-fx-background-radius:8;" +
-            "-fx-padding:8 20;");
+    private void restyleOverlayButtonFont(Button btn, double fontPx) {
+        if (btn == null) return;
+        String style = btn.getStyle() == null ? "" : btn.getStyle();
+        if (style.matches("(?s).*-fx-font-size:\\s*[0-9.]+px;.*")) {
+            style = style.replaceAll("-fx-font-size:\\s*[0-9.]+px;",
+                "-fx-font-size: " + fontPx + "px;");
+        } else {
+            style = style + "-fx-font-size: " + fontPx + "px;";
+        }
+        double padV = Math.max(7, fontPx * 0.75);
+        double padH = Math.max(18, fontPx * 2.1);
+        if (style.matches("(?s).*-fx-padding:\\s*[0-9.]+\\s+[0-9.]+;.*")) {
+            style = style.replaceAll("-fx-padding:\\s*[0-9.]+\\s+[0-9.]+;",
+                "-fx-padding:" + padV + " " + padH + ";");
+        }
+        btn.setStyle(style);
     }
 
     private void hideMessageOverlay() {
@@ -1425,7 +1549,7 @@ arrive.play();
         FadeTransition fadeOut = new FadeTransition(Duration.millis(180), messageOverlay);
         fadeOut.setFromValue(messageOverlay.getOpacity()); fadeOut.setToValue(0);
         fadeOut.setOnFinished(e -> {
-            if (myToken != messageOverlayToken) return;   // superseded — don't hide new content
+            if (myToken != messageOverlayToken) return;
             messageOverlay.setVisible(false);
             messageButtons.getChildren().clear();
         });
@@ -1668,9 +1792,6 @@ arrive.play();
         setFontSize(cardOverlayDesc,   cardBodyPx);
         setFontSize(cardOverlayEffect, cardBodyPx);
 
-        if (messageBox  != null) messageBox.setMaxWidth(boardSide * 0.78);
-        if (messageBody != null) messageBody.setMaxWidth(boardSide * 0.68);
-
         myLabel.setStyle(
             "-fx-font-family: '" + FONT + "';" +
             "-fx-font-size: " + Math.max(TXT_TOP_LABEL, REF_H * 0.025) + "px;" +
@@ -1730,9 +1851,11 @@ arrive.play();
         // children of backgroundRoot, each built at the fixed 1280x720
         // reference size above — StackPane centers each independently,
         // so applying the identical scale to both keeps them perfectly
-        // coincident. cardOverlay and messageOverlay are also separate
-        // top-level children (deliberately, so blur effects on
-        // masterLayout never touch them) and get the same treatment.
+        // coincident. cardOverlay is also a top-level child (so blur on
+        // masterLayout never touches it) and gets the same treatment.
+        // messageOverlay / monsterDimLayer intentionally fill the FULL
+        // window and are NOT scaled — they re-layout with percentage
+        // widths so the dim backdrop always covers letterbox bars too.
         masterLayout.setScaleX(scale);
         masterLayout.setScaleY(scale);
         controlPanelView.setScaleX(scale);
@@ -1741,9 +1864,11 @@ arrive.play();
             cardOverlay.setScaleX(scale);
             cardOverlay.setScaleY(scale);
         }
-        if (messageOverlay != null) {
-            messageOverlay.setScaleX(scale);
-            messageOverlay.setScaleY(scale);
+        if (messageOverlay != null && messageOverlay.isVisible()) {
+            layoutMessageOverlay();
+        }
+        if (monsterDimLayer != null && monsterOverlayVisible) {
+            layoutMonsterOverlayPanel();
         }
     }
 
