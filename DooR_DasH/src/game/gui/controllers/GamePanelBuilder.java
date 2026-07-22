@@ -67,7 +67,7 @@ public final class GamePanelBuilder {
             "-fx-border-color: #00ff88;" +
             "-fx-border-width: 1.5;" +
             "-fx-border-radius: 6;" +
-            "-fx-padding: 2 7 2 7;" +
+            "-fx-padding: 2 3 2 3;" +
             "-fx-effect: dropshadow(three-pass-box,rgba(0,255,136,0.7),6,0.4,0,0);");
         StackPane portraitPane = new StackPane(r.portrait, r.posLbl);
         r.portraitPane = portraitPane;
@@ -208,7 +208,7 @@ public final class GamePanelBuilder {
             "-fx-border-color: #ff6666;" +
             "-fx-border-width: 1.5;" +
             "-fx-border-radius: 6;" +
-            "-fx-padding: 2 7 2 7;" +
+            "-fx-padding: 2 3 2 3;" +
             "-fx-effect: dropshadow(three-pass-box,rgba(255,102,102,0.7),6,0.4,0,0);");
         StackPane portPane = new StackPane(r.portrait, r.posLbl);
         r.portraitPane = portPane;

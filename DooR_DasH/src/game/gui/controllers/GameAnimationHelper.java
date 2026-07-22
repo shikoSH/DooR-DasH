@@ -243,19 +243,39 @@ grid, onFinished, false);
     // =========================================================
 
     /**
-     * Draws a brief animated arrow from a conveyor-belt cell to the cell it
-     * will transport a monster to, plus a pulsing ring on the destination
-     * cell, then fades both out. Purely visual — does not move any monster
-     * or touch engine state.
+     * Draws a brief animated arrow from a transport cell (conveyor belt or
+     * contamination sock) to the cell it will move a monster to, plus a
+     * pulsing ring on the destination cell, then fades both out. Purely
+     * visual — does not move any monster or touch engine state.
      *
-     * @param fromIndex board index of the conveyor cell that was tapped
-     * @param toIndex   board index of the destination cell
-     * @param grid      the board GridPane (used to locate cell panes and sizing)
+     * Overload kept for the existing preview-click call sites, which don't
+     * need to run anything once the pointer animation finishes.
+     *
+     * @param fromIndex   board index of the conveyor/sock cell that was tapped
+     * @param toIndex     board index of the destination cell
+     * @param grid        the board GridPane (used to locate cell panes and sizing)
+     * @param isConveyor  true = conveyor belt styling (forward/gold), false = sock styling (backward/purple)
      */
-    public static void animateConveyorPointer(int fromIndex, int toIndex, GridPane grid) {
+    public static void animateConveyorPointer(int fromIndex, int toIndex, GridPane grid, boolean isConveyor) {
+        animateConveyorPointer(fromIndex, toIndex, grid, isConveyor, null);
+    }
+
+    /**
+     * Same as {@link #animateConveyorPointer(int, int, GridPane, boolean)},
+     * but runs {@code onFinished} once the pointer/ping sequence completes.
+     * Used when the actual monster hop should wait for the pointer preview
+     * to finish first (e.g. landing on a conveyor/sock during a real turn).
+     *
+     * @param onFinished  callback run after the animation completes; may be null
+     */
+    public static void animateConveyorPointer(int fromIndex, int toIndex, GridPane grid,
+                                                boolean isConveyor, Runnable onFinished) {
         StackPane fromPane = findCellPane(grid, fromIndex);
         StackPane toPane   = findCellPane(grid, toIndex);
-        if (fromPane == null || toPane == null) return;
+        if (fromPane == null || toPane == null) {
+            if (onFinished != null) onFinished.run();
+            return;
+        }
 
         double cellW = grid.getWidth()  / Constants.BOARD_COLS;
         double cellH = grid.getHeight() / Constants.BOARD_ROWS;
@@ -266,11 +286,15 @@ grid, onFinished, false);
         double dy = (tRC[0] - fRC[0]) * cellH;
         double angleDeg = Math.toDegrees(Math.atan2(dy, dx));
 
+        // Style: conveyor = gold/amber, sock = sickly purple — matches the
+        // colour language already used by animateTransportSlide().
+        String glyphColor = isConveyor ? "#ffdd33" : "#c48bfa";
+
         // Arrow glyph, centered on the source cell, rotated to point at target
         Label arrow = new Label("\u279C"); // ➜
         arrow.setStyle(
             "-fx-font-size: " + Math.max(18, cellW * 0.5) + "px;" +
-            "-fx-text-fill: #ffdd33;" +
+            "-fx-text-fill: " + glyphColor + ";" +
             "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.85), 4, 0.4, 0, 0);" +
             "-fx-font-weight: bold;");
         arrow.setMouseTransparent(true);
@@ -283,7 +307,7 @@ grid, onFinished, false);
         Label destPing = new Label("\u25CE"); // ◎
         destPing.setStyle(
             "-fx-font-size: " + Math.max(20, cellW * 0.55) + "px;" +
-            "-fx-text-fill: #ffdd33;" +
+            "-fx-text-fill: " + glyphColor + ";" +
             "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.85), 4, 0.4, 0, 0);");
         destPing.setMouseTransparent(true);
         destPing.setOpacity(0);
@@ -325,6 +349,7 @@ grid, onFinished, false);
             new ParallelTransition(slide, pingPulse, hold),
             new ParallelTransition(arrowOut, pingOut)
         );
+        if (onFinished != null) fullSeq.setOnFinished(e -> onFinished.run());
         fullSeq.play();
     }
 
@@ -718,6 +743,61 @@ FadeTransition flashIn = new FadeTransition(Duration.millis(70), flash);
 flashIn.setFromValue(0); flashIn.setToValue(0.30);
 FadeTransition flashOut = new FadeTransition(Duration.millis(250), flash);
 flashOut.setFromValue(0.30); flashOut.setToValue(0);
+SequentialTransition flashSeq = new SequentialTransition(flashIn, flashOut);
+flashSeq.setOnFinished(e -> backgroundRoot.getChildren().remove(flash));
+flashSeq.play();
+}
+
+//=========================================================
+//CONTAMINATION-SOCK ENERGY-LOSS FX
+//=========================================================
+
+/**
+* Plays a short red "energy drain" visual when a monster lands on a
+* contamination sock: a red glow pulse on the affected monster's portrait
+* plus a brief full-screen red flash. Purely cosmetic — does not touch
+* game state or energy values itself.
+*/
+public static void animateEnergyLossFlash(StackPane backgroundRoot, ImageView portrait) {
+if (backgroundRoot == null) return;
+
+if (portrait != null) {
+    javafx.scene.effect.DropShadow glow =
+        new javafx.scene.effect.DropShadow(0, javafx.scene.paint.Color.web("#ff2222"));
+    glow.setSpread(0.45);
+    javafx.scene.effect.Effect original = portrait.getEffect();
+    portrait.setEffect(glow);
+
+    Timeline glowPulse = new Timeline(
+        new KeyFrame(Duration.millis(0),   new KeyValue(glow.radiusProperty(), 0)),
+        new KeyFrame(Duration.millis(220), new KeyValue(glow.radiusProperty(), 45)),
+        new KeyFrame(Duration.millis(600), new KeyValue(glow.radiusProperty(), 0))
+    );
+    glowPulse.setOnFinished(e -> portrait.setEffect(original));
+
+    ScaleTransition pulse = new ScaleTransition(Duration.millis(260), portrait);
+    pulse.setFromX(1.0); pulse.setFromY(1.0);
+    pulse.setToX(0.94);  pulse.setToY(0.94);
+    pulse.setCycleCount(2);
+    pulse.setAutoReverse(true);
+    pulse.setInterpolator(Interpolator.EASE_BOTH);
+
+    new ParallelTransition(glowPulse, pulse).play();
+}
+
+javafx.scene.shape.Rectangle flash = new javafx.scene.shape.Rectangle();
+flash.widthProperty().bind(backgroundRoot.widthProperty());
+flash.heightProperty().bind(backgroundRoot.heightProperty());
+flash.setFill(javafx.scene.paint.Color.web("#ff2222"));
+flash.setOpacity(0);
+flash.setMouseTransparent(true);
+backgroundRoot.getChildren().add(flash);
+flash.toFront();
+
+FadeTransition flashIn = new FadeTransition(Duration.millis(80), flash);
+flashIn.setFromValue(0); flashIn.setToValue(0.32);
+FadeTransition flashOut = new FadeTransition(Duration.millis(320), flash);
+flashOut.setFromValue(0.32); flashOut.setToValue(0);
 SequentialTransition flashSeq = new SequentialTransition(flashIn, flashOut);
 flashSeq.setOnFinished(e -> backgroundRoot.getChildren().remove(flash));
 flashSeq.play();

@@ -5,6 +5,7 @@ import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -91,6 +92,12 @@ public class GameController {
     private final BoxBlur worldBlur = new BoxBlur(0, 0, 2);
 
     // =========================================================
+    //  CARD DECK SPREAD OVERLAY
+    // =========================================================
+    private StackPane cardDeckDimLayer;
+    private boolean   cardDeckOverlayVisible = false;
+
+    // =========================================================
     //  MESSAGE OVERLAY
     // =========================================================
     private StackPane messageOverlay;
@@ -169,7 +176,8 @@ public class GameController {
 
             // ── Delegate to helpers ──────────────────────────────────────
             boardRenderer = new GameBoardRenderer(grid, cellSize,
-                this::handleMonsterCellClick, this::handleConveyorCellClick);
+                this::handleMonsterCellClick, this::handleConveyorCellClick,
+                this::handleSockCellClick, this::handleCardCellClick);
             boardRenderer.buildGrid();
 
             player   = GamePanelBuilder.buildPlayerPanel(playerPanelContainer, energyTiers[4]);
@@ -194,7 +202,11 @@ public class GameController {
                 rollImageBtn.setImage(loadImage(IMG_ROLL_BTN));
                 addButtonHover(rollImageBtn);
             }
-            if (cardDeckView != null) cardDeckView.setImage(deckFull);
+            if (cardDeckView != null) {
+                cardDeckView.setImage(deckFull);
+                cardDeckView.setCursor(Cursor.HAND);
+                cardDeckView.setOnMouseClicked(e -> showCardDeckOverlay());
+            }
             if (diceView     != null) diceView.setImage(diceImages[0]);
 
             setupResponsiveLayout();
@@ -359,7 +371,7 @@ public class GameController {
     // =========================================================
     @FXML
     private void handleRollDice() {
-        if (game == null || cardOverlay.isVisible() || isAnimating || monsterOverlayVisible) return;
+        if (game == null || cardOverlay.isVisible() || isAnimating || monsterOverlayVisible || cardDeckOverlayVisible) return;
         try {
             isAnimating = true;
             Monster current  = game.getCurrent();
@@ -489,17 +501,45 @@ public class GameController {
                             // LEG 2: only runs if the raw landing cell actually transported the monster
                             if (frl != fn) {
                                 if (rawLandingCell instanceof ConveyorBelt) {
-                                    SoundManager.getInstance().playConveyorBelt();
+                                    Runnable doTransportHop = () -> {
+                                        SoundManager.getInstance().playConveyorBelt();
+                                        GameAnimationHelper.animateMove(
+                                            fm, fo, frl, fn,
+                                            boardRenderer.getMonsterViews(),
+                                            boardRenderer.getSpotlightViews(),
+                                            grid,
+                                            finishTurn,
+                                            true);
+                                    };
+                                    // Show the destination pointer first, then hop (with sound) once it finishes.
+                                    GameAnimationHelper.animateConveyorPointer(
+                                        frl, fn, grid, true, doTransportHop);
                                 } else if (rawLandingCell instanceof ContaminationSock) {
-                                    SoundManager.getInstance().playContaminationSock();
+                                    Runnable doTransportHop = () -> {
+                                        SoundManager.getInstance().playContaminationSock();
+                                        boolean movingIsPlayer = fm == game.getPlayer();
+                                        GameAnimationHelper.animateEnergyLossFlash(
+                                            backgroundRoot, movingIsPlayer ? player.portrait : opponent.portrait);
+                                        GameAnimationHelper.animateMove(
+                                            fm, fo, frl, fn,
+                                            boardRenderer.getMonsterViews(),
+                                            boardRenderer.getSpotlightViews(),
+                                            grid,
+                                            finishTurn,
+                                            true);
+                                    };
+                                    // Show the destination pointer first, then hop (with sound) once it finishes.
+                                    GameAnimationHelper.animateConveyorPointer(
+                                        frl, fn, grid, false, doTransportHop);
+                                } else {
+                                    GameAnimationHelper.animateMove(
+                                        fm, fo, frl, fn,
+                                        boardRenderer.getMonsterViews(),
+                                        boardRenderer.getSpotlightViews(),
+                                        grid,
+                                        finishTurn,
+                                        true);
                                 }
-                                GameAnimationHelper.animateMove(
-                                    fm, fo, frl, fn,
-                                    boardRenderer.getMonsterViews(),
-                                    boardRenderer.getSpotlightViews(),
-                                    grid,
-                                    finishTurn,
-                                    true);
                             } else {
                                 finishTurn.run();
                             }
@@ -527,7 +567,7 @@ public class GameController {
     // =========================================================
     @FXML
     private void handlePowerUp() {
-        if (game == null || cardOverlay.isVisible() || monsterOverlayVisible) return;
+        if (game == null || cardOverlay.isVisible() || monsterOverlayVisible || cardDeckOverlayVisible) return;
         if (messageOverlay != null && messageOverlay.isVisible()) return;
 
         if (powerUpImageBtn != null) {
@@ -605,6 +645,7 @@ public class GameController {
         Cell[][] cells = game.getBoard().getBoardCells();
         int row = boardIndex / Constants.BOARD_COLS;
         int col = boardIndex % Constants.BOARD_COLS;
+        if (row % 2 == 1) col = Constants.BOARD_COLS - 1 - col;
         if (row < 0 || row >= cells.length || col < 0 || col >= cells[0].length) return;
 
         Cell cell = cells[row][col];
@@ -613,7 +654,58 @@ public class GameController {
         int destIndex = boardIndex + ((ConveyorBelt) cell).getEffect();
         destIndex = Math.max(0, Math.min(Constants.BOARD_SIZE - 1, destIndex));
 
-        GameAnimationHelper.animateConveyorPointer(boardIndex, destIndex, grid);
+        GameAnimationHelper.animateConveyorPointer(boardIndex, destIndex, grid, true);
+    }
+
+    // =========================================================
+    //  CONTAMINATION SOCK CELL CLICK
+    // =========================================================
+
+    /**
+     * Shows an animated pointer from the tapped contamination-sock cell to
+     * the cell it will transport a monster to. Purely visual: reads the
+     * destination from the engine's ContaminationSock cell but never
+     * mutates game state or moves any monster.
+     */
+    private void handleSockCellClick(int boardIndex) {
+        if (game == null || isAnimating) return;
+
+        Cell[][] cells = game.getBoard().getBoardCells();
+        int row = boardIndex / Constants.BOARD_COLS;
+        int col = boardIndex % Constants.BOARD_COLS;
+        if (row % 2 == 1) col = Constants.BOARD_COLS - 1 - col;
+        if (row < 0 || row >= cells.length || col < 0 || col >= cells[0].length) return;
+
+        Cell cell = cells[row][col];
+        if (!(cell instanceof ContaminationSock)) return;
+
+        int destIndex = boardIndex + ((ContaminationSock) cell).getEffect();
+        destIndex = Math.max(0, Math.min(Constants.BOARD_SIZE - 1, destIndex));
+
+        GameAnimationHelper.animateConveyorPointer(boardIndex, destIndex, grid, false);
+    }
+
+    // =========================================================
+    //  CARD CELL CLICK
+    // =========================================================
+
+    /**
+     * Shows the full-deck spread overlay when a Card cell is tapped.
+     * Purely visual: does not draw a card or touch engine state.
+     */
+    private void handleCardCellClick(int boardIndex) {
+        if (game == null || isAnimating || cardDeckOverlayVisible) return;
+
+        Cell[][] cells = game.getBoard().getBoardCells();
+        int row = boardIndex / Constants.BOARD_COLS;
+        int col = boardIndex % Constants.BOARD_COLS;
+        if (row % 2 == 1) col = Constants.BOARD_COLS - 1 - col;
+        if (row < 0 || row >= cells.length || col < 0 || col >= cells[0].length) return;
+
+        Cell cell = cells[row][col];
+        if (!(cell instanceof CardCell)) return;
+
+        showCardDeckOverlay();
     }
 
     // =========================================================
@@ -760,6 +852,180 @@ public class GameController {
             backgroundRoot.getChildren().remove(layer);
             monsterOverlayVisible = false;
             monsterDimLayer = null;
+        });
+        new ParallelTransition(blurOut, fadeOut).play();
+    }
+
+    // =========================================================
+    //  CARD DECK SPREAD OVERLAY
+    // =========================================================
+
+    /**
+     * Blurs the background and fans out every card type in the deck, each
+     * with an "xN" label showing how many of that card remain. Purely
+     * visual — reads Board's card lists but never mutates them.
+     */
+    private void showCardDeckOverlay() {
+        if (cardOverlay.isVisible() || monsterOverlayVisible || cardDeckOverlayVisible) return;
+        cardDeckOverlayVisible = true;
+
+        // ── Tally remaining counts per card type, keeping the deck's
+        //    original first-seen order so the spread reads consistently
+        //    across turns. ──────────────────────────────────────────────
+        java.util.LinkedHashMap<String, Integer> counts = new java.util.LinkedHashMap<>();
+        for (Card c : Board.getOriginalCards()) counts.putIfAbsent(c.getName(), 0);
+        for (Card c : Board.cards) counts.merge(c.getName(), 1, Integer::sum);
+
+        // ── Current proportional sizing (window may have resized) ────────
+        double curW = backgroundRoot.getWidth();
+        double curH = backgroundRoot.getHeight();
+        double curScale = Math.min(curW / REF_W, curH / REF_H);
+        double curBoardSide = REF_BOARD_SIZE * curScale;
+
+        int n = Math.max(1, counts.size());
+        // Sized off the full screen width (curW) rather than the board alone,
+        // and with a much smaller overlap below, so the fanned deck reads as
+        // big cards spread across the whole screen instead of a small cluster.
+        double cardW = Math.min(curW * 0.17, (curW * 0.96) / n);
+        double countFontPx = Math.max(10, cardW * 0.12);
+
+        HBox row = new HBox(-cardW * 0.08);
+        row.setAlignment(Pos.BOTTOM_CENTER);
+        row.setPadding(new Insets(10, 6, 4, 6));
+
+        java.util.List<Node>   entries       = new java.util.ArrayList<>();
+        java.util.List<Double> entryAngles   = new java.util.ArrayList<>();
+        java.util.List<Double> entryLifts    = new java.util.ArrayList<>();
+        double mid = (n - 1) / 2.0;
+        int idx = 0;
+        for (java.util.Map.Entry<String, Integer> e : counts.entrySet()) {
+            String name      = e.getKey();
+            int    remaining = e.getValue();
+
+            ImageView face = new ImageView(cardFace(name));
+            face.setPreserveRatio(true);
+            face.setFitWidth(cardW);
+            addDropShadow(face, 12, Color.BLACK);
+            if (remaining == 0) face.setOpacity(0.35);
+
+            Label countLbl = makeLbl("x" + remaining,
+                remaining > 0 ? "#ffdd33" : "#555555", (int) countFontPx, true);
+            countLbl.setAlignment(Pos.CENTER);
+            countLbl.setMaxWidth(cardW);
+
+            VBox entry = new VBox(4, face, countLbl);
+            entry.setAlignment(Pos.TOP_CENTER);
+
+            double offset = idx - mid;
+            double angle  = offset * 10.0;
+            double lift   = Math.abs(offset) * (cardW * 0.16);
+            entryAngles.add(angle);
+            entryLifts.add(lift);
+
+            // Start collapsed toward the centre, unrotated and tiny —
+            // the entrance animation below "spreads" them into their
+            // fanned-out resting position.
+            entry.setRotate(0);
+            entry.setTranslateX(-offset * (cardW * 0.9));
+            entry.setTranslateY(0);
+            entry.setOpacity(0);
+            entry.setScaleX(0.5); entry.setScaleY(0.5);
+
+            entries.add(entry);
+            row.getChildren().add(entry);
+            idx++;
+        }
+
+        Label title = makeLbl("THE DECK", "#ffcc00",
+            (int) Math.max(13, curBoardSide * TXT_CARD_NAME_FRAC), true);
+        title.setAlignment(Pos.CENTER);
+
+        Button closeBtn = styledOverlayButton("CLOSE", "rgba(30,30,30,0.90)", "#aaaaaa");
+        closeBtn.setOnAction(e -> dismissCardDeckOverlay());
+
+        Label hint = makeLbl("tap outside to dismiss", "#444444", 9, false);
+        hint.setStyle(hint.getStyle() + "-fx-font-style:italic;");
+
+        VBox panel = new VBox(16, title, row, closeBtn, hint);
+        panel.setAlignment(Pos.CENTER);
+        panel.setPadding(new Insets(24, 30, 20, 30));
+        panel.setMaxWidth(curW * 0.95);
+        panel.setStyle(
+            "-fx-background-color:linear-gradient(to bottom,rgba(12,12,18,0.96),rgba(4,4,10,0.98));" +
+            "-fx-background-radius:18;" +
+            "-fx-border-color:#2a2a2a;" +
+            "-fx-border-width:1.5;" +
+            "-fx-border-radius:18;");
+        addDropShadow(panel, 40, Color.BLACK);
+        panel.setOnMouseClicked(javafx.event.Event::consume);
+
+        cardDeckDimLayer = new StackPane(panel);
+        cardDeckDimLayer.setStyle("-fx-background-color:rgba(0,0,0,0.55);");
+        cardDeckDimLayer.setPickOnBounds(true);
+        cardDeckDimLayer.setOpacity(0);
+        cardDeckDimLayer.setOnMouseClicked(e -> {
+            if (e.getTarget() == cardDeckDimLayer) dismissCardDeckOverlay();
+        });
+
+        backgroundRoot.getChildren().add(cardDeckDimLayer);
+        cardDeckDimLayer.toFront();
+
+        // ── Blur + dim fade in, cards spread out from centre in a
+        //    staggered cascade so the deck visibly "fans open". ─────────
+        masterLayout.setEffect(worldBlur);
+        Timeline blurIn = new Timeline(
+            new KeyFrame(Duration.ZERO,       ev -> { worldBlur.setWidth(0);  worldBlur.setHeight(0); }),
+            new KeyFrame(Duration.millis(350), ev -> { worldBlur.setWidth(14); worldBlur.setHeight(14); }));
+        FadeTransition dimFade = new FadeTransition(Duration.millis(300), cardDeckDimLayer);
+        dimFade.setFromValue(0); dimFade.setToValue(1);
+
+        ParallelTransition cardsSpread = new ParallelTransition();
+        for (int i = 0; i < entries.size(); i++) {
+            Node entry = entries.get(i);
+            double angle = entryAngles.get(i);
+            double lift  = entryLifts.get(i);
+
+            PauseTransition delay = new PauseTransition(Duration.millis(i * 45));
+
+            TranslateTransition moveX = new TranslateTransition(Duration.millis(380), entry);
+            moveX.setToX(0);
+            moveX.setInterpolator(Interpolator.EASE_OUT);
+
+            TranslateTransition moveY = new TranslateTransition(Duration.millis(380), entry);
+            moveY.setToY(lift);
+            moveY.setInterpolator(Interpolator.EASE_OUT);
+
+            RotateTransition rot = new RotateTransition(Duration.millis(380), entry);
+            rot.setToAngle(angle);
+            rot.setInterpolator(Interpolator.EASE_OUT);
+
+            FadeTransition fadeIn = new FadeTransition(Duration.millis(300), entry);
+            fadeIn.setToValue(1);
+
+            ScaleTransition scaleUp = new ScaleTransition(Duration.millis(380), entry);
+            scaleUp.setToX(1); scaleUp.setToY(1);
+            scaleUp.setInterpolator(Interpolator.EASE_OUT);
+
+            cardsSpread.getChildren().add(new SequentialTransition(
+                delay, new ParallelTransition(moveX, moveY, rot, fadeIn, scaleUp)));
+        }
+
+        new ParallelTransition(blurIn, dimFade, cardsSpread).play();
+    }
+
+    private void dismissCardDeckOverlay() {
+        if (cardDeckDimLayer == null) return;
+        Timeline blurOut = new Timeline(
+            new KeyFrame(Duration.ZERO,       ev -> { worldBlur.setWidth(14); worldBlur.setHeight(14); }),
+            new KeyFrame(Duration.millis(280), ev -> { worldBlur.setWidth(0);  worldBlur.setHeight(0);
+                                                        masterLayout.setEffect(null); }));
+        FadeTransition fadeOut = new FadeTransition(Duration.millis(240), cardDeckDimLayer);
+        fadeOut.setFromValue(1); fadeOut.setToValue(0);
+        final StackPane layer = cardDeckDimLayer;
+        fadeOut.setOnFinished(ev -> {
+            backgroundRoot.getChildren().remove(layer);
+            cardDeckOverlayVisible = false;
+            cardDeckDimLayer = null;
         });
         new ParallelTransition(blurOut, fadeOut).play();
     }
@@ -1528,7 +1794,7 @@ arrive.play();
     }
 
     private void handleCheatKeys(KeyEvent e) {
-        if (game == null || isAnimating || cardOverlay.isVisible()) return;
+        if (game == null || isAnimating || cardOverlay.isVisible() || cardDeckOverlayVisible) return;
         Monster current = game.getCurrent();
         if (e.getCode() == KeyCode.W) {
             current.setPosition(99);

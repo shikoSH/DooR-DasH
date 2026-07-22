@@ -42,6 +42,7 @@ public class GameBoardRenderer {
     private ImageView[][] bgViews;
     private ImageView[][] monsterViews;
     private Label[][]     energyLabels;
+    private Label[][]     destLabels;
     private javafx.scene.shape.Rectangle[][] spotlightViews;
 
     // ── Cell images ──────────────────────────────────────────
@@ -58,16 +59,26 @@ public class GameBoardRenderer {
     /** Callback so GameController can handle conveyor-cell clicks (shows destination pointer). */
     private final java.util.function.IntConsumer onConveyorCellClick;
 
+    /** Callback so GameController can handle contamination-sock clicks (shows destination pointer). */
+    private final java.util.function.IntConsumer onSockCellClick;
+
+    /** Callback so GameController can handle card-cell clicks (shows the deck spread). */
+    private final java.util.function.IntConsumer onCardCellClick;
+
     // =========================================================
     //  CONSTRUCTOR
     // =========================================================
     public GameBoardRenderer(GridPane grid, DoubleProperty cellSize,
                               java.util.function.IntConsumer onMonsterCellClick,
-                              java.util.function.IntConsumer onConveyorCellClick) {
+                              java.util.function.IntConsumer onConveyorCellClick,
+                              java.util.function.IntConsumer onSockCellClick,
+                              java.util.function.IntConsumer onCardCellClick) {
         this.grid                = grid;
         this.cellSize             = cellSize;
         this.onMonsterCellClick   = onMonsterCellClick;
         this.onConveyorCellClick  = onConveyorCellClick;
+        this.onSockCellClick      = onSockCellClick;
+        this.onCardCellClick      = onCardCellClick;
 
         normalImage      = loadImage(IMG_NORMAL);
         doorSC           = loadImage(IMG_DOOR_SC);
@@ -91,6 +102,7 @@ public class GameBoardRenderer {
         bgViews        = new ImageView[Constants.BOARD_ROWS][Constants.BOARD_COLS];
         monsterViews   = new ImageView[Constants.BOARD_ROWS][Constants.BOARD_COLS];
         energyLabels   = new Label[Constants.BOARD_ROWS][Constants.BOARD_COLS];
+        destLabels     = new Label[Constants.BOARD_ROWS][Constants.BOARD_COLS];
         spotlightViews = new Rectangle[Constants.BOARD_ROWS][Constants.BOARD_COLS];
 
         for (int row = 0; row < Constants.BOARD_ROWS; row++) {
@@ -109,6 +121,14 @@ public class GameBoardRenderer {
                 boolean isConveyorSlot = false;
                 for (int ci : Constants.CONVEYOR_CELL_INDICES)
                     if (ci == boardIndex) { isConveyorSlot = true; break; }
+
+                boolean isSockSlot = false;
+                for (int si : Constants.SOCK_CELL_INDICES)
+                    if (si == boardIndex) { isSockSlot = true; break; }
+
+                boolean isCardSlot = false;
+                for (int ki : Constants.CARD_CELL_INDICES)
+                    if (ki == boardIndex) { isCardSlot = true; break; }
 
                 // Background image view
                 ImageView bgView = new ImageView();
@@ -158,6 +178,25 @@ public class GameBoardRenderer {
                 energyLabel.setVisible(false);
                 StackPane.setAlignment(energyLabel, Pos.BOTTOM_CENTER);
 
+                // Destination label — shows where a conveyor belt / contamination
+                // sock will transport a monster to. Hidden for every other cell.
+                // Wraps and rescales its font with the cell size so it stays
+                // readable at any window size instead of overflowing the cell.
+                Label destLabel = new Label("");
+                destLabel.setMouseTransparent(true);
+                destLabel.setWrapText(true);
+                destLabel.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
+                destLabel.setAlignment(Pos.CENTER);
+                destLabel.maxWidthProperty().bind(
+                    grid.widthProperty().divide(Constants.BOARD_COLS).multiply(0.92));
+                cellSize.addListener((obs, old, val) -> {
+                    Object kind = destLabel.getUserData();
+                    if ("conveyor".equals(kind)) applyTransportLabelStyle(destLabel, val.doubleValue(), true);
+                    else if ("sock".equals(kind)) applyTransportLabelStyle(destLabel, val.doubleValue(), false);
+                });
+                destLabel.setVisible(false);
+                StackPane.setAlignment(destLabel, Pos.TOP_LEFT);
+
                 // Spotlight overlay — invisible by default, pulsed during monster movement
                 Rectangle spotlight = new Rectangle();
                 spotlight.setMouseTransparent(true);
@@ -178,6 +217,7 @@ public class GameBoardRenderer {
                 bgViews[row][col]      = bgView;
                 monsterViews[row][col] = mView;
                 energyLabels[row][col] = energyLabel;
+                destLabels[row][col]   = destLabel;
 
                 if (isMonsterSlot) {
                     final int idx = boardIndex;
@@ -187,9 +227,17 @@ public class GameBoardRenderer {
                     final int idx = boardIndex;
                     cellStack.setCursor(Cursor.HAND);
                     cellStack.setOnMouseClicked(e -> onConveyorCellClick.accept(idx));
+                } else if (isSockSlot) {
+                    final int idx = boardIndex;
+                    cellStack.setCursor(Cursor.HAND);
+                    cellStack.setOnMouseClicked(e -> onSockCellClick.accept(idx));
+                } else if (isCardSlot) {
+                    final int idx = boardIndex;
+                    cellStack.setCursor(Cursor.HAND);
+                    cellStack.setOnMouseClicked(e -> onCardCellClick.accept(idx));
                 }
 
-                cellStack.getChildren().addAll(bgView, spotlight, mView, indexLabel, energyLabel);
+                cellStack.getChildren().addAll(bgView, spotlight, mView, indexLabel, energyLabel, destLabel);
                 grid.add(cellStack, col, row);
             }
         }
@@ -211,6 +259,8 @@ public class GameBoardRenderer {
                 monsterViews[r][c].setImage(null);
                 energyLabels[r][c].setVisible(false);
                 energyLabels[r][c].setUserData(null);
+                destLabels[r][c].setVisible(false);
+                destLabels[r][c].setUserData(null);
             }
 
         for (int index = 0; index < 100; index++) {
@@ -239,6 +289,20 @@ public class GameBoardRenderer {
                         applyMonsterEnergyLabelStyle(lbl, cellSize.get());
                         lbl.setVisible(true);
                     }
+                } else if (cell instanceof ConveyorBelt) {
+                    int destIndex = clampToBoard(index + ((ConveyorBelt) cell).getEffect());
+                    Label lbl = destLabels[rc[0]][rc[1]];
+                    lbl.setUserData("conveyor");
+                    lbl.setText("\u279C " + destIndex);
+                    applyTransportLabelStyle(lbl, cellSize.get(), true);
+                    lbl.setVisible(true);
+                } else if (cell instanceof ContaminationSock) {
+                    int destIndex = clampToBoard(index + ((ContaminationSock) cell).getEffect());
+                    Label lbl = destLabels[rc[0]][rc[1]];
+                    lbl.setUserData("sock");
+                    lbl.setText("\u279C " + destIndex);
+                    applyTransportLabelStyle(lbl, cellSize.get(), false);
+                    lbl.setVisible(true);
                 }
             } else {
                 bgViews[rc[0]][rc[1]].setImage(normalImage);
@@ -317,5 +381,29 @@ public class GameBoardRenderer {
             "-fx-font-size: " + Math.max(TXT_DOOR_ENERGY, cellPx * 0.15) + "px;" +
             "-fx-text-fill: rgba(100,255,160,0.95);" +
             "-fx-font-weight: bold;");
+    }
+
+    /**
+     * Styles the destination-index label shown on conveyor belt / contamination
+     * sock cells. Font size tracks the current cell size (cellPx) so the text
+     * stays readable and never overflows the cell as the window is resized.
+     * Conveyor = gold/amber, sock = sickly purple — matches the colour
+     * language already used for these hazards elsewhere (pointer/slide FX).
+     */
+    private void applyTransportLabelStyle(Label lbl, double cellPx, boolean isConveyor) {
+        String color = isConveyor ? "rgba(255,221,51,0.95)" : "rgba(196,139,250,0.95)";
+        lbl.setStyle(
+            "-fx-font-family: '" + FONT + "';" +
+            "-fx-font-size: " + Math.max(6, cellPx * 0.13) + "px;" +
+            "-fx-text-fill: " + color + ";" +
+            "-fx-font-weight: bold;" +
+            "-fx-background-color: rgba(0,0,0,0.40);" +
+            "-fx-background-radius: 4;" +
+            "-fx-padding: 0 2 0 2;");
+    }
+
+    /** Clamps a raw transport destination index onto the valid board range. */
+    private int clampToBoard(int index) {
+        return Math.max(0, Math.min(Constants.BOARD_SIZE - 1, index));
     }
 }
