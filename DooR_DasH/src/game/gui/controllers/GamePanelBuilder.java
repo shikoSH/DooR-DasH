@@ -50,6 +50,7 @@ public final class GamePanelBuilder {
         HBox lights = makeLightRow(
             r.turnOff, r.turnOn, r.confOff, r.confOn,
             r.frzOff,  r.frzOn,  r.shldOff, r.shldOn, r.pwrOff, r.pwrOn);
+        r.lightsRow = lights;
 
         // ── Portrait + position badge ─────────────────────────────────────
         r.portrait.setPreserveRatio(true);
@@ -69,6 +70,7 @@ public final class GamePanelBuilder {
             "-fx-padding: 2 7 2 7;" +
             "-fx-effect: dropshadow(three-pass-box,rgba(0,255,136,0.7),6,0.4,0,0);");
         StackPane portraitPane = new StackPane(r.portrait, r.posLbl);
+        r.portraitPane = portraitPane;
         StackPane.setAlignment(r.posLbl, Pos.BOTTOM_LEFT);
         StackPane.setMargin(r.posLbl, new Insets(0, 0, 6, 6));
 
@@ -139,12 +141,14 @@ public final class GamePanelBuilder {
 
         // Overlay the grid on top of the profile image
         StackPane profilePane = new StackPane(r.profileBg, grid);
+        r.profilePane = profilePane;
         StackPane.setAlignment(grid, Pos.TOP_LEFT);
 
         // ── Energy label ──────────────────────────────────────────────────
         r.energyLbl = makeLbl("-", "#00ff88", TXT_PLAYER_ENERGY, true);
         addGlow(r.energyLbl, Color.web("#00ff88"), 16, 0.6);
         HBox energyRow = new HBox(r.energyLbl);
+        r.energyRow = energyRow;
         energyRow.setAlignment(Pos.CENTER_LEFT);
         energyRow.setPadding(new Insets(0, 0, 0, 10));
 
@@ -159,6 +163,7 @@ public final class GamePanelBuilder {
         // ── Turn label ────────────────────────────────────────────────────
         r.turnLbl = makeLbl("", "#ffcc00", TXT_PLAYER_TURN, true);
         HBox turnRow = new HBox(r.turnLbl);
+        r.turnRow = turnRow;
         turnRow.setAlignment(Pos.CENTER);
 
         container.getChildren().addAll(
@@ -187,6 +192,7 @@ public final class GamePanelBuilder {
         HBox lights = makeLightRow(
             r.turnOff, r.turnOn, r.confOff, r.confOn,
             r.frzOff,  r.frzOn,  r.shldOff, r.shldOn, r.pwrOff, r.pwrOn);
+        r.lightsRow = lights;
 
         // ── Portrait + position badge ─────────────────────────────────────
         r.portrait.setPreserveRatio(true);
@@ -205,6 +211,7 @@ public final class GamePanelBuilder {
             "-fx-padding: 2 7 2 7;" +
             "-fx-effect: dropshadow(three-pass-box,rgba(255,102,102,0.7),6,0.4,0,0);");
         StackPane portPane = new StackPane(r.portrait, r.posLbl);
+        r.portraitPane = portPane;
         StackPane.setAlignment(r.posLbl, Pos.BOTTOM_LEFT);
         StackPane.setMargin(r.posLbl, new Insets(0, 0, 6, 6));
 
@@ -253,12 +260,14 @@ public final class GamePanelBuilder {
         GridPane.setMargin(r.statusLbl, new Insets(0, 4, 6, 8));
 
         StackPane profilePane = new StackPane(r.profileBg, grid);
+        r.profilePane = profilePane;
         StackPane.setAlignment(grid, Pos.TOP_LEFT);
 
         // ── Energy label ──────────────────────────────────────────────────
         r.energyLbl = makeLbl("-", "#ff6666", TXT_PLAYER_ENERGY, true);
         addGlow(r.energyLbl, Color.web("#ff6666"), 16, 0.6);
         HBox energyRow = new HBox(r.energyLbl);
+        r.energyRow = energyRow;
         energyRow.setAlignment(Pos.CENTER_LEFT);
         energyRow.setPadding(new Insets(0, 0, 0, 10));
 
@@ -357,6 +366,7 @@ public final class GamePanelBuilder {
         public final Label     line1, line2, line3;
         public final ImageView background;
         public final VBox      textBox;   // wraps line1-3; controller rescales its padding to match the image
+		public Label headerLbl;
 
         public ActionLogRefs(Label l1, Label l2, Label l3, ImageView bg, VBox textBox) {
             this.line1 = l1; this.line2 = l2; this.line3 = l3;
@@ -381,6 +391,11 @@ public final class GamePanelBuilder {
 
         public boolean turnState, confState, frzState, shldState, pwrState;
         public Image   energyBarCurrentImage;
+        public HBox    lightsRow;     // exposed so GameController can move it independently
+        public StackPane portraitPane; // portrait + position badge, as one movable unit
+        public StackPane profilePane;  // profile card image + its text overlay, as one movable unit
+        public HBox    energyRow;      // wraps the energy number label
+        public HBox    turnRow;        // wraps the "YOUR TURN" label (player only)
     }
 
     public static class OpponentPanelRefs {
@@ -399,5 +414,9 @@ public final class GamePanelBuilder {
 
         public boolean turnState, confState, frzState, shldState, pwrState;
         public Image   energyBarCurrentImage;
+        public HBox    lightsRow;     // exposed so GameController can move it independently
+        public StackPane portraitPane; // portrait + position badge, as one movable unit
+        public StackPane profilePane;  // profile card image + its text overlay, as one movable unit
+        public HBox    energyRow;      // wraps the energy number label
     }
 }

@@ -56,14 +56,13 @@ public class GameController {
     @FXML private VBox       playerPanelContainer;
     @FXML private VBox       opponentPanelContainer;
     @FXML private VBox       actionLogContainer;
-    @FXML private VBox       diceContainer;
     @FXML private ImageView  cardDeckView;
     @FXML private ImageView  diceView;
     @FXML private Label      diceResultLabel;
     @FXML private ImageView  powerUpImageBtn;
     @FXML private ImageView  rollImageBtn;
     @FXML private AnchorPane controlBar;
-    @FXML private BorderPane masterLayout;
+    @FXML private AnchorPane masterLayout;
 
     // =========================================================
     //  HELPERS / SUB-CONTROLLERS
@@ -80,6 +79,7 @@ public class GameController {
     private Label actionLine1, actionLine2, actionLine3;
     private ImageView actionLogBg;   // stored for resize-binding in applyAllLayout
     private VBox actionLogTextBox;   // NEW
+    private Label actionLogHeaderLbl; // "ACTION LOG" header — rescaled every layout pass
 
     
     // =========================================================
@@ -155,23 +155,17 @@ public class GameController {
             backgroundView.setEffect(new BoxBlur(3, 3, 2));
 
             controlPanelView.setImage(loadImage(IMG_CONTROL));
-            controlPanelView.fitWidthProperty().bind(backgroundRoot.widthProperty());
-            controlPanelView.fitHeightProperty().bind(backgroundRoot.heightProperty());
+            // Sized manually in applyAllLayout() using ONE uniform scale
+            // factor for both width and height — see GameUIConstants
+            // "UNIFORM-SCALE LAYOUT" for why. No property binding here;
+            // a bound property can't also be set directly every resize.
 
             setupParallax();
 
-            javafx.beans.binding.NumberBinding boardSize =
-                backgroundRoot.heightProperty().multiply(BOARD_SIZE_MULT);
             boardHolderView.setImage(loadImage(IMG_BOARD_HOLDER));
-            boardHolderView.fitWidthProperty().bind(boardSize.multiply(1.10));
-            boardHolderView.fitHeightProperty().bind(boardSize.multiply(1.10));
             boardImageView.setImage(loadImage(IMG_BOARD));
-            boardImageView.fitWidthProperty().bind(boardSize);
-            boardImageView.fitHeightProperty().bind(boardSize);
-            grid.maxWidthProperty().bind(boardSize);
-            grid.maxHeightProperty().bind(boardSize);
-            grid.minWidthProperty().bind(boardSize);
-            grid.minHeightProperty().bind(boardSize);
+            // Board / holder / grid sizes are also set manually in
+            // applyAllLayout() for the same reason.
 
             // ── Delegate to helpers ──────────────────────────────────────
             boardRenderer = new GameBoardRenderer(grid, cellSize,
@@ -187,6 +181,7 @@ public class GameController {
             actionLine3  = logRefs.line3;
             actionLogBg  = logRefs.background;
             actionLogTextBox = logRefs.textBox;   // NEW
+            actionLogHeaderLbl = logRefs.headerLbl;
 
             buildCardOverlay();
             buildMessageOverlay();
@@ -640,18 +635,32 @@ public class GameController {
     private void showMonsterInfoOverlay(Monster m) {
         monsterOverlayVisible = true;
 
+        // ── Compute current proportional sizing (window may have resized) ─
+        // This overlay is rebuilt from scratch every time it opens, so it
+        // just needs to read the CURRENT window size at build time — no
+        // resize listener needed. Was previously fixed pixels (220, 200,
+        // 270, 11px) which is why it looked wrong on other resolutions.
+        double curW = backgroundRoot.getWidth();
+        double curH = backgroundRoot.getHeight();
+        double curScale = Math.min(curW / REF_W, curH / REF_H);
+        double curBoardSide = REF_BOARD_SIZE * curScale;
+
+        final double statFontPx = Math.max(9, curBoardSide * TXT_CARD_BODY_FRAC);
+        double nameFontPx = Math.max(11, curBoardSide * TXT_CARD_NAME_FRAC);
+        double bodyFontPx = Math.max(9,  curBoardSide * TXT_CARD_BODY_FRAC * 0.9);
+
         // ── Screen portrait — shown immediately, no card-back flip ────────
         monsterOverlayFace = new ImageView(screenPortrait(m.getName()));
         monsterOverlayFace.setPreserveRatio(true);
-        monsterOverlayFace.setFitWidth(220);
+        monsterOverlayFace.setFitWidth(curBoardSide * 0.36);
         addDropShadow(monsterOverlayFace, 22, Color.BLACK);
 
         // ── Stats rows ────────────────────────────────────────────────────
         java.util.function.BiFunction<String, String, HBox> statRow = (key, val) -> {
             Label k = new Label(key);
-            k.setStyle("-fx-font-family:'" + FONT + "';-fx-font-size:11px;-fx-text-fill:#999999;");
+            k.setStyle("-fx-font-family:'" + FONT + "';-fx-font-size:" + statFontPx + "px;-fx-text-fill:#999999;");
             Label v = new Label(val);
-            v.setStyle("-fx-font-family:'" + FONT + "';-fx-font-size:11px;-fx-font-weight:bold;-fx-text-fill:#dddddd;");
+            v.setStyle("-fx-font-family:'" + FONT + "';-fx-font-size:" + statFontPx + "px;-fx-font-weight:bold;-fx-text-fill:#dddddd;");
             javafx.scene.layout.Region sp = new javafx.scene.layout.Region();
             HBox.setHgrow(sp, Priority.ALWAYS);
             HBox row = new HBox(k, sp, v);
@@ -667,15 +676,15 @@ public class GameController {
         if (m.isFrozen())   statusSb.append("FROZEN ");
         if (confused)       statusSb.append("CONFUSED(").append(m.getConfusionTurns()).append("T)");
 
-        javafx.scene.shape.Rectangle sep = new javafx.scene.shape.Rectangle(200, 1);
+        javafx.scene.shape.Rectangle sep = new javafx.scene.shape.Rectangle(curBoardSide * 0.33, 1);
         sep.setFill(javafx.scene.paint.Color.web("#333333"));
 
-        Label nameLbl = makeLbl(m.getName().toUpperCase(), "white", TXT_CARD_NAME, true);
+        Label nameLbl = makeLbl(m.getName().toUpperCase(), "white", (int) nameFontPx, true);
         nameLbl.setAlignment(Pos.CENTER);
 
         VBox statsBox = new VBox(5);
         statsBox.setAlignment(Pos.CENTER_LEFT);
-        statsBox.setMaxWidth(220);
+        statsBox.setMaxWidth(curBoardSide * 0.36);
         statsBox.getChildren().addAll(
             statRow.apply("TYPE",     m.getClass().getSimpleName()),
             statRow.apply("ROLE",     m.getRole().toString()),
@@ -684,10 +693,10 @@ public class GameController {
             statRow.apply("STATUS",   statusSb.toString())
         );
 
-        Label descLbl = makeLbl(m.getDescription(), "#777777", TXT_CARD_BODY - 2, false);
+        Label descLbl = makeLbl(m.getDescription(), "#777777", (int) bodyFontPx, false);
         descLbl.setStyle(descLbl.getStyle() + "-fx-font-style:italic;");
         descLbl.setWrapText(true);
-        descLbl.setMaxWidth(220);
+        descLbl.setMaxWidth(curBoardSide * 0.36);
         descLbl.setAlignment(Pos.CENTER);
 
         // ── Close button only ─────────────────────────────────────────────
@@ -701,7 +710,7 @@ public class GameController {
             monsterOverlayFace, nameLbl, sep, statsBox, descLbl, closeBtn, hint);
         monsterOverlayCard.setAlignment(Pos.TOP_CENTER);
         monsterOverlayCard.setPadding(new Insets(20, 24, 18, 24));
-        monsterOverlayCard.setMaxWidth(270);
+        monsterOverlayCard.setMaxWidth(curBoardSide * 0.44);
         monsterOverlayCard.setStyle(
             "-fx-background-color:linear-gradient(to bottom,rgba(12,12,18,0.98),rgba(4,4,10,0.99));" +
             "-fx-background-radius:16;" +
@@ -1043,7 +1052,12 @@ messageBox.setStyle(
 "-fx-border-width:1.5;");
 addDropShadow(messageBox, 50, Color.BLACK);
 
-Label iconLbl = makeLbl(iconText, titleColor, 28, true);
+// Proportional sizing — this overlay is built fresh every call, so read
+// the current window size directly instead of using fixed pixels.
+double msgScale    = Math.min(backgroundRoot.getWidth() / REF_W, backgroundRoot.getHeight() / REF_H);
+double msgBoardSide = REF_BOARD_SIZE * msgScale;
+
+Label iconLbl = makeLbl(iconText, titleColor, (int) Math.max(18, msgBoardSide * 0.045), true);
 iconLbl.setAlignment(Pos.CENTER);
 
 messageTitle.setText(title != null ? title.toUpperCase() : "");
@@ -1054,7 +1068,7 @@ messageTitle.setStyle(
 "-fx-text-fill:" + titleColor + ";" +
 "-fx-alignment:center;");
 
-javafx.scene.shape.Rectangle sep = new javafx.scene.shape.Rectangle(320, 1);
+javafx.scene.shape.Rectangle sep = new javafx.scene.shape.Rectangle(msgBoardSide * 0.52, 1);
 sep.setFill(javafx.scene.paint.Color.web(borderColor));
 
 messageBody.setText(body != null ? body : "");
@@ -1164,13 +1178,20 @@ arrive.play();
     //  RESPONSIVE LAYOUT
     // =========================================================
     private void setupResponsiveLayout() {
-        masterLayout.prefWidthProperty().bind(backgroundRoot.widthProperty());
-        masterLayout.prefHeightProperty().bind(backgroundRoot.heightProperty());
-        masterLayout.maxWidthProperty().bind(backgroundRoot.widthProperty());
-        masterLayout.maxHeightProperty().bind(backgroundRoot.heightProperty());
-        controlBar.prefWidthProperty().bind(backgroundRoot.widthProperty());
+        // masterLayout and controlPanelView are no longer bound to fill
+        // the entire window. They're sized to a fixed 1280x720-scaled
+        // box every layout pass and centered by backgroundRoot (a
+        // StackPane centers its children by default) — this is what
+        // keeps every element scaling uniformly on both axes together
+        // instead of independently distorting on odd aspect ratios.
         backgroundRoot.widthProperty().addListener((obs, old, val) -> applyAllLayout());
         backgroundRoot.heightProperty().addListener((obs, old, val) -> applyAllLayout());
+    }
+
+    private void offset(javafx.scene.Node n, double x, double y) {
+        if (n == null) return;
+        n.setTranslateX(x);
+        n.setTranslateY(y);
     }
 
     private void applyAllLayout() {
@@ -1178,18 +1199,106 @@ arrive.play();
         double H = backgroundRoot.getHeight();
         if (W == 0 || H == 0) return;
 
-        double barH = H * CONTROL_BAR_H;
-        controlBar.setPrefHeight(barH);
-        BorderPane.setMargin(boardContainer, new Insets(6, 6, barH + 6, 6));
+        // ── ONE uniform scale, applied as a REAL transform ──────────────
+        // Everything below is laid out at the FIXED 1280x720 reference
+        // size — the same numbers every single time, regardless of
+        // window size — and then the whole composition is scaled as one
+        // rigid unit via setScaleX/setScaleY at the bottom of this
+        // method. This is what actually guarantees zero relative drift
+        // between elements: it's not manual arithmetic doing the
+        // resizing anymore (which had accumulated small inconsistencies
+        // across several rounds of edits), it's JavaFX's own transform
+        // math on a single subtree — which by definition can't shift
+        // internal proportions. Enlarging really is now "just making
+        // the picture bigger," exactly like scaling one flat image.
+        double scale = Math.min(W / REF_W, H / REF_H);
 
-        double panelW = W * SIDE_PANEL_W;
+        // Fixed reference size — literally never changes with window size.
+        masterLayout.setMinWidth(REF_W);  masterLayout.setPrefWidth(REF_W);  masterLayout.setMaxWidth(REF_W);
+        masterLayout.setMinHeight(REF_H); masterLayout.setPrefHeight(REF_H); masterLayout.setMaxHeight(REF_H);
+        controlPanelView.setFitWidth(REF_W);
+        controlPanelView.setFitHeight(REF_H);
+
+        double barH       = REF_BAR_H;
+        double topLabelH  = REF_TOP_LABEL_H;
+        double panelW     = REF_PANEL_W;
+        double inset      = 6;
+
+        // ── Direct AnchorPane children of masterLayout ────────────────────
+        AnchorPane.setLeftAnchor(myLabel, 0.0);
+        AnchorPane.setRightAnchor(myLabel, 0.0);
+        AnchorPane.setTopAnchor(myLabel, 0.0);
+        offset(myLabel, OFFSET_X_TOP_LABEL, OFFSET_Y_TOP_LABEL);
+
+        AnchorPane.setLeftAnchor(playerPanelContainer, 0.0);
+        AnchorPane.setTopAnchor(playerPanelContainer, topLabelH);
         playerPanelContainer.setPrefWidth(panelW);
-        if (masterLayout.getRight() != null)
-            ((VBox) masterLayout.getRight()).setPrefWidth(panelW);
+        playerPanelContainer.setMaxWidth(panelW);
+        offset(playerPanelContainer, OFFSET_X_PLAYER_PANEL, OFFSET_Y_PLAYER_PANEL);
 
-        double pad = H * PANEL_TOP_PAD;
-        playerPanelContainer.setStyle("-fx-padding: " + pad + " 4 4 8;");
-        opponentPanelContainer.setStyle("-fx-padding: " + pad + " 4 4 4;");
+        AnchorPane.setRightAnchor(opponentPanelContainer, 0.0);
+        AnchorPane.setTopAnchor(opponentPanelContainer, topLabelH);
+        opponentPanelContainer.setPrefWidth(panelW);
+        opponentPanelContainer.setMaxWidth(panelW);
+        offset(opponentPanelContainer, OFFSET_X_OPPONENT_PANEL, OFFSET_Y_OPPONENT_PANEL);
+
+        AnchorPane.setRightAnchor(actionLogContainer, 0.0);
+        AnchorPane.setTopAnchor(actionLogContainer,
+            topLabelH + (REF_OPPONENT_PANEL_H + REF_ACTION_LOG_GAP));
+        actionLogContainer.setPrefWidth(panelW);
+        actionLogContainer.setMaxWidth(panelW);
+        offset(actionLogContainer, OFFSET_X_ACTION_LOG, OFFSET_Y_ACTION_LOG);
+
+        AnchorPane.setLeftAnchor(boardContainer,   panelW + inset);
+        AnchorPane.setRightAnchor(boardContainer,  panelW + inset);
+        AnchorPane.setTopAnchor(boardContainer,    topLabelH + inset);
+        AnchorPane.setBottomAnchor(boardContainer, barH + inset);
+        offset(boardContainer, OFFSET_X_BOARD, OFFSET_Y_BOARD);
+
+        AnchorPane.setLeftAnchor(controlBar,   0.0);
+        AnchorPane.setRightAnchor(controlBar,  0.0);
+        AnchorPane.setBottomAnchor(controlBar, 0.0);
+        controlBar.setPrefWidth(REF_W);
+        controlBar.setPrefHeight(barH);
+        offset(controlBar, OFFSET_X_CONTROL_BAR, OFFSET_Y_CONTROL_BAR);
+
+        double pad       = REF_PANEL_TOP_PAD;
+        double padRight  = 4;
+        double padBottom = 4;
+        double padLeftP  = 8;
+        double padLeftO  = 4;
+        playerPanelContainer.setStyle(
+            "-fx-padding: " + pad + " " + padRight + " " + padBottom + " " + padLeftP + ";");
+        opponentPanelContainer.setStyle(
+            "-fx-padding: " + pad + " " + padRight + " " + padBottom + " " + padLeftO + ";");
+
+        // ── Panel text — panelW is now a fixed reference constant, so
+        // these evaluate to fixed reference sizes too; the scale
+        // transform at the bottom handles the actual on-screen size.
+        double nameFontPx   = Math.max(9,  panelW * TXT_PLAYER_NAME_FRAC);
+        double typeFontPx   = Math.max(8,  panelW * TXT_PLAYER_TYPE_FRAC);
+        double roleFontPx   = Math.max(8,  panelW * TXT_PLAYER_ROLE_FRAC);
+        double posFontPx    = Math.max(9,  panelW * TXT_PLAYER_POS_FRAC);
+        double energyFontPx = Math.max(9,  panelW * TXT_PLAYER_ENERGY_FRAC);
+        double statusFontPx = Math.max(8,  panelW * TXT_PLAYER_STATUS_FRAC);
+        double turnFontPx   = Math.max(8,  panelW * TXT_PLAYER_TURN_FRAC);
+
+        setFontSize(player.nameLbl,   nameFontPx);
+        setFontSize(player.typeLbl,   typeFontPx);
+        setFontSize(player.roleLbl,   roleFontPx);
+        setFontSize(player.posLbl,    posFontPx + 2);
+        setFontSize(player.energyLbl, energyFontPx);
+        setFontSize(player.statusLbl, statusFontPx);
+        setFontSize(player.turnLbl,   turnFontPx);
+
+        setFontSize(opponent.nameLbl,   nameFontPx);
+        setFontSize(opponent.typeLbl,   typeFontPx);
+        setFontSize(opponent.roleLbl,   roleFontPx);
+        setFontSize(opponent.posLbl,    posFontPx + 2);
+        setFontSize(opponent.energyLbl, energyFontPx);
+        setFontSize(opponent.statusLbl, statusFontPx);
+
+        setFontSize(actionLogHeaderLbl, Math.max(8, panelW * TXT_ACTION_LOG_HEADER_FRAC));
 
         player.portrait.setFitWidth(panelW * PORTRAIT_W_MULT);
         opponent.portrait.setFitWidth(panelW * PORTRAIT_W_MULT);
@@ -1197,6 +1306,20 @@ arrive.play();
         opponent.energyBar.setFitWidth(panelW * ENERGY_BAR_W_MULT);
         if (player.profileBg   != null) player.profileBg.setFitWidth(panelW * PROFILE_W_MULT);
         if (opponent.profileBg != null) opponent.profileBg.setFitWidth(panelW * PROFILE_W_MULT);
+
+        // ── Panel-internal element offsets — same pair applies to both
+        // player and opponent so the two panels stay mirrored ───────────
+        offset(player.portraitPane,   OFFSET_X_PORTRAIT,   OFFSET_Y_PORTRAIT);
+        offset(opponent.portraitPane, OFFSET_X_PORTRAIT,   OFFSET_Y_PORTRAIT);
+        offset(player.profilePane,    OFFSET_X_PROFILE,    OFFSET_Y_PROFILE);
+        offset(opponent.profilePane,  OFFSET_X_PROFILE,    OFFSET_Y_PROFILE);
+        offset(player.energyRow,      OFFSET_X_ENERGY_NUM, OFFSET_Y_ENERGY_NUM);
+        offset(opponent.energyRow,    OFFSET_X_ENERGY_NUM, OFFSET_Y_ENERGY_NUM);
+        offset(player.energyWrapper,  OFFSET_X_ENERGY_BAR, OFFSET_Y_ENERGY_BAR);
+        offset(opponent.energyWrapper,OFFSET_X_ENERGY_BAR, OFFSET_Y_ENERGY_BAR);
+        offset(player.statusLbl,      OFFSET_X_STATUS_LBL, OFFSET_Y_STATUS_LBL);
+        offset(opponent.statusLbl,    OFFSET_X_STATUS_LBL, OFFSET_Y_STATUS_LBL);
+        offset(player.turnRow,        OFFSET_X_TURN_LBL,   OFFSET_Y_TURN_LBL); // opponent has no turn row
 
         if (actionLogBg != null) {
             double logW = panelW * ACTION_LOG_W_MULT;
@@ -1230,6 +1353,7 @@ arrive.play();
                     "-fx-text-fill: " + colors[i] + ";");
             }
         }
+
         double lightSz = panelW * LIGHT_SIZE_MULT;
         for (ImageView iv : new ImageView[]{
                 player.turnOff,   player.turnOn,   player.confOff,   player.confOn,
@@ -1240,60 +1364,117 @@ arrive.play();
                 opponent.pwrOff,  opponent.pwrOn})
             if (iv != null) iv.setFitWidth(lightSz);
 
-        double centerW   = Math.max(1, W - panelW * 2);
-        double boardSide = Math.min(H * BOARD_SIZE_MULT, centerW * 0.92);
-        double cardW     = boardSide * CARD_W_MULT;
+        // ── Lights row position — moves ONLY the lights, nothing else ──────
+        // translateX/Y is a pure visual offset; it doesn't affect the VBox's
+        // layout of its other children, so nudging this can't push the
+        // portrait/profile/energy bar below it around. Change
+        // REF_LIGHTS_OFFSET_X/Y below to move the whole row.
+        if (player.lightsRow != null) {
+            player.lightsRow.setTranslateX(REF_LIGHTS_OFFSET_X);
+            player.lightsRow.setTranslateY(REF_LIGHTS_OFFSET_Y);
+        }
+        if (opponent.lightsRow != null) {
+            opponent.lightsRow.setTranslateX(REF_LIGHTS_OFFSET_X);
+            opponent.lightsRow.setTranslateY(REF_LIGHTS_OFFSET_Y);
+        }
+
+        // ── Board — fixed reference size, scaled along with everything else ──
+        double boardSide = REF_BOARD_SIZE;
+        boardHolderView.setFitWidth(boardSide * 1.10);
+        boardHolderView.setFitHeight(boardSide * 1.10);
+        boardImageView.setFitWidth(boardSide);
+        boardImageView.setFitHeight(boardSide);
+        grid.setMaxWidth(boardSide);  grid.setMaxHeight(boardSide);
+        grid.setMinWidth(boardSide);  grid.setMinHeight(boardSide);
+
+        double cardW = boardSide * CARD_W_MULT;
         if (cardOverlayBack != null) cardOverlayBack.setFitWidth(cardW);
         if (cardOverlayFace != null) cardOverlayFace.setFitWidth(cardW);
         if (cardOverlay     != null) cardOverlay.setMaxWidth(cardW + 60);
 
+        double cardNamePx = Math.max(11, boardSide * TXT_CARD_NAME_FRAC);
+        double cardBodyPx = Math.max(9,  boardSide * TXT_CARD_BODY_FRAC);
+        setFontSize(cardOverlayName,   cardNamePx);
+        setFontSize(cardOverlayDesc,   cardBodyPx);
+        setFontSize(cardOverlayEffect, cardBodyPx);
+
+        if (messageBox  != null) messageBox.setMaxWidth(boardSide * 0.78);
+        if (messageBody != null) messageBody.setMaxWidth(boardSide * 0.68);
+
         myLabel.setStyle(
             "-fx-font-family: '" + FONT + "';" +
-            "-fx-font-size: " + Math.max(TXT_TOP_LABEL, H * 0.018) + "px;" +
+            "-fx-font-size: " + Math.max(TXT_TOP_LABEL, REF_H * 0.025) + "px;" +
             "-fx-font-weight: bold;" +
             "-fx-padding: 5 0 3 0;" +
             "-fx-text-fill: #00ff88;");
 
-        cardDeckView.setFitWidth(W * DECK_W);
-        cardDeckView.setFitHeight(H * DECK_H);
-        AnchorPane.setLeftAnchor(cardDeckView, W * DECK_LEFT);
-        AnchorPane.setTopAnchor(cardDeckView,  barH * DECK_TOP_FRAC);
+        // ── Card deck ───────────────────────────────────────────────────
+        cardDeckView.setFitWidth(REF_DECK_W);
+        cardDeckView.setFitHeight(REF_DECK_H);
+        AnchorPane.setLeftAnchor(cardDeckView, REF_DECK_LEFT);
+        AnchorPane.setTopAnchor(cardDeckView,  REF_DECK_TOP);
         AnchorPane.setRightAnchor(cardDeckView,  null);
         AnchorPane.setBottomAnchor(cardDeckView, null);
+        offset(cardDeckView, OFFSET_X_CARD_DECK, OFFSET_Y_CARD_DECK);
 
-        double diceSize = H * DICE_SIZE;
+        // ── Dice ────────────────────────────────────────────────────────
+        double diceSize = REF_DICE_SIZE;
         diceView.setFitWidth(diceSize); diceView.setFitHeight(diceSize);
-        AnchorPane.setLeftAnchor(diceView,   (W / 2) - (diceSize / 2) + 6);
-        AnchorPane.setTopAnchor(diceView,    barH * DICE_TOP_FRAC);
+        AnchorPane.setLeftAnchor(diceView,   (REF_W / 2) - (diceSize / 2) + 6);
+        AnchorPane.setTopAnchor(diceView,    REF_DICE_TOP);
         AnchorPane.setRightAnchor(diceView,  null);
         AnchorPane.setBottomAnchor(diceView, null);
+        offset(diceView, OFFSET_X_DICE, OFFSET_Y_DICE);
 
-        double labelX = (W / 2) - Math.max(40, W * 0.04);
+        double labelX = (REF_W / 2) - Math.max(40, REF_W * 0.04);
         AnchorPane.setLeftAnchor(diceResultLabel,   labelX);
         AnchorPane.setBottomAnchor(diceResultLabel, barH * 0.04);
         AnchorPane.setRightAnchor(diceResultLabel,  null);
         AnchorPane.setTopAnchor(diceResultLabel,    null);
+        offset(diceResultLabel, OFFSET_X_DICE_RESULT, OFFSET_Y_DICE_RESULT);
         diceResultLabel.setStyle(
             "-fx-font-family: '" + FONT + "';" +
-            "-fx-font-size: " + Math.max(TXT_DICE_RESULT, H * 0.02) + "px;" +
+            "-fx-font-size: " + Math.max(TXT_DICE_RESULT, REF_H * 0.028) + "px;" +
             "-fx-font-weight: bold;" +
             "-fx-text-fill: #00ff88;");
 
-        double btnW = W * BTN_W;
-        double btnH = H * BTN_H;
+        // ── Buttons ─────────────────────────────────────────────────────
+        double btnW = REF_BTN_W;
+        double btnH = REF_BTN_H;
         powerUpImageBtn.setFitWidth(btnW); powerUpImageBtn.setFitHeight(btnH);
-        AnchorPane.setRightAnchor(powerUpImageBtn, W * POWERUP_RIGHT);
-        AnchorPane.setTopAnchor(powerUpImageBtn,   barH * BTN_TOP_FRAC);
+        AnchorPane.setRightAnchor(powerUpImageBtn, REF_POWERUP_RIGHT);
+        AnchorPane.setTopAnchor(powerUpImageBtn,   REF_BTN_TOP);
         AnchorPane.setLeftAnchor(powerUpImageBtn,  null);
         AnchorPane.setBottomAnchor(powerUpImageBtn,null);
+        offset(powerUpImageBtn, OFFSET_X_POWERUP_BTN, OFFSET_Y_POWERUP_BTN);
 
         rollImageBtn.setFitWidth(btnW); rollImageBtn.setFitHeight(btnH);
-        AnchorPane.setRightAnchor(rollImageBtn, W * ROLL_RIGHT);
-        AnchorPane.setTopAnchor(rollImageBtn,   barH * BTN_TOP_FRAC);
+        AnchorPane.setRightAnchor(rollImageBtn, REF_ROLL_RIGHT);
+        AnchorPane.setTopAnchor(rollImageBtn,   REF_BTN_TOP);
         AnchorPane.setLeftAnchor(rollImageBtn,  null);
         AnchorPane.setBottomAnchor(rollImageBtn,null);
+        offset(rollImageBtn, OFFSET_X_ROLL_BTN, OFFSET_Y_ROLL_BTN);
 
-
+        // ── THE scale transform ────────────────────────────────────────
+        // masterLayout and controlPanelView are separate StackPane
+        // children of backgroundRoot, each built at the fixed 1280x720
+        // reference size above — StackPane centers each independently,
+        // so applying the identical scale to both keeps them perfectly
+        // coincident. cardOverlay and messageOverlay are also separate
+        // top-level children (deliberately, so blur effects on
+        // masterLayout never touch them) and get the same treatment.
+        masterLayout.setScaleX(scale);
+        masterLayout.setScaleY(scale);
+        controlPanelView.setScaleX(scale);
+        controlPanelView.setScaleY(scale);
+        if (cardOverlay != null) {
+            cardOverlay.setScaleX(scale);
+            cardOverlay.setScaleY(scale);
+        }
+        if (messageOverlay != null) {
+            messageOverlay.setScaleX(scale);
+            messageOverlay.setScaleY(scale);
+        }
     }
 
     // =========================================================

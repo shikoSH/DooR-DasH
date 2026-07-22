@@ -2,6 +2,7 @@ package game.gui.controllers;
 
 import javafx.animation.*;
 import javafx.fxml.FXML;
+import javafx.geometry.Pos;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
@@ -116,38 +117,102 @@ public class StartController {
     //  LAYOUT
     // =========================================================
     private void setupLayout() {
+        // Background fills the ACTUAL window exactly — no scale transform,
+        // same treatment as the game screen's decorative backdrop.
         backgroundImage.fitWidthProperty().bind(rootPane.widthProperty());
         backgroundImage.fitHeightProperty().bind(rootPane.heightProperty());
 
-        mainPane.prefWidthProperty().bind(rootPane.widthProperty());
-        mainPane.prefHeightProperty().bind(rootPane.heightProperty());
+        // Everything else is built at a FIXED 1280x720 reference size —
+        // literally the same numbers regardless of window size — and
+        // then the whole thing is scaled as one rigid unit via a real
+        // Scale transform in applyResponsivePositions(). This is what
+        // guarantees zero relative drift between elements: it's not
+        // manual arithmetic doing the resizing, it's JavaFX's own
+        // transform math on a single subtree, which by definition can't
+        // shift internal proportions. Enlarging really is now "just
+        // making the picture bigger," like scaling one flat image.
+        mainPane.setMinWidth(REF_W);  mainPane.setPrefWidth(REF_W);  mainPane.setMaxWidth(REF_W);
+        mainPane.setMinHeight(REF_H); mainPane.setPrefHeight(REF_H); mainPane.setMaxHeight(REF_H);
 
-        logoImage.fitWidthProperty().bind(rootPane.widthProperty().multiply(0.65));
+        logoImage.setFitWidth(REF_W * 0.35);
         logoImage.setPreserveRatio(true);
 
         logoPane.setClip(null);
         logoPane.setPickOnBounds(false);
         logoPane.setMouseTransparent(true);
+        // FXML set TOP_CENTER alignment + a fixed translateY as a way to
+        // position the logo — that combination doesn't scale cleanly
+        // (translateY is a raw offset applied AFTER any scale, so it
+        // doesn't shrink/grow with everything else). Using plain CENTER
+        // alignment and setting translateY ourselves (scaled) each
+        // resize in applyResponsivePositions() keeps it consistent.
+        StackPane.setAlignment(logoPane, Pos.CENTER);
 
-        scarerButton.fitHeightProperty().bind(rootPane.heightProperty().multiply(0.48));
-        laugherButton.fitHeightProperty().bind(rootPane.heightProperty().multiply(0.48));
-        instructionsNote.fitHeightProperty().bind(rootPane.heightProperty().multiply(0.56));
+        scarerButton.setFitHeight(REF_H * 0.38);
+        laugherButton.setFitHeight(REF_H * 0.38);
+        instructionsNote.setFitHeight(REF_H * 0.46);
 
-        bottomLeftPanel.fitWidthProperty().bind(rootPane.widthProperty().multiply(0.36));
-        bottomLeftPanel.fitHeightProperty().bind(rootPane.heightProperty().multiply(0.1));
+        bottomLeftPanel.setFitWidth(REF_W * 0.36);
+        bottomLeftPanel.setFitHeight(REF_H * 0.1);
 
         for (ImageView btn : new ImageView[]{exitButton, optionsButton, creditsButton}) {
-            btn.fitWidthProperty().bind(rootPane.widthProperty().multiply(0.10));
-            btn.fitHeightProperty().bind(rootPane.heightProperty().multiply(0.10));
+            btn.setFitWidth(REF_W * 0.10);
+            btn.setFitHeight(REF_H * 0.10);
         }
 
         AnchorPane.setBottomAnchor(bottomLeftPanel,  0.0);
         AnchorPane.setLeftAnchor(bottomLeftPanel,    0.0);
-        AnchorPane.setBottomAnchor(bottomButtonsRow, 10.0);
-        AnchorPane.setLeftAnchor(bottomButtonsRow,   8.0);
+
+        rootPane.widthProperty().addListener((obs, o, n) -> applyResponsivePositions());
+        rootPane.heightProperty().addListener((obs, o, n) -> applyResponsivePositions());
+        applyResponsivePositions();
 
         addDropShadow(instructionsNote, Color.BLACK, 18, 0.5);
         addDropShadow(bottomLeftPanel,  Color.BLACK, 12, 0.4);
+    }
+
+    // Reference values below were tuned at the 1280x720 design size —
+    // same reference used throughout the rest of the game's UI.
+    private static final double REF_W = 1280;
+    private static final double REF_H = 720;
+    private static final double REF_CENTER_ROW_TOP    = 240;
+    private static final double REF_CENTER_ROW_BOTTOM = 130;
+    private static final double REF_LOGO_TRANSLATE_Y  = 200;
+    private static final double REF_BOTTOM_BTN_BOTTOM = 10;
+    private static final double REF_BOTTOM_BTN_LEFT   = 8;
+
+    private void applyResponsivePositions() {
+        double w = rootPane.getWidth();
+        double h = rootPane.getHeight();
+        if (w == 0 || h == 0) return;
+
+        double scale = Math.min(w / REF_W, h / REF_H);
+
+        // Anchors below are FIXED reference values — never multiplied by
+        // scale — because mainPane itself is a fixed 1280x720 box that
+        // gets scaled as a whole afterward. This is the "scale the whole
+        // picture" approach: no per-element arithmetic to drift.
+        AnchorPane.setTopAnchor(centerRow,    REF_CENTER_ROW_TOP);
+        AnchorPane.setBottomAnchor(centerRow, REF_CENTER_ROW_BOTTOM);
+
+        AnchorPane.setBottomAnchor(bottomButtonsRow, REF_BOTTOM_BTN_BOTTOM);
+        AnchorPane.setLeftAnchor(bottomButtonsRow,   REF_BOTTOM_BTN_LEFT);
+
+        // ── THE scale transform ──────────────────────────────────────
+        // mainPane and logoPane are separate StackPane children of
+        // rootPane, each built at the fixed reference size — StackPane
+        // centers each independently, so applying the identical scale
+        // to both keeps them perfectly coincident.
+        mainPane.setScaleX(scale);
+        mainPane.setScaleY(scale);
+        logoPane.setScaleX(scale);
+        logoPane.setScaleY(scale);
+        // translateY is applied AFTER scale in JavaFX's transform order,
+        // so it must be scaled explicitly too, or the logo's vertical
+        // offset would stay a fixed raw pixel amount while everything
+        // else around it shrinks/grows — exactly the kind of drift this
+        // whole approach is meant to eliminate.
+        logoPane.setTranslateY(-REF_LOGO_TRANSLATE_Y * scale);
     }
 
     // =========================================================
@@ -199,6 +264,10 @@ public class StartController {
             }
         };
         beamTimer.start();
+
+        // setupLayout() ran before this method created beamsCanvas, so its
+        // resize listener couldn't size it yet — do that now that it exists.
+        applyResponsivePositions();
 
         rootPane.sceneProperty().addListener((obs, oldScene, newScene) -> {
             if (newScene == null && beamTimer != null) {

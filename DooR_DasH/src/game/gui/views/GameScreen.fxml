@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.AnchorPane?>
-<?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.RowConstraints?>
@@ -25,11 +23,25 @@
         <ImageView fx:id="controlPanelView"
                    pickOnBounds="true" preserveRatio="false" />
 
-        <!-- Main layout -->
-        <BorderPane fx:id="masterLayout"
+        <!-- ==========================================================
+             Main layout — AnchorPane instead of BorderPane.
+             Every child below is positioned/sized purely from the
+             GameController's uniform `scale` number, computed once per
+             layout pass in applyAllLayout(). None of them depend on a
+             sibling's size or content the way BorderPane's top/left/
+             right/center/bottom region negotiation used to — that
+             negotiation was the source of the board/panels shifting
+             slightly whenever a VBox's measured content size changed
+             (e.g. from font metrics differing slightly between
+             machines). Board internals below are left exactly as they
+             were — the GridPane's own row/col percent constraints
+             already don't have this problem once its container's size
+             is fixed, which it now always is.
+             ========================================================== -->
+        <AnchorPane fx:id="masterLayout"
                     maxHeight="Infinity" maxWidth="Infinity">
+            <children>
 
-            <top>
                 <Label fx:id="myLabel"
                        alignment="CENTER"
                        maxWidth="Infinity"
@@ -38,42 +50,36 @@
                               -fx-font-weight: bold;
                               -fx-padding: 5 0 3 0;
                               -fx-text-fill: #00ff88;"
-                       BorderPane.alignment="CENTER" />
-            </top>
+                       AnchorPane.leftAnchor="0"
+                       AnchorPane.rightAnchor="0"
+                       AnchorPane.topAnchor="0" />
 
-            <!-- LEFT: player panel — built entirely in PanelBuilder -->
-            <left>
+                <!-- LEFT: player panel — built entirely in PanelBuilder.
+                     Still a VBox internally (that's fine — a VBox's own
+                     height never leaks out and affects a sibling once
+                     its PARENT position/width here is fixed by hard
+                     numbers instead of BorderPane region negotiation). -->
                 <VBox fx:id="playerPanelContainer"
                       alignment="TOP_CENTER"
-                      prefWidth="215"
                       spacing="4"
-                      style="-fx-padding: 10 6 6 6;"
-                      BorderPane.alignment="CENTER" />
-            </left>
+                      style="-fx-padding: 10 6 6 6;" />
 
-            <!-- RIGHT: opponent panel + action log + dice -->
-            <right>
-                <VBox alignment="TOP_CENTER"
-                      prefWidth="215"
+                <!-- RIGHT: opponent panel -->
+                <VBox fx:id="opponentPanelContainer"
+                      alignment="TOP_CENTER"
                       spacing="4"
-                      style="-fx-padding: 10 6 6 6;"
-                      BorderPane.alignment="CENTER">
-                    <children>
-                        <VBox fx:id="opponentPanelContainer" spacing="4" />
-                        <VBox fx:id="actionLogContainer"     spacing="3" />
-                        <VBox fx:id="diceContainer"          spacing="3" />
-                    </children>
-                </VBox>
-            </right>
+                      style="-fx-padding: 10 6 6 6;" />
 
-            <!-- CENTER: board -->
-            <center>
+                <!-- RIGHT, below opponent panel: action log -->
+                <VBox fx:id="actionLogContainer"
+                      alignment="TOP_CENTER"
+                      spacing="3"
+                      style="-fx-padding: 4 6 4 6;" />
+
+                <!-- CENTER: board — internals unchanged, per the plan to
+                     leave the board exactly as-is. -->
                 <StackPane fx:id="boardContainer"
-                           maxHeight="Infinity" maxWidth="Infinity"
-                           BorderPane.alignment="CENTER">
-                    <BorderPane.margin>
-                        <Insets bottom="118" left="6" right="6" top="6" />
-                    </BorderPane.margin>
+                           maxHeight="Infinity" maxWidth="Infinity">
                     <children>
                         <ImageView fx:id="boardHolderView"
                                    pickOnBounds="true" preserveRatio="false" />
@@ -107,14 +113,11 @@
                         </GridPane>
                     </children>
                 </StackPane>
-            </center>
 
-            <!-- BOTTOM: control bar -->
-            <bottom>
+                <!-- BOTTOM: control bar — internals unchanged -->
                 <AnchorPane fx:id="controlBar"
                             maxWidth="Infinity"
-                            prefHeight="118"
-                            BorderPane.alignment="CENTER">
+                            prefHeight="118">
                     <children>
 
                         <!-- CARD DECK -->
@@ -166,8 +169,8 @@
 
                     </children>
                 </AnchorPane>
-            </bottom>
 
-        </BorderPane>
+            </children>
+        </AnchorPane>
     </children>
 </StackPane>

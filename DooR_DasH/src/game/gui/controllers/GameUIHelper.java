@@ -45,6 +45,28 @@ public final class GameUIHelper {
     }
 
     // =========================================================
+    //  FONT-SIZE RESCALE
+    // =========================================================
+
+    /**
+     * Updates only the font-size portion of a label's inline style, leaving
+     * color, background, border, glow, etc. untouched. Used to rescale
+     * panel/card text every layout pass so it tracks the window size
+     * instead of staying at the fixed pixel value it was built with.
+     */
+    public static void setFontSize(Label l, double px) {
+        if (l == null) return;
+        String style = l.getStyle();
+        if (style == null) style = "";
+        if (style.matches("(?s).*-fx-font-size:\\s*[0-9.]+px;.*")) {
+            style = style.replaceAll("-fx-font-size:\\s*[0-9.]+px;", "-fx-font-size: " + px + "px;");
+        } else {
+            style = style + "-fx-font-size: " + px + "px;";
+        }
+        l.setStyle(style);
+    }
+
+    // =========================================================
     //  GLOW / SHADOW HELPERS
     // =========================================================
 
@@ -109,8 +131,10 @@ public final class GameUIHelper {
         off.setVisible(true);  off.setOpacity(1);
         on.setVisible(false);  on.setOpacity(0);
         StackPane sp = new StackPane(off, on);
-        sp.setMaxWidth(36);
-        sp.setMaxHeight(36);
+        // No fixed max size here — the light images are resized every
+        // layout pass in GameController.applyAllLayout() based on
+        // panelW * LIGHT_SIZE_MULT. A fixed 36x36 cap here clipped the
+        // lights on any window bigger than the size it was designed at.
         return sp;
     }
 

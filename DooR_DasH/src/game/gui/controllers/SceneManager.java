@@ -41,6 +41,14 @@ public class SceneManager {
     private static final double DEFAULT_WIDTH  = 1280;
     private static final double DEFAULT_HEIGHT = 720;
 
+    // Only true while the game screen is showing — this lock is scoped
+    // to just this screen. It's the only one that needs the window
+    // itself to stay 16:9 for its printed control-panel artwork to fit
+    // edge-to-edge; other screens use whatever window size they're
+    // given correctly on their own.
+    private boolean gameScreenActive = false;
+    private boolean adjustingForAspect = false; // re-entrancy guard
+
     private SceneManager() {}
 
     /** Thread-safe initialization-on-demand holder. */
@@ -68,14 +76,36 @@ public class SceneManager {
         sceneHolder.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
         persistentScene = new Scene(sceneHolder, DEFAULT_WIDTH, DEFAULT_HEIGHT);
         persistentScene.setFill(Color.BLACK);
+
+        // ── Game-screen-only windowed 16:9 lock ─────────────────────────
+        // Reacts to the SCENE's own live size (the real content area,
+        // immune to guessing window-chrome thickness) rather than a
+        // one-shot guess. Fires on every resize and self-corrects using
+        // whatever the Stage-to-Scene delta actually is right now.
+        persistentScene.widthProperty().addListener((obs, o, n) -> maintainGameAspectRatio());
+        persistentScene.heightProperty().addListener((obs, o, n) -> maintainGameAspectRatio());
+
         // ESC toggles: fullscreen <-> 1280x720 windowed — never exits the game
         persistentScene.addEventHandler(KeyEvent.KEY_PRESSED, event -> {
             if (event.getCode() == KeyCode.ESCAPE) {
                 if (primaryStage.isFullScreen()) {
                     primaryStage.setFullScreen(false);
-                    primaryStage.setWidth(DEFAULT_WIDTH);
-                    primaryStage.setHeight(DEFAULT_HEIGHT);
-                    primaryStage.centerOnScreen();
+                    // Deferred: setting size immediately after
+                    // setFullScreen(false) can race the OS's own
+                    // fullscreen-exit animation on some platforms and
+                    // silently get dropped, leaving the Scene's content
+                    // laid out at its old (fullscreen) size even though
+                    // the window itself is now smaller — this is what
+                    // made the start/game-over screens look "stuck" at
+                    // fullscreen size and cramped in the smaller window.
+                    // Running this on the next pulse lets that
+                    // transition finish first.
+                    Platform.runLater(() -> {
+                        primaryStage.setWidth(DEFAULT_WIDTH);
+                        primaryStage.setHeight(DEFAULT_HEIGHT);
+                        primaryStage.centerOnScreen();
+                        sceneHolder.requestLayout();
+                    });
                 } else {
                     primaryStage.setFullScreen(true);
                 }
@@ -85,6 +115,32 @@ public class SceneManager {
         primaryStage.setScene(persistentScene);
         // Start in fullscreen by default
         primaryStage.setFullScreen(true);
+    }
+
+    /**
+     * Keeps the SCENE's content area (not the Stage's outer frame) at
+     * exactly 16:9 while the game screen is showing and the window
+     * isn't fullscreen. Only touches Stage height, computed from the
+     * width the Scene just reported plus whatever the Stage-to-Scene
+     * "chrome" delta happens to be right now.
+     */
+    private void maintainGameAspectRatio() {
+        if (!gameScreenActive || adjustingForAspect || primaryStage == null) return;
+        if (primaryStage.isFullScreen()) return;
+
+        double sceneW = persistentScene.getWidth();
+        double sceneH = persistentScene.getHeight();
+        if (sceneW <= 0 || sceneH <= 0) return;
+
+        double targetRatio  = DEFAULT_WIDTH / DEFAULT_HEIGHT; // 16:9
+        double currentRatio = sceneW / sceneH;
+        if (Math.abs(currentRatio - targetRatio) < 0.002) return; // already close enough
+
+        adjustingForAspect = true;
+        double chromeH = primaryStage.getHeight() - sceneH;
+        double targetSceneH = sceneW / targetRatio;
+        primaryStage.setHeight(targetSceneH + Math.max(0, chromeH));
+        adjustingForAspect = false;
     }
 
     // ===== MUSIC =====
@@ -123,6 +179,7 @@ public class SceneManager {
     // ===== SCREENS =====
 
     public void switchToIntroScreen() {
+        gameScreenActive = false;
         try {
             URL fxmlUrl = getClass().getResource("/game/gui/views/IntroScreen.fxml");
             if (fxmlUrl == null) {
@@ -151,6 +208,7 @@ public class SceneManager {
     }
 
     public void switchToStartScreen() {
+        gameScreenActive = false;
         try {
             URL fxmlUrl = getClass().getResource("/game/gui/views/StartScreen.fxml");
             if (fxmlUrl == null) {
@@ -196,10 +254,12 @@ public class SceneManager {
     }
 
     public void switchToInstructionsScreen() {
+        gameScreenActive = false;
         loadCachedScreen("InstructionsScreen", "/game/gui/views/InstructionsScreen.fxml");
     }
 
     public void startGameScreen(game.engine.Role playerRole) {
+        gameScreenActive = true;
         System.out.println("DEBUG: startGameScreen() called with role = " + playerRole);
         try {
             URL fxmlUrl = getClass().getResource("/game/gui/views/GameScreen.fxml");
@@ -243,6 +303,7 @@ public class SceneManager {
             String opponentName,
             String opponentRole,
             int opponentEnergy) {
+        gameScreenActive = false;
         try {
             URL fxmlUrl = getClass().getResource("/game/gui/views/GameOverScreen.fxml");
             if (fxmlUrl == null) {

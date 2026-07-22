@@ -46,6 +46,15 @@ public class GameOverController {
 
     private game.engine.Role lastPlayerRole;
 
+    private HBox actionBtnRow;
+    private HBox statCardsRow;
+    private VBox playerCard;
+    private VBox opponentCard;
+    private Button playAgainBtn;
+    private Button mainMenuBtn;
+    private static final double REF_H = 720; // design reference height, used elsewhere in the game
+    private static final double REF_W = 1280;
+
     private static final String IMG = "/game/gui/resources/images/";
 
     // Cached background — loaded once for the entire session
@@ -65,21 +74,34 @@ public class GameOverController {
         }
         if (backgroundImage != null && BG != null) {
             backgroundImage.setImage(BG);
+            // Background fills the ACTUAL window exactly — no scale
+            // transform, same treatment as the other screens' backdrop.
             backgroundImage.fitWidthProperty().bind(rootPane.widthProperty());
             backgroundImage.fitHeightProperty().bind(rootPane.heightProperty());
         }
 
-        if (overlayPane != null && rootPane != null) {
-            overlayPane.prefWidthProperty().bind(rootPane.widthProperty());
-            overlayPane.prefHeightProperty().bind(rootPane.heightProperty());
+        // overlayPane is built at a FIXED 1280x720 reference size —
+        // literally the same numbers regardless of window size — and
+        // then scaled as one rigid unit via a real Scale transform
+        // (applyResponsivePositions()). This guarantees zero relative
+        // drift between elements: it's JavaFX's own transform math on a
+        // single subtree, not manual per-element arithmetic. Enlarging
+        // really is now "just making the picture bigger."
+        if (overlayPane != null) {
+            overlayPane.setMinWidth(REF_W);  overlayPane.setPrefWidth(REF_W);  overlayPane.setMaxWidth(REF_W);
+            overlayPane.setMinHeight(REF_H); overlayPane.setPrefHeight(REF_H); overlayPane.setMaxHeight(REF_H);
         }
 
-        // Keep winner text centered under baked-in "GAME OVER" as the pane scales
-        if (winsLabel != null && overlayPane != null) {
-            overlayPane.heightProperty().addListener((obs, oldVal, newVal) ->
-                AnchorPane.setTopAnchor(winsLabel, newVal.doubleValue() * 0.36));
+        // Keep winner text centered under baked-in "GAME OVER" — fixed
+        // reference position/size now, scaled along with everything else.
+        if (winsLabel != null) {
+            AnchorPane.setTopAnchor(winsLabel, REF_H * 0.36);
             AnchorPane.setLeftAnchor(winsLabel, 0.0);
             AnchorPane.setRightAnchor(winsLabel, 0.0);
+            // FXML set this to a fixed 48px that never rescaled before —
+            // now it's a fixed reference value like everything else,
+            // and the scale transform handles the actual on-screen size.
+            winsLabel.setStyle("-fx-font-size: " + (REF_H * 0.067) + "px;");
         }
 
         // ── Glow image buttons ────────────────────────────────
@@ -100,6 +122,13 @@ public class GameOverController {
         }
 
         buildStatCards();
+
+        // Apply the scale transform now, and keep it in sync on resize.
+        if (rootPane != null) {
+            rootPane.widthProperty().addListener((obs, o, n) -> applyResponsivePositions());
+            rootPane.heightProperty().addListener((obs, o, n) -> applyResponsivePositions());
+            applyResponsivePositions();
+        }
     }
 
     // =========================================================
@@ -112,9 +141,9 @@ public class GameOverController {
         if (retryButton    != null) retryButton.setVisible(false);
         if (mainMenuButton != null) mainMenuButton.setVisible(false);
 
-        Button playAgainBtn = buildGameOverButton("▶  PLAY AGAIN",
+        playAgainBtn = buildGameOverButton("▶  PLAY AGAIN",
             "#00ff88", "#001a0d", "#00ff88");
-        Button mainMenuBtn  = buildGameOverButton("⌂  MAIN MENU",
+        mainMenuBtn  = buildGameOverButton("⌂  MAIN MENU",
             "#ff6666", "#1a0000", "#ff6666");
 
         playAgainBtn.setOnAction(e -> {
@@ -125,27 +154,36 @@ public class GameOverController {
 
         HBox btnRow = new HBox(28, playAgainBtn, mainMenuBtn);
         btnRow.setAlignment(Pos.CENTER);
+        actionBtnRow = btnRow;
 
-        // Bind button row width to root so it centers at any window size
         overlayPane.getChildren().add(btnRow);
-        AnchorPane.setBottomAnchor(btnRow, 60.0);
         AnchorPane.setLeftAnchor(btnRow,   0.0);
         AnchorPane.setRightAnchor(btnRow,  0.0);
+        AnchorPane.setBottomAnchor(btnRow, REF_BTN_ROW_BOTTOM);
+    }
 
-        // Scale buttons with window height
-        if (rootPane != null) {
-            rootPane.heightProperty().addListener((obs, oldH, newH) -> {
-                double h = newH.doubleValue();
-                String newFontSize = (int) Math.max(14, h * 0.022) + "px";
-                for (Button b : new Button[]{playAgainBtn, mainMenuBtn}) {
-                    b.setStyle(b.getStyle()
-                        .replaceAll("-fx-font-size:[^;]+;", "-fx-font-size:" + newFontSize + ";"));
-                }
-                double btnH2 = Math.max(48, h * 0.072);
-                playAgainBtn.setPrefHeight(btnH2);
-                mainMenuBtn.setPrefHeight(btnH2);
-            });
-        }
+    // Reference offsets tuned at the 1280x720 reference size — same
+    // reference used throughout the rest of the game's UI.
+    private static final double REF_BTN_ROW_BOTTOM   = 60;
+    private static final double REF_STATS_ROW_BOTTOM = 220;
+    private static final double REF_PORTRAIT_W       = 120;
+    private static final double REF_PORTRAIT_H       = 140;
+    private static final double REF_CARD_W           = 200;
+
+    /**
+     * Applies the single scale transform to overlayPane, keeping it in
+     * sync with the actual window size. All internal positions/sizes
+     * are fixed reference values (set once, at build time) — this is
+     * the only place that touches the window's real dimensions.
+     */
+    private void applyResponsivePositions() {
+        double w = rootPane.getWidth();
+        double h = rootPane.getHeight();
+        if (w == 0 || h == 0 || overlayPane == null) return;
+
+        double scale = Math.min(w / REF_W, h / REF_H);
+        overlayPane.setScaleX(scale);
+        overlayPane.setScaleY(scale);
     }
 
     /**
@@ -216,7 +254,7 @@ public class GameOverController {
         playerCardName     = makeLabel("-", "white", 16, true);
         playerCardRole     = makeLabel("Role: -", "#00ffff", 12, false);
         playerCardEnergy   = makeLabel("Final Energy: -", "#00ff88", 12, true);
-        VBox playerCard    = styledCard("#ffcc00",
+        playerCard         = styledCard("#ffcc00",
             playerMonsterImg, playerCardTitle, playerCardName, playerCardRole, playerCardEnergy);
 
         opponentMonsterImg = makePortrait();
@@ -224,30 +262,34 @@ public class GameOverController {
         opponentCardName   = makeLabel("-", "white", 16, true);
         opponentCardRole   = makeLabel("Role: -", "#00ffff", 12, false);
         opponentCardEnergy = makeLabel("Final Energy: -", "#ff6666", 12, true);
-        VBox opponentCard  = styledCard("#ff6666",
+        opponentCard       = styledCard("#ff6666",
             opponentMonsterImg, opponentCardTitle, opponentCardName, opponentCardRole, opponentCardEnergy);
 
         HBox row = new HBox(50, playerCard, opponentCard);
         row.setAlignment(Pos.CENTER);
+        statCardsRow = row;
 
         overlayPane.getChildren().add(row);
 
-        // Stat cards — 100px lower than before (320 → 220)
-        AnchorPane.setBottomAnchor(row, 220.0);
         AnchorPane.setLeftAnchor(row,   0.0);
         AnchorPane.setRightAnchor(row,  0.0);
+        AnchorPane.setBottomAnchor(row, REF_STATS_ROW_BOTTOM);
+
+        // Re-apply the scale transform now that overlayPane has its
+        // full set of children — harmless if called again on resize.
+        applyResponsivePositions();
     }
 
     private ImageView makePortrait() {
         ImageView iv = new ImageView();
-        iv.setFitWidth(120); iv.setFitHeight(140); iv.setPreserveRatio(true);
+        iv.setFitWidth(REF_PORTRAIT_W); iv.setFitHeight(REF_PORTRAIT_H); iv.setPreserveRatio(true);
         return iv;
     }
 
     private VBox styledCard(String color, javafx.scene.Node... nodes) {
         VBox card = new VBox(8, nodes);
         card.setAlignment(Pos.CENTER);
-        card.setPrefWidth(200);
+        card.setPrefWidth(REF_CARD_W);
         card.setStyle(
             "-fx-background-color: rgba(0,0,0,0.75);" +
             "-fx-background-radius: 16;" +
@@ -420,7 +462,7 @@ public class GameOverController {
         if (overlayPane == null || rootPane == null) return;
         Group confetti = new Group();
         Random rand = new Random();
-        double centerX = Math.max(300, rootPane.getWidth() / 2.0);
+        double centerX = REF_W / 2.0;
         for (int i = 0; i < 28; i++) {
             Circle c = new Circle(6 + rand.nextInt(6));
             c.setFill(Color.hsb(rand.nextDouble() * 360.0, 0.85, 0.95));
