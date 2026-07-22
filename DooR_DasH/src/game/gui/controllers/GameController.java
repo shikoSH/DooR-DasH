@@ -111,6 +111,7 @@ public class GameController {
     //  IMAGES
     // =========================================================
     private Image[] diceImages = new Image[6];
+    private Image[] glowingDiceImages = new Image[6];
     private Image deckFull, deckMid, deckLeast;
     // Energy-bar tier images: [en0, en25, en50, en75, en100]
     private Image[] energyTiers = new Image[5];
@@ -232,7 +233,10 @@ public class GameController {
     //  LOAD IMAGES
     // =========================================================
     private void loadAllImages() {
-        for (int i = 1; i <= 6; i++) diceImages[i-1] = loadImage("Dice_on_" + i + ".png");
+        for (int i = 1; i <= 6; i++) {
+            diceImages[i-1] = loadImage("Dice_on_" + i + ".png");
+            glowingDiceImages[i-1] = loadImage("Glowing_dice_on_" + i + ".png");
+        }
         deckFull  = loadImage(IMG_DECK_FULL);
         deckMid   = loadImage(IMG_DECK_MID);
         deckLeast = loadImage(IMG_DECK_LEAST);
@@ -451,7 +455,7 @@ public class GameController {
             if (diceTimeline != null) diceTimeline.stop();
             SoundManager.getInstance().playDiceRoll();
             diceTimeline = GameAnimationHelper.animateDice(
-                diceView, diceImages, diceResultLabel, diceFace,
+                diceView, diceImages, glowingDiceImages, diceResultLabel, diceFace,
                 () -> {
                     SoundManager.getInstance().playMovement();
                     // LEG 1: walk from the old position to the raw dice-landing cell

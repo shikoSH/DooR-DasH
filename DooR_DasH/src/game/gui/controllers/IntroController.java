@@ -18,7 +18,9 @@ public class IntroController {
     @FXML
     private void initialize() {
         rootPane.setStyle("-fx-background-color: black;");
-        // Pre-load game images in background during intro to prevent OutOfMemoryError
+        // Ensure loading art is cached before the intro finishes (needed immediately after)
+        ImageLoader.getInstance().loadImage("Loading_Screen.png");
+        // Pre-load remaining game images during intro to prevent OutOfMemoryError
         Platform.runLater(() -> ImageLoader.getInstance().preloadGameImages());
         playIntroSequence();
     }
@@ -78,20 +80,17 @@ public class IntroController {
         ParallelTransition logoIntro = new ParallelTransition(logoFadeIn, logoScale);
         PauseTransition logoHold = new PauseTransition(Duration.millis(1200));
 
-        // === PHASE 3: Everything fades to black ===
-        FadeTransition fadeToBlack = new FadeTransition(Duration.millis(1000), rootPane);
-        fadeToBlack.setFromValue(1);
-        fadeToBlack.setToValue(0);
-
         // === CHAIN ===
+        // Do NOT fade the intro to black first — that left a blank black frame
+        // before the loading screen appeared. switchToStartScreen() places the
+        // loading image under the intro and removes the intro in one swap.
         SequentialTransition fullSequence = new SequentialTransition(
             creditsFadeIn,
             teamHold,
             creditsFadeOut,
             new PauseTransition(Duration.millis(500)),
             logoIntro,
-            logoHold,
-            fadeToBlack
+            logoHold
         );
 
         fullSequence.setOnFinished(e ->

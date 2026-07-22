@@ -58,7 +58,10 @@ public class ImageLoader {
      * Call this during intro screen to avoid memory pressure during game loading.
      */
     public void preloadGameImages() {
-        System.out.println("DEBUG: Starting pre-load of game images...");
+    	System.out.println("DEBUG: Starting pre-load of game images...");
+        
+        // Loading screen — needed first, right after the intro finishes
+        loadImage("Loading_Screen.png");
         
         // Cell images
         loadImage("NormalCell.png");
@@ -102,6 +105,7 @@ public class ImageLoader {
         // Dice images
         for (int i = 1; i <= 6; i++) {
             loadImage("Dice_on_" + i + ".png");
+            loadImage("Glowing_dice_on_" + i + ".png");
         }
         
         // Monster portraits - Scarer

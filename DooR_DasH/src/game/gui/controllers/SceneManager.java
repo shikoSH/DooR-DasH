@@ -1,16 +1,19 @@
 package game.gui.controllers;
 
 import javafx.animation.FadeTransition;
+import javafx.animation.Interpolator;
 import javafx.animation.ParallelTransition;
-import javafx.animation.TranslateTransition;
 import javafx.animation.PauseTransition;
+import javafx.animation.RotateTransition;
 import javafx.animation.SequentialTransition;
+import javafx.animation.TranslateTransition;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.Group;
 import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCombination;
@@ -21,6 +24,10 @@ import javafx.scene.layout.VBox;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Arc;
+import javafx.scene.shape.ArcType;
+import javafx.scene.shape.Circle;
+import javafx.scene.shape.StrokeLineCap;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -74,6 +81,8 @@ public class SceneManager {
         this.primaryStage.setFullScreenExitHint("");
 
         sceneHolder.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+        // Black fill so any content swap never flashes the Scene/StackPane default white
+        sceneHolder.setStyle("-fx-background-color: black;");
         persistentScene = new Scene(sceneHolder, DEFAULT_WIDTH, DEFAULT_HEIGHT);
         persistentScene.setFill(Color.BLACK);
 
@@ -208,6 +217,20 @@ public class SceneManager {
     }
 
     public void switchToStartScreen() {
+        if (!startScreenShownOnce) {
+            // First time after intro: reveal loading under the still-visible intro
+            // (no fade-to-black), hold it, then fade into the start screen.
+            showLoadingScreen();
+            showStageIfNeeded();
+            PauseTransition loadingDelay = new PauseTransition(Duration.seconds(3));
+            loadingDelay.setOnFinished(ev -> loadStartScreenContent());
+            loadingDelay.play();
+        } else {
+            loadStartScreenContent();
+        }
+    }
+
+    private void loadStartScreenContent() {
         gameScreenActive = false;
         try {
             URL fxmlUrl = getClass().getResource("/game/gui/views/StartScreen.fxml");
@@ -221,35 +244,132 @@ public class SceneManager {
             addStylesheetOnce("/game/gui/resources/css/styles.css");
             addStylesheetOnce("/game/gui/resources/css/start-screen.css");
 
-            // Always start invisible so the swap never shows a white flash,
-            // then fade in once JavaFX has finished its first layout pass.
+            // Fade the start screen in ON TOP of whatever is showing (loading /
+            // previous screen) so we never clear to an empty black/white frame.
+            // Do not release bindings on the underlying node yet — it must keep
+            // filling the stage until the fade finishes and we remove it.
             root.setOpacity(0);
-            switchToContent(root, !fullScreenPromptShown);
+            prepareRootForFill(root);
+            sceneHolder.getChildren().add(root);
 
-            if (!startScreenShownOnce) {
+            boolean firstReveal = !startScreenShownOnce;
+            if (firstReveal) {
                 startScreenShownOnce = true;
-                // Double runLater: first pulse wires bindings, second pulse renders,
-                // third starts the fade — guarantees no white frame is ever visible.
-                Platform.runLater(() -> Platform.runLater(() -> {
-                    FadeTransition fadeIn = new FadeTransition(Duration.millis(700), root);
-                    fadeIn.setFromValue(0);
-                    fadeIn.setToValue(1);
-                    fadeIn.play();
-                }));
-            } else {
-                // Returning from game — quick cross-fade from black
-                Platform.runLater(() -> Platform.runLater(() -> {
-                    FadeTransition fadeIn = new FadeTransition(Duration.millis(400), root);
-                    fadeIn.setFromValue(0);
-                    fadeIn.setToValue(1);
-                    fadeIn.play();
-                }));
+            }
+            double fadeMs = firstReveal ? 700 : 400;
+
+            Platform.runLater(() -> Platform.runLater(() -> {
+                FadeTransition fadeIn = new FadeTransition(Duration.millis(fadeMs), root);
+                fadeIn.setFromValue(0);
+                fadeIn.setToValue(1);
+                fadeIn.setOnFinished(ev -> {
+                    java.util.List<javafx.scene.Node> toRemove = new java.util.ArrayList<>();
+                    for (javafx.scene.Node n : sceneHolder.getChildren()) {
+                        if (n != root) toRemove.add(n);
+                    }
+                    for (javafx.scene.Node n : toRemove) {
+                        if (n instanceof Region) {
+                            Region region = (Region) n;
+                            try { region.prefWidthProperty().unbind(); }  catch (Exception ignored) {}
+                            try { region.prefHeightProperty().unbind(); } catch (Exception ignored) {}
+                        }
+                    }
+                    sceneHolder.getChildren().removeAll(toRemove);
+                });
+                fadeIn.play();
+            }));
+
+            if (!fullScreenPromptShown) {
+                Platform.runLater(this::showFullScreenPrompt);
             }
 
             showStageIfNeeded();
         } catch (Exception e) {
             System.err.println("ERROR: Failed to load StartScreen");
             e.printStackTrace();
+        }
+    }
+    /**
+     * Puts the Loading_Screen image up as the current scene content.
+     * Installs a black-backed loading root UNDER the intro, forces a layout
+     * pass so it is paint-ready, then removes the intro — never an empty frame.
+     */
+    private void showLoadingScreen() {
+        try {
+            javafx.scene.image.Image loadingImage = ImageLoader.getInstance().loadImage("Loading_Screen.png");
+            if (loadingImage == null) {
+                System.err.println("WARNING: Loading_Screen.png not found, skipping loading screen.");
+                return;
+            }
+
+            javafx.scene.image.ImageView loadingView = new javafx.scene.image.ImageView(loadingImage);
+            loadingView.setPreserveRatio(false);
+            loadingView.setSmooth(true);
+
+            // Font is otherwise only loaded in GameController (after this screen)
+            try {
+                javafx.scene.text.Font.loadFont(
+                    getClass().getResourceAsStream(GameUIConstants.FONT_PATH), 14);
+            } catch (Exception ignored) {
+                // Fall back to system fonts via CSS family list below
+            }
+
+            // Simple arcade-style ring spinner (no stock ProgressIndicator chrome).
+            // Invisible circle keeps layout/rotation bounds centered on the open Arc.
+            Arc spinnerArc = new Arc(0, 0, 18, 18, 0, 270);
+            spinnerArc.setType(ArcType.OPEN);
+            spinnerArc.setStroke(Color.web("#f0f0f0"));
+            spinnerArc.setStrokeWidth(4);
+            spinnerArc.setFill(null);
+            spinnerArc.setStrokeLineCap(StrokeLineCap.ROUND);
+            Circle spinnerBounds = new Circle(0, 0, 22);
+            spinnerBounds.setOpacity(0);
+            Group spinner = new Group(spinnerBounds, spinnerArc);
+
+            RotateTransition spin = new RotateTransition(Duration.millis(900), spinner);
+            spin.setByAngle(360);
+            spin.setCycleCount(RotateTransition.INDEFINITE);
+            spin.setInterpolator(Interpolator.LINEAR);
+            spin.play();
+
+            Label loadingLabel = new Label("Loading...");
+            loadingLabel.setStyle(
+                "-fx-font-family: '" + GameUIConstants.FONT + "', 'Courier New', monospace;" +
+                "-fx-font-size: 36px;" +
+                "-fx-text-fill: #f0f0f0;"
+            );
+
+            VBox loadingStack = new VBox(14, spinner, loadingLabel);
+            loadingStack.setAlignment(Pos.CENTER);
+            loadingStack.setMouseTransparent(true);
+            StackPane.setAlignment(loadingStack, Pos.BOTTOM_CENTER);
+            StackPane.setMargin(loadingStack, new Insets(0, 0, 56, 0));
+
+            // Subtle pulse so the label reads as "in progress"
+            FadeTransition pulse = new FadeTransition(Duration.millis(900), loadingLabel);
+            pulse.setFromValue(0.45);
+            pulse.setToValue(1.0);
+            pulse.setAutoReverse(true);
+            pulse.setCycleCount(FadeTransition.INDEFINITE);
+            pulse.play();
+
+            // Black-backed Region so any sub-pixel / layout gap stays black, not white
+            StackPane loadingRoot = new StackPane(loadingView, loadingStack);
+            loadingRoot.setStyle("-fx-background-color: black;");
+            prepareRootForFill(loadingRoot);
+            loadingView.fitWidthProperty().bind(loadingRoot.widthProperty());
+            loadingView.fitHeightProperty().bind(loadingRoot.heightProperty());
+
+            releaseRootBindings();
+            java.util.List<javafx.scene.Node> outgoing = new java.util.ArrayList<>(sceneHolder.getChildren());
+            // Underlay first while intro still covers the stage
+            sceneHolder.getChildren().add(0, loadingRoot);
+            sceneHolder.applyCss();
+            sceneHolder.layout();
+            // Now safe to drop the intro — loading is already sized and laid out
+            sceneHolder.getChildren().removeAll(outgoing);
+        } catch (Exception e) {
+            System.err.println("WARNING: Could not show loading screen: " + e.getMessage());
         }
     }
 

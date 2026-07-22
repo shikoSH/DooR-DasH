@@ -43,14 +43,16 @@ public final class GameAnimationHelper {
      * the same face twice in a row, then lands on {@code finalFace} with a
      * small overshoot bounce and fires {@code onFinished}.
      *
-     * @param diceView   the ImageView showing the dice
-     * @param diceImages six dice-face images (index 0 = face 1)
-     * @param resultLbl  label that shows the numeric result
-     * @param finalFace  1-6 face to land on
-     * @param onFinished callback invoked after the animation completes
+     * @param diceView          the ImageView showing the dice
+     * @param diceImages        six dice-face images used while spinning (index 0 = face 1)
+     * @param glowingDiceImages six glowing face images used for the landed result (index 0 = face 1)
+     * @param resultLbl         label that shows the numeric result
+     * @param finalFace         1-6 face to land on
+     * @param onFinished        callback invoked after the animation completes
      * @return the started Timeline (caller may keep a reference to stop it)
      */
     public static Timeline animateDice(ImageView diceView, Image[] diceImages,
+                                        Image[] glowingDiceImages,
                                         Label resultLbl, int finalFace,
                                         Runnable onFinished) {
         Timeline tl = new Timeline();
@@ -78,7 +80,8 @@ public final class GameAnimationHelper {
 
         double landTime = totalMillis + 120;
         tl.getKeyFrames().add(new KeyFrame(Duration.millis(landTime), e -> {
-            diceView.setImage(diceImages[finalFace - 1]);
+            // Final face: glowing asset for the result; spin frames keep non-glowing images.
+            diceView.setImage(glowingDiceImages[finalFace - 1]);
             if (resultLbl != null) resultLbl.setText(String.valueOf(finalFace));
 
             diceView.setScaleX(1.0); diceView.setScaleY(1.0);
