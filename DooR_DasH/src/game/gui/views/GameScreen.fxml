@@ -53,6 +53,20 @@
                        AnchorPane.leftAnchor="0"
                        AnchorPane.rightAnchor="0"
                        AnchorPane.topAnchor="0" />
+                       
+                <!-- MENU BUTTON -->
+					<Label fx:id="menuBtn"
+       					text="☰"
+       					onMouseClicked="#handleMenuButton"
+       					style="-fx-font-size: 20px;
+              			-fx-font-weight: bold;
+              			-fx-text-fill: #dddddd;
+              			-fx-background-color: rgba(0,0,0,0.45);
+              			-fx-background-radius: 6;
+              			-fx-padding: 3 12 5 12;
+              			-fx-cursor: hand;"
+       				AnchorPane.leftAnchor="8"
+       				AnchorPane.topAnchor="6" />
 
                 <!-- LEFT: player panel — built entirely in PanelBuilder.
                      Still a VBox internally (that's fine — a VBox's own

@@ -42,6 +42,7 @@ public class SceneManager {
     private Scene persistentScene;
     private final HashMap<String, Parent> cachedRoots = new HashMap<>();
     private MediaPlayer mediaPlayer;
+    private double savedMusicVolume = 0.25;
     private boolean fullScreenPromptShown = false;
     private boolean startScreenShownOnce = false;
 
@@ -166,7 +167,7 @@ public class SceneManager {
             }
             Media media = new Media(musicUrl.toString());
             mediaPlayer = new MediaPlayer(media);
-            mediaPlayer.setVolume(0.7);
+            mediaPlayer.setVolume(savedMusicVolume);
             mediaPlayer.setCycleCount(MediaPlayer.INDEFINITE);
             mediaPlayer.play();
             System.out.println("DEBUG: Music started");
@@ -184,7 +185,16 @@ public class SceneManager {
     public MediaPlayer getMediaPlayer() {
         return mediaPlayer;
     }
+    
+    public void setMusicVolume(double v) {
+        savedMusicVolume = Math.max(0, Math.min(1, v));
+        if (mediaPlayer != null) mediaPlayer.setVolume(savedMusicVolume);
+    }
 
+    public double getMusicVolume() {
+        return savedMusicVolume;
+    }
+    
     // ===== SCREENS =====
 
     public void switchToIntroScreen() {

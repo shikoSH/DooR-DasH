@@ -22,6 +22,8 @@ import game.engine.*;
 import game.engine.cards.Card;
 import game.engine.cells.*;
 import game.engine.monsters.Monster;
+import javafx.scene.control.Slider;
+import javafx.scene.media.MediaPlayer;
 
 import static game.gui.controllers.GameUIConstants.*;
 import static game.gui.controllers.GameUIHelper.*;
@@ -64,6 +66,7 @@ public class GameController {
     @FXML private ImageView  rollImageBtn;
     @FXML private AnchorPane controlBar;
     @FXML private AnchorPane masterLayout;
+    @FXML private Label menuBtn;
 
     // =========================================================
     //  HELPERS / SUB-CONTROLLERS
@@ -144,7 +147,13 @@ public class GameController {
     // Shared cellSize property for responsive label scaling
     private final javafx.beans.property.DoubleProperty cellSize =
         new javafx.beans.property.SimpleDoubleProperty(40);
-
+    private boolean   optionsMenuVisible = false;
+    private StackPane optionsDimLayer;
+    private VBox      optionsMenuCard;
+    private Label     optionsTitleLbl, optionsMusicLbl, optionsSfxLbl;
+    private javafx.scene.shape.Rectangle optionsSep;
+    private Button    optionsResumeBtn, optionsRestartBtn, optionsMainMenuBtn;
+    private Slider    optionsMusicSlider, optionsSfxSlider;
     // =========================================================
     //  INITIALIZE
     // =========================================================
@@ -376,7 +385,7 @@ public class GameController {
     // =========================================================
     @FXML
     private void handleRollDice() {
-        if (game == null || cardOverlay.isVisible() || isAnimating || monsterOverlayVisible || cardDeckOverlayVisible) return;
+        if (game == null || cardOverlay.isVisible() || isAnimating || monsterOverlayVisible || cardDeckOverlayVisible || optionsMenuVisible) return;
         try {
             isAnimating = true;
             Monster current  = game.getCurrent();
@@ -572,7 +581,7 @@ public class GameController {
     // =========================================================
     @FXML
     private void handlePowerUp() {
-        if (game == null || cardOverlay.isVisible() || monsterOverlayVisible || cardDeckOverlayVisible) return;
+        if (game == null || cardOverlay.isVisible() || monsterOverlayVisible || cardDeckOverlayVisible || optionsMenuVisible) return;
         if (messageOverlay != null && messageOverlay.isVisible()) return;
 
         if (powerUpImageBtn != null) {
@@ -614,7 +623,184 @@ public class GameController {
                 }
             });
     }
+    
+    @FXML
+    private void handleMenuButton() {
+        showOptionsMenuOverlay();
+    }
 
+    // =========================================================
+    //  GAME OPTIONS MENU  (same visual pattern as showMonsterInfoOverlay)
+    // =========================================================
+    private void showOptionsMenuOverlay() {
+        if (game == null || cardOverlay.isVisible() || monsterOverlayVisible
+                || cardDeckOverlayVisible || optionsMenuVisible) return;
+        optionsMenuVisible = true;
+
+        double curScale = overlayScale();
+        double curBoardSide = REF_BOARD_SIZE * curScale;
+        // Noticeably larger than the monster-card fractions — this menu is
+        // button-heavy and needs to read clearly, not fit dense stat rows.
+        double titleFontPx = Math.max(16, curBoardSide * TXT_CARD_NAME_FRAC * 1.5);
+        double bodyFontPx  = Math.max(12, curBoardSide * TXT_CARD_BODY_FRAC * 1.35);
+        double btnFontPx   = Math.max(13, curBoardSide * TXT_CARD_BODY_FRAC * 1.5);
+
+        optionsTitleLbl = makeLbl("GAME MENU", "#ffdd55", (int) titleFontPx, true);
+        optionsTitleLbl.setAlignment(Pos.CENTER);
+
+        optionsSep = new javafx.scene.shape.Rectangle(curBoardSide * 0.36, 2);
+        optionsSep.setFill(Color.web("#c9a227"));
+
+        optionsResumeBtn = overlayActionButton("RESUME", "#dddddd", "#1a1a1a", "#888888");
+        optionsResumeBtn.setMaxWidth(Double.MAX_VALUE);
+        optionsResumeBtn.setOnAction(e -> dismissOptionsMenu());
+
+        optionsRestartBtn = overlayActionButton("RESTART  MATCH", "#ffdd55", "#1a1a1a", "#c9a227");
+        optionsRestartBtn.setMaxWidth(Double.MAX_VALUE);
+        optionsRestartBtn.setOnAction(e -> handleRestartMatch());
+
+        optionsMusicLbl = makeLbl("MUSIC VOLUME", "#aaaaaa", (int) bodyFontPx, false);
+        optionsMusicSlider = new Slider(0, 1, SceneManager.getInstance().getMusicVolume());
+        optionsMusicSlider.setStyle("-fx-accent:#c9a227;");
+        optionsMusicSlider.valueProperty().addListener((obs, o, n) ->
+            SceneManager.getInstance().setMusicVolume(n.doubleValue()));
+
+        optionsSfxLbl = makeLbl("SOUND EFFECTS VOLUME", "#aaaaaa", (int) bodyFontPx, false);
+        optionsSfxSlider = new Slider(0, 1, SoundManager.getSfxVolume());
+        optionsSfxSlider.setStyle("-fx-accent:#c9a227;");
+        optionsSfxSlider.valueProperty().addListener((obs, o, n) -> SoundManager.setSfxVolume(n.doubleValue()));
+
+        optionsMainMenuBtn = overlayActionButton("MAIN MENU", "#ff8888", "#1a1a1a", "#c9463f");
+        optionsMainMenuBtn.setMaxWidth(Double.MAX_VALUE);
+        optionsMainMenuBtn.setOnAction(e -> handleGoToMainMenu());
+
+        optionsMenuCard = new VBox(16,
+            optionsTitleLbl, optionsSep, optionsResumeBtn, optionsRestartBtn,
+            optionsMusicLbl, optionsMusicSlider, optionsSfxLbl, optionsSfxSlider,
+            optionsMainMenuBtn);
+        optionsMenuCard.setAlignment(Pos.TOP_CENTER);
+        optionsMenuCard.getStyleClass().add("game-modal-panel");
+        applyModalPanelStyle(optionsMenuCard, "#c9a227",
+            "linear-gradient(to bottom,rgba(16,16,24,0.97),rgba(6,6,12,0.99))");
+        addDropShadow(optionsMenuCard, 36, Color.BLACK);
+        layoutOptionsMenuPanel();
+
+        optionsDimLayer = new StackPane(optionsMenuCard);
+        optionsDimLayer.setStyle("-fx-background-color:rgba(0,0,0,0.62);");
+        optionsDimLayer.setPickOnBounds(true);
+        optionsDimLayer.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+        optionsDimLayer.setOpacity(0);
+        StackPane.setAlignment(optionsMenuCard, Pos.CENTER);
+        optionsDimLayer.setOnMouseClicked(e -> {
+            if (e.getTarget() == optionsDimLayer) dismissOptionsMenu();
+        });
+        optionsMenuCard.setOnMouseClicked(javafx.event.Event::consume);
+
+        backgroundRoot.getChildren().add(optionsDimLayer);
+        optionsDimLayer.toFront();
+
+        masterLayout.setEffect(worldBlur);
+        Timeline blurIn = new Timeline(
+            new KeyFrame(Duration.ZERO,       ev -> { worldBlur.setWidth(0);  worldBlur.setHeight(0); }),
+            new KeyFrame(Duration.millis(350), ev -> { worldBlur.setWidth(14); worldBlur.setHeight(14); }));
+        FadeTransition dimFade = new FadeTransition(Duration.millis(300), optionsDimLayer);
+        dimFade.setFromValue(0); dimFade.setToValue(1);
+        optionsMenuCard.setScaleX(0.90); optionsMenuCard.setScaleY(0.90);
+        ScaleTransition scaleIn = new ScaleTransition(Duration.millis(280), optionsMenuCard);
+        scaleIn.setFromX(0.90); scaleIn.setFromY(0.90);
+        scaleIn.setToX(1.0);   scaleIn.setToY(1.0);
+        scaleIn.setInterpolator(Interpolator.EASE_OUT);
+        new ParallelTransition(blurIn, dimFade, scaleIn).play();
+    }
+
+    /** Recomputes the menu panel size from the live window — mirrors layoutMonsterOverlayPanel(). */
+    private void layoutOptionsMenuPanel() {
+        if (optionsMenuCard == null) return;
+        double W = backgroundRoot.getWidth();
+        double H = backgroundRoot.getHeight();
+        if (W <= 0 || H <= 0) return;
+
+        double scale = overlayScale();
+        double curBoardSide = REF_BOARD_SIZE * scale;
+        double panelW = clampModalSize(
+            Math.min(Math.min(W * 0.42, H * 0.58), curBoardSide * 0.58),
+            320 * scale, 460 * scale);
+        double pad = Math.max(18, panelW * 0.07);
+
+        double titleFontPx = Math.max(16, panelW * 0.085);
+        double bodyFontPx  = Math.max(12, panelW * 0.052);
+        double btnFontPx   = Math.max(13, panelW * 0.058);
+
+        optionsMenuCard.setMinWidth(panelW * 0.92);
+        optionsMenuCard.setMaxWidth(panelW);
+        optionsMenuCard.setPrefWidth(panelW);
+        optionsMenuCard.setMaxHeight(Region.USE_PREF_SIZE);        // CHANGED — hug content instead of stretching to a fixed panelH
+        optionsMenuCard.setMaxHeight(Region.USE_PREF_SIZE);
+        optionsMenuCard.setPadding(new Insets(pad * 1.1, pad * 1.15, pad, pad * 1.15));
+
+        if (optionsSep != null) optionsSep.setWidth(panelW * 0.72);
+        if (optionsTitleLbl != null) setFontSize(optionsTitleLbl, titleFontPx);
+        if (optionsMusicLbl != null) setFontSize(optionsMusicLbl, bodyFontPx);
+        if (optionsSfxLbl   != null) setFontSize(optionsSfxLbl,   bodyFontPx);
+        if (optionsResumeBtn   != null) restyleOverlayButtonFont(optionsResumeBtn,   btnFontPx);
+        if (optionsRestartBtn  != null) restyleOverlayButtonFont(optionsRestartBtn,  btnFontPx);
+        if (optionsMainMenuBtn != null) restyleOverlayButtonFont(optionsMainMenuBtn, btnFontPx);
+        if (optionsMusicSlider != null) optionsMusicSlider.setPrefWidth(panelW * 0.8);
+        if (optionsSfxSlider   != null) optionsSfxSlider.setPrefWidth(panelW * 0.8);
+    }
+
+    private void dismissOptionsMenuImmediate() {
+        if (optionsDimLayer != null) {
+            backgroundRoot.getChildren().remove(optionsDimLayer);
+            optionsDimLayer = null;
+        }
+        optionsMenuVisible = false;
+        masterLayout.setEffect(null);
+        worldBlur.setWidth(0);
+        worldBlur.setHeight(0);
+    }
+
+    private void dismissOptionsMenu() {
+        if (optionsDimLayer == null) return;
+        Timeline blurOut = new Timeline(
+            new KeyFrame(Duration.ZERO,       ev -> { worldBlur.setWidth(14); worldBlur.setHeight(14); }),
+            new KeyFrame(Duration.millis(280), ev -> { worldBlur.setWidth(0);  worldBlur.setHeight(0);
+                                                        masterLayout.setEffect(null); }));
+        FadeTransition fadeOut = new FadeTransition(Duration.millis(240), optionsDimLayer);
+        fadeOut.setFromValue(1); fadeOut.setToValue(0);
+        final StackPane layer = optionsDimLayer;
+        fadeOut.setOnFinished(ev -> {
+            backgroundRoot.getChildren().remove(layer);
+            optionsMenuVisible = false;
+            optionsDimLayer = null;
+            optionsMenuCard = null;
+            optionsTitleLbl = null; optionsMusicLbl = null; optionsSfxLbl = null;   // ADD
+            optionsSep = null;
+            optionsResumeBtn = null; optionsRestartBtn = null; optionsMainMenuBtn = null;   // ADD
+            optionsMusicSlider = null; optionsSfxSlider = null;                     // ADD
+        });
+        new ParallelTransition(blurOut, fadeOut).play();
+    }
+
+    /** Restarts the match with the same original role, resetting all in-progress turn state. */
+    private void handleRestartMatch() {
+        if (game == null) return;
+        Role originalRole = game.getPlayer().getOriginalRole();
+        dismissOptionsMenu();
+        if (diceTimeline != null) diceTimeline.stop();
+        isAnimating = false;
+        playerPowerTurnsLeft = 0;
+        opponentPowerTurnsLeft = 0;
+        startGame(originalRole);
+    }
+
+    private void handleGoToMainMenu() {
+        dismissOptionsMenu();
+        SceneManager.getInstance().switchToStartScreen();
+    }
+    
+    
+    
     // =========================================================
     //  MONSTER CELL CLICK
     // =========================================================
@@ -1636,9 +1822,8 @@ public class GameController {
         opponentPanelContainer.setMaxWidth(panelW);
         offset(opponentPanelContainer, OFFSET_X_OPPONENT_PANEL, OFFSET_Y_OPPONENT_PANEL);
 
-        AnchorPane.setRightAnchor(actionLogContainer, 0.0);
-        AnchorPane.setTopAnchor(actionLogContainer,
-            topLabelH + (REF_OPPONENT_PANEL_H + REF_ACTION_LOG_GAP));
+        AnchorPane.setLeftAnchor(actionLogContainer, 0.0);
+        AnchorPane.setBottomAnchor(actionLogContainer, 0.0);
         actionLogContainer.setPrefWidth(panelW);
         actionLogContainer.setMaxWidth(panelW);
         offset(actionLogContainer, OFFSET_X_ACTION_LOG, OFFSET_Y_ACTION_LOG);
@@ -1869,6 +2054,9 @@ public class GameController {
         }
         if (monsterDimLayer != null && monsterOverlayVisible) {
             layoutMonsterOverlayPanel();
+        }
+        if (optionsDimLayer != null && optionsMenuVisible) {   // ADD THIS
+            layoutOptionsMenuPanel();
         }
     }
 

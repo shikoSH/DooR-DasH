@@ -81,7 +81,7 @@ public final class GameUIConstants {
     public static final double OFFSET_X_TOP_LABEL       = 0, OFFSET_Y_TOP_LABEL       = 0; // turn status text
     public static final double OFFSET_X_PLAYER_PANEL    = 0, OFFSET_Y_PLAYER_PANEL    = 0; // whole left panel
     public static final double OFFSET_X_OPPONENT_PANEL  = 0, OFFSET_Y_OPPONENT_PANEL  = 0; // whole right panel
-    public static final double OFFSET_X_ACTION_LOG      = -1000, OFFSET_Y_ACTION_LOG      = 50; // whole action log block
+    public static final double OFFSET_X_ACTION_LOG      = 0, OFFSET_Y_ACTION_LOG      = 25; // whole action log block
     public static final double OFFSET_X_BOARD           = 0, OFFSET_Y_BOARD           = -60; // whole board
     public static final double OFFSET_X_CONTROL_BAR     = 0, OFFSET_Y_CONTROL_BAR     = 0; // whole bottom bar
     public static final double OFFSET_X_CARD_DECK       = 0, OFFSET_Y_CARD_DECK       = 0; // deck image
@@ -101,7 +101,7 @@ public final class GameUIConstants {
     public static final double OFFSET_X_STATUS_LBL = 0, OFFSET_Y_STATUS_LBL = 0; // status text
     public static final double OFFSET_X_TURN_LBL   = 0, OFFSET_Y_TURN_LBL   = 0; // "YOUR TURN" label (player only)
     public static final double PROFILE_W_MULT    = 0.7;
-    public static final double ACTION_LOG_W_MULT = 1.30;   // was 0.90 — bump up/down to resize the action log
+    public static final double ACTION_LOG_W_MULT = 1;   // was 0.90 — bump up/down to resize the action log
     public static final double CONTROL_BAR_H     = 0.1;
     public static final double DECK_LEFT         = 0.25;
     public static final double DECK_TOP_FRAC     = -1.8;

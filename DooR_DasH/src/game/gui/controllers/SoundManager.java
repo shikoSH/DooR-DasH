@@ -53,6 +53,16 @@ public class SoundManager {
         playSFX("contamination_sock.wav");
     }
     
+    private static double sfxVolume = 0.85;   // ADD — master SFX volume, adjustable from the menu
+
+    public static void setSfxVolume(double v) {
+        sfxVolume = Math.max(0, Math.min(1, v));
+    }
+
+    public static double getSfxVolume() {
+        return sfxVolume;
+    }
+    
     /**
      * Plays a short SFX clip using AudioClip (fires immediately, no buffering delay)
      * and briefly ducks the background music while it plays.
@@ -71,7 +81,7 @@ public class SoundManager {
                 music.setVolume(DUCK_VOLUME);
             }
             AudioClip clip = clipCache.computeIfAbsent(fileName, f -> new AudioClip(url.toString()));   // NEW
-            clip.setVolume(0.85);
+            clip.setVolume(sfxVolume); 
             clip.play();
             javafx.animation.PauseTransition restore =
                 new javafx.animation.PauseTransition(javafx.util.Duration.seconds(2.5));

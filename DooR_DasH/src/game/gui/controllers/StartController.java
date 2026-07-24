@@ -219,16 +219,17 @@ public class StartController {
     //  AUDIO
     // =========================================================
     private void setupAudio() {
+        double savedVol = SceneManager.getInstance().getMusicVolume();
         MediaPlayer mp = SceneManager.getInstance().getMediaPlayer();
-        if (mp != null) mp.setVolume(0.25);
+        if (mp != null) mp.setVolume(savedVol);
 
         volumeSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
             double vol = newVal.doubleValue();
-            MediaPlayer player = SceneManager.getInstance().getMediaPlayer();
-            if (player != null && !isMuted) player.setVolume(vol);
+            if (!isMuted) SceneManager.getInstance().setMusicVolume(vol);
             volumeLabel.setText((int)(vol * 100) + "%");
         });
-        volumeSlider.setValue(0.25);
+        volumeSlider.setValue(savedVol);
+        volumeLabel.setText((int)(savedVol * 100) + "%");
     }
 
     // =========================================================
