@@ -22,12 +22,12 @@ public final class GameUIConstants {
     // =========================================================
     //  TEXT SIZES  (px)
     // =========================================================
-    public static final int TXT_PLAYER_NAME   = 20;
-    public static final int TXT_PLAYER_TYPE   = 18;
-    public static final int TXT_PLAYER_ROLE   = 18;
+    public static final int TXT_PLAYER_NAME   = 12;
+    public static final int TXT_PLAYER_TYPE   = 11;
+    public static final int TXT_PLAYER_ROLE   = 11;
     public static final int TXT_PLAYER_POS    = 10;
     public static final int TXT_PLAYER_ENERGY = 20;
-    public static final int TXT_PLAYER_STATUS = 20;
+    public static final int TXT_PLAYER_STATUS = 10;
     public static final int TXT_PLAYER_TURN   = 15;
     public static final int TXT_ACTION_LOG    = 5;
     public static final int TXT_TOP_LABEL     = 14;
@@ -86,7 +86,6 @@ public final class GameUIConstants {
     public static final double OFFSET_X_CONTROL_BAR     = 0, OFFSET_Y_CONTROL_BAR     = 0; // whole bottom bar
     public static final double OFFSET_X_CARD_DECK       = 0, OFFSET_Y_CARD_DECK       = 0; // deck image
     public static final double OFFSET_X_DICE            = 0, OFFSET_Y_DICE            = 0; // dice image
-    public static final double OFFSET_X_DICE_RESULT     = 0, OFFSET_Y_DICE_RESULT     = 0; // "Rolled: N" text
     public static final double OFFSET_X_POWERUP_BTN     = 0, OFFSET_Y_POWERUP_BTN     = 0;
     public static final double OFFSET_X_ROLL_BTN        = 0, OFFSET_Y_ROLL_BTN        = 0;
 
@@ -95,10 +94,16 @@ public final class GameUIConstants {
     // Lights row already has its own dedicated pair above:
     //   REF_LIGHTS_OFFSET_X / REF_LIGHTS_OFFSET_Y
     public static final double OFFSET_X_PORTRAIT   = 10, OFFSET_Y_PORTRAIT   = 0; // portrait + position badge
-    public static final double OFFSET_X_PROFILE    = 0, OFFSET_Y_PROFILE   = 0; // profile card image + its text
-    public static final double OFFSET_X_ENERGY_NUM = 0, OFFSET_Y_ENERGY_NUM = 0; // energy number label
-    public static final double OFFSET_X_ENERGY_BAR = 75, OFFSET_Y_ENERGY_BAR = -20; // energy canister image
-    public static final double OFFSET_X_STATUS_LBL = 0, OFFSET_Y_STATUS_LBL = 0; // status text
+    public static final double OFFSET_X_POS_LABEL_PLAYER   = 50, OFFSET_Y_POS_LABEL_PLAYER   = -100; // player's position number text
+    public static final double OFFSET_X_POS_LABEL_OPPONENT = 50, OFFSET_Y_POS_LABEL_OPPONENT = -100; // opponent's position number text
+    public static final double OFFSET_X_PROFILE    = 10, OFFSET_Y_PROFILE   = 0; // profile card image + its text
+    public static final double OFFSET_X_NAME_LBL   = 32, OFFSET_Y_NAME_LBL  = 32; // monster name text alone
+    public static final double OFFSET_X_TYPE_LBL   = 0, OFFSET_Y_TYPE_LBL  = 15; // "CLASS" value text alone
+    public static final double OFFSET_X_ROLE_LBL   = 0, OFFSET_Y_ROLE_LBL  = 1; // "FACTION" value text alone
+    public static final double OFFSET_X_ENERGY_NUM = 20, OFFSET_Y_ENERGY_NUM = 0; // energy number label
+    public static final double OFFSET_X_ENERGY_BAR_PLAYER   = 75, OFFSET_Y_ENERGY_BAR_PLAYER   = -20; // player's energy canister image
+    public static final double OFFSET_X_ENERGY_BAR_OPPONENT = 75, OFFSET_Y_ENERGY_BAR_OPPONENT = -20; // opponent's energy canister image
+    public static final double OFFSET_X_STATUS_LBL = 30, OFFSET_Y_STATUS_LBL = -8; // status text
     public static final double OFFSET_X_TURN_LBL   = 0, OFFSET_Y_TURN_LBL   = 0; // "YOUR TURN" label (player only)
     public static final double PROFILE_W_MULT    = 0.7;
     public static final double ACTION_LOG_W_MULT = 1;   // was 0.90 — bump up/down to resize the action log
@@ -161,6 +166,10 @@ public final class GameUIConstants {
     public static final String IMG_BOARD        = "images.png";
     public static final String IMG_POWERUP_BTN  = "Power_Up_Button.png";
     public static final String IMG_ROLL_BTN     = "Roll_Button.png";
+    public static final String IMG_POWERUP_BTN_HALF    = "halfpressed_powerup_button.png";
+    public static final String IMG_POWERUP_BTN_PRESSED = "pressed_powerup_button.png";
+    public static final String IMG_ROLL_BTN_HALF        = "halfpressed_roll_button.png";
+    public static final String IMG_ROLL_BTN_PRESSED     = "pressed_roll_button.png";
 
     // ── Card-deck images ──────────────────────────────────────
     public static final String IMG_DECK_FULL    = "CardsDeck_Full.png";
@@ -182,7 +191,7 @@ public final class GameUIConstants {
     // ── Panel decoration images ───────────────────────────────
     public static final String IMG_PROFILE      = "monster_profile.png";
     public static final String IMG_ACTION_LOG   = "Action_Log.png";
-    public static final String IMG_CARD_BACK    = "card_back_design.jpg";
+    public static final String IMG_CARD_BACK    = "card_back_design.png";
 
     // =========================================================
     //  TEXT-SIZE FRACTIONS (relative to side-panel / board width)
@@ -204,7 +213,6 @@ public final class GameUIConstants {
     public static final double TXT_PLAYER_ENERGY_FRAC     = TXT_PLAYER_ENERGY / REFERENCE_PANEL_W;
     public static final double TXT_PLAYER_STATUS_FRAC     = TXT_PLAYER_STATUS / REFERENCE_PANEL_W;
     public static final double TXT_PLAYER_TURN_FRAC       = TXT_PLAYER_TURN   / REFERENCE_PANEL_W;
-    public static final double TXT_ACTION_LOG_HEADER_FRAC = 11.0 / REFERENCE_PANEL_W;
 
     public static final double TXT_CARD_NAME_FRAC = TXT_CARD_NAME / REFERENCE_BOARD_W;
     public static final double TXT_CARD_BODY_FRAC = TXT_CARD_BODY / REFERENCE_BOARD_W;

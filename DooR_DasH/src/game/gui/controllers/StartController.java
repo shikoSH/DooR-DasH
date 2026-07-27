@@ -181,6 +181,23 @@ public class StartController {
     private static final double REF_BOTTOM_BTN_BOTTOM = 10;
     private static final double REF_BOTTOM_BTN_LEFT   = 8;
 
+    // =========================================================
+    //  PER-ELEMENT MOVE OFFSETS — START SCREEN
+    //  Same idea as the game screen: change any X/Y pair below and
+    //  rebuild. Units are reference pixels (1280x720 scale). Positive
+    //  X = right, positive Y = down. 0/0 = default position.
+    // =========================================================
+    private static final double OFFSET_X_LOGO         = 0, OFFSET_Y_LOGO         = 0; // logo + light beams together
+    private static final double OFFSET_X_CENTER_ROW   = 0, OFFSET_Y_CENTER_ROW   = 0; // whole scarer/laugher/instructions row
+    private static final double OFFSET_X_SCARER_BTN   = 0, OFFSET_Y_SCARER_BTN   = 0;
+    private static final double OFFSET_X_LAUGHER_BTN  = 0, OFFSET_Y_LAUGHER_BTN  = 0;
+    private static final double OFFSET_X_INSTRUCTIONS = 0, OFFSET_Y_INSTRUCTIONS = 0;
+    private static final double OFFSET_X_BOTTOM_PANEL = 0, OFFSET_Y_BOTTOM_PANEL = 0; // bottom-left plaque image
+    private static final double OFFSET_X_BOTTOM_ROW   = 0, OFFSET_Y_BOTTOM_ROW   = 10; // whole exit/options/credits row
+    private static final double OFFSET_X_EXIT_BTN     = 0, OFFSET_Y_EXIT_BTN     = 0;
+    private static final double OFFSET_X_OPTIONS_BTN  = 0, OFFSET_Y_OPTIONS_BTN  = 0;
+    private static final double OFFSET_X_CREDITS_BTN  = 0, OFFSET_Y_CREDITS_BTN  = 0;
+
     private void applyResponsivePositions() {
         double w = rootPane.getWidth();
         double h = rootPane.getHeight();
@@ -194,9 +211,19 @@ public class StartController {
         // picture" approach: no per-element arithmetic to drift.
         AnchorPane.setTopAnchor(centerRow,    REF_CENTER_ROW_TOP);
         AnchorPane.setBottomAnchor(centerRow, REF_CENTER_ROW_BOTTOM);
+        offset(centerRow, OFFSET_X_CENTER_ROW, OFFSET_Y_CENTER_ROW);
+        offset(scarerButton,     OFFSET_X_SCARER_BTN,  OFFSET_Y_SCARER_BTN);
+        offset(laugherButton,    OFFSET_X_LAUGHER_BTN, OFFSET_Y_LAUGHER_BTN);
+        offset(instructionsNote, OFFSET_X_INSTRUCTIONS, OFFSET_Y_INSTRUCTIONS);
+
+        offset(bottomLeftPanel, OFFSET_X_BOTTOM_PANEL, OFFSET_Y_BOTTOM_PANEL);
 
         AnchorPane.setBottomAnchor(bottomButtonsRow, REF_BOTTOM_BTN_BOTTOM);
         AnchorPane.setLeftAnchor(bottomButtonsRow,   REF_BOTTOM_BTN_LEFT);
+        offset(bottomButtonsRow, OFFSET_X_BOTTOM_ROW, OFFSET_Y_BOTTOM_ROW);
+        offset(exitButton,    OFFSET_X_EXIT_BTN,    OFFSET_Y_EXIT_BTN);
+        offset(optionsButton, OFFSET_X_OPTIONS_BTN, OFFSET_Y_OPTIONS_BTN);
+        offset(creditsButton, OFFSET_X_CREDITS_BTN, OFFSET_Y_CREDITS_BTN);
 
         // ── THE scale transform ──────────────────────────────────────
         // mainPane and logoPane are separate StackPane children of
@@ -211,8 +238,20 @@ public class StartController {
         // so it must be scaled explicitly too, or the logo's vertical
         // offset would stay a fixed raw pixel amount while everything
         // else around it shrinks/grows — exactly the kind of drift this
-        // whole approach is meant to eliminate.
-        logoPane.setTranslateY(-REF_LOGO_TRANSLATE_Y * scale);
+        // whole approach is meant to eliminate. Same reasoning applies to
+        // OFFSET_X_LOGO/OFFSET_Y_LOGO, since logoPane carries its own
+        // separate scale transform rather than inheriting one from a
+        // parent (unlike everything above, which is safe to leave
+        // unscaled since it's all inside mainPane's own scaled subtree).
+        logoPane.setTranslateX(OFFSET_X_LOGO * scale);
+        logoPane.setTranslateY((-REF_LOGO_TRANSLATE_Y + OFFSET_Y_LOGO) * scale);
+    }
+
+    /** Moves a node by a fixed reference-pixel offset without affecting anything else's layout. */
+    private void offset(javafx.scene.Node n, double x, double y) {
+        if (n == null) return;
+        n.setTranslateX(x);
+        n.setTranslateY(y);
     }
 
     // =========================================================

@@ -59,10 +59,19 @@ public class IntroController {
 
         ParallelTransition creditsFadeOut = new ParallelTransition(teamFadeOut, disclaimerFadeOut);
 
-        // Music starts as credits fade out
-        creditsFadeOut.setOnFinished(e -> SceneManager.getInstance().startMusic());
+        // Music now starts when creditsFadeOut BEGINS (i.e. when teamHold
+        // finishes) instead of when it ends — creditsFadeOut is 1000ms
+        // long, so this is exactly 1 second earlier than before, and the
+        // music is already playing by the time the logo starts appearing.
+        teamHold.setOnFinished(e -> SceneManager.getInstance().startMusic());
 
         // === PHASE 2: Logo appears big and scales down ===
+        // setVisible(false) in addition to opacity 0 — belt-and-suspenders
+        // so the logo is guaranteed invisible during Phase 1 (the "A GAME
+        // BY TEAM 85" credits), regardless of anything else touching its
+        // opacity. It's flipped back to visible right before logoIntro
+        // starts (see preLogoPause below), never sooner.
+        logoImage.setVisible(false);
         logoImage.setScaleX(1.8);
         logoImage.setScaleY(1.8);
         logoImage.setOpacity(0);
@@ -80,15 +89,21 @@ public class IntroController {
         ParallelTransition logoIntro = new ParallelTransition(logoFadeIn, logoScale);
         PauseTransition logoHold = new PauseTransition(Duration.millis(1200));
 
+        PauseTransition preLogoPause = new PauseTransition(Duration.millis(500));
+        preLogoPause.setOnFinished(e -> logoImage.setVisible(true));
+
         // === CHAIN ===
-        // Do NOT fade the intro to black first — that left a blank black frame
-        // before the loading screen appeared. switchToStartScreen() places the
-        // loading image under the intro and removes the intro in one swap.
+        // No fade-out phase here anymore — SceneManager.switchToStartScreen()
+        // now fades every scene transition to black generically (see
+        // fadeToBlackThenShow()), so it fades in right over the logo at
+        // full opacity/scale instead of needing this screen to fade itself
+        // out first. That also removes ~700ms of dead time between the
+        // logo settling and the start screen appearing.
         SequentialTransition fullSequence = new SequentialTransition(
             creditsFadeIn,
             teamHold,
             creditsFadeOut,
-            new PauseTransition(Duration.millis(500)),
+            preLogoPause,
             logoIntro,
             logoHold
         );

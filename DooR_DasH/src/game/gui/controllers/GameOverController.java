@@ -95,7 +95,7 @@ public class GameOverController {
         // Keep winner text centered under baked-in "GAME OVER" — fixed
         // reference position/size now, scaled along with everything else.
         if (winsLabel != null) {
-            AnchorPane.setTopAnchor(winsLabel, REF_H * 0.36);
+            AnchorPane.setTopAnchor(winsLabel, REF_H * 0.1);
             AnchorPane.setLeftAnchor(winsLabel, 0.0);
             AnchorPane.setRightAnchor(winsLabel, 0.0);
             // FXML set this to a fixed 48px that never rescaled before —

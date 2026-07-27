@@ -1,10 +1,8 @@
 package game.gui.controllers;
 
 import javafx.animation.FadeTransition;
-import javafx.animation.Interpolator;
 import javafx.animation.ParallelTransition;
 import javafx.animation.PauseTransition;
-import javafx.animation.RotateTransition;
 import javafx.animation.SequentialTransition;
 import javafx.animation.TranslateTransition;
 import javafx.application.Platform;
@@ -13,21 +11,16 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.Group;
 import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Arc;
-import javafx.scene.shape.ArcType;
-import javafx.scene.shape.Circle;
-import javafx.scene.shape.StrokeLineCap;
+import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -48,6 +41,11 @@ public class SceneManager {
 
     private static final double DEFAULT_WIDTH  = 1280;
     private static final double DEFAULT_HEIGHT = 720;
+
+    // How long the fade-to-black / fade-from-black halves of every scene
+    // transition take. Same value both ways so a transition always feels
+    // symmetric; bump this up/down to make every scene change slower/faster.
+    private static final double SCENE_FADE_MS = 350;
 
     // Only true while the game screen is showing — this lock is scoped
     // to just this screen. It's the only one that needs the window
@@ -185,7 +183,7 @@ public class SceneManager {
     public MediaPlayer getMediaPlayer() {
         return mediaPlayer;
     }
-    
+
     public void setMusicVolume(double v) {
         savedMusicVolume = Math.max(0, Math.min(1, v));
         if (mediaPlayer != null) mediaPlayer.setVolume(savedMusicVolume);
@@ -194,50 +192,44 @@ public class SceneManager {
     public double getMusicVolume() {
         return savedMusicVolume;
     }
-    
+
     // ===== SCREENS =====
 
     public void switchToIntroScreen() {
         gameScreenActive = false;
-        try {
-            URL fxmlUrl = getClass().getResource("/game/gui/views/IntroScreen.fxml");
-            if (fxmlUrl == null) {
-                System.err.println("ERROR: IntroScreen.fxml not found — going straight to StartScreen");
-                switchToStartScreen();
-                return;
+        fadeToBlackThenShow(() -> {
+            try {
+                URL fxmlUrl = getClass().getResource("/game/gui/views/IntroScreen.fxml");
+                if (fxmlUrl == null) {
+                    System.err.println("ERROR: IntroScreen.fxml not found — going straight to StartScreen");
+                    loadStartScreenContent();
+                    return;
+                }
+                FXMLLoader loader = new FXMLLoader(fxmlUrl);
+                Parent root = loader.load();
+                switchToContent(root, true);
+                showStageIfNeeded();
+            } catch (Exception e) {
+                System.err.println("ERROR: Failed to load IntroScreen");
+                e.printStackTrace();
+                loadStartScreenContent();
             }
-            FXMLLoader loader = new FXMLLoader(fxmlUrl);
-            Parent root = loader.load();
-            // Start transparent to prevent white flash on first render
-            root.setOpacity(0);
-            switchToContent(root, true);
-            showStageIfNeeded();
-            // Fade in after JavaFX has completed its first layout pass
-            Platform.runLater(() -> Platform.runLater(() -> {
-                FadeTransition fadeIn = new FadeTransition(Duration.millis(400), root);
-                fadeIn.setFromValue(0);
-                fadeIn.setToValue(1);
-                fadeIn.play();
-            }));
-        } catch (Exception e) {
-            System.err.println("ERROR: Failed to load IntroScreen");
-            e.printStackTrace();
-            switchToStartScreen();
-        }
+        });
     }
 
     public void switchToStartScreen() {
         if (!startScreenShownOnce) {
-            // First time after intro: reveal loading under the still-visible intro
-            // (no fade-to-black), hold it, then fade into the start screen.
-            showLoadingScreen();
-            showStageIfNeeded();
-            PauseTransition loadingDelay = new PauseTransition(Duration.seconds(3));
-            loadingDelay.setOnFinished(ev -> loadStartScreenContent());
-            loadingDelay.play();
-        } else {
-            loadStartScreenContent();
+            // Font is otherwise only loaded in GameController (after this
+            // screen) — preload it here so the start screen has the game
+            // font ready immediately instead of a brief fallback-font flash.
+            try {
+                javafx.scene.text.Font.loadFont(
+                    getClass().getResourceAsStream(GameUIConstants.FONT_PATH), 14);
+            } catch (Exception ignored) {
+                // Fall back to system fonts via CSS family list.
+            }
         }
+        fadeToBlackThenShow(this::loadStartScreenContent);
     }
 
     private void loadStartScreenContent() {
@@ -254,173 +246,60 @@ public class SceneManager {
             addStylesheetOnce("/game/gui/resources/css/styles.css");
             addStylesheetOnce("/game/gui/resources/css/start-screen.css");
 
-            // Fade the start screen in ON TOP of whatever is showing (loading /
-            // previous screen) so we never clear to an empty black/white frame.
-            // Do not release bindings on the underlying node yet — it must keep
-            // filling the stage until the fade finishes and we remove it.
-            root.setOpacity(0);
-            prepareRootForFill(root);
-            sceneHolder.getChildren().add(root);
-
-            boolean firstReveal = !startScreenShownOnce;
-            if (firstReveal) {
-                startScreenShownOnce = true;
-            }
-            double fadeMs = firstReveal ? 700 : 400;
-
-            Platform.runLater(() -> Platform.runLater(() -> {
-                FadeTransition fadeIn = new FadeTransition(Duration.millis(fadeMs), root);
-                fadeIn.setFromValue(0);
-                fadeIn.setToValue(1);
-                fadeIn.setOnFinished(ev -> {
-                    java.util.List<javafx.scene.Node> toRemove = new java.util.ArrayList<>();
-                    for (javafx.scene.Node n : sceneHolder.getChildren()) {
-                        if (n != root) toRemove.add(n);
-                    }
-                    for (javafx.scene.Node n : toRemove) {
-                        if (n instanceof Region) {
-                            Region region = (Region) n;
-                            try { region.prefWidthProperty().unbind(); }  catch (Exception ignored) {}
-                            try { region.prefHeightProperty().unbind(); } catch (Exception ignored) {}
-                        }
-                    }
-                    sceneHolder.getChildren().removeAll(toRemove);
-                });
-                fadeIn.play();
-            }));
+            switchToContent(root, false);
+            startScreenShownOnce = true;
 
             if (!fullScreenPromptShown) {
                 Platform.runLater(this::showFullScreenPrompt);
             }
-
             showStageIfNeeded();
         } catch (Exception e) {
             System.err.println("ERROR: Failed to load StartScreen");
             e.printStackTrace();
         }
     }
-    /**
-     * Puts the Loading_Screen image up as the current scene content.
-     * Installs a black-backed loading root UNDER the intro, forces a layout
-     * pass so it is paint-ready, then removes the intro — never an empty frame.
-     */
-    private void showLoadingScreen() {
-        try {
-            javafx.scene.image.Image loadingImage = ImageLoader.getInstance().loadImage("Loading_Screen.png");
-            if (loadingImage == null) {
-                System.err.println("WARNING: Loading_Screen.png not found, skipping loading screen.");
-                return;
-            }
-
-            javafx.scene.image.ImageView loadingView = new javafx.scene.image.ImageView(loadingImage);
-            loadingView.setPreserveRatio(false);
-            loadingView.setSmooth(true);
-
-            // Font is otherwise only loaded in GameController (after this screen)
-            try {
-                javafx.scene.text.Font.loadFont(
-                    getClass().getResourceAsStream(GameUIConstants.FONT_PATH), 14);
-            } catch (Exception ignored) {
-                // Fall back to system fonts via CSS family list below
-            }
-
-            // Simple arcade-style ring spinner (no stock ProgressIndicator chrome).
-            // Invisible circle keeps layout/rotation bounds centered on the open Arc.
-            Arc spinnerArc = new Arc(0, 0, 18, 18, 0, 270);
-            spinnerArc.setType(ArcType.OPEN);
-            spinnerArc.setStroke(Color.web("#f0f0f0"));
-            spinnerArc.setStrokeWidth(4);
-            spinnerArc.setFill(null);
-            spinnerArc.setStrokeLineCap(StrokeLineCap.ROUND);
-            Circle spinnerBounds = new Circle(0, 0, 22);
-            spinnerBounds.setOpacity(0);
-            Group spinner = new Group(spinnerBounds, spinnerArc);
-
-            RotateTransition spin = new RotateTransition(Duration.millis(900), spinner);
-            spin.setByAngle(360);
-            spin.setCycleCount(RotateTransition.INDEFINITE);
-            spin.setInterpolator(Interpolator.LINEAR);
-            spin.play();
-
-            Label loadingLabel = new Label("Loading...");
-            loadingLabel.setStyle(
-                "-fx-font-family: '" + GameUIConstants.FONT + "', 'Courier New', monospace;" +
-                "-fx-font-size: 36px;" +
-                "-fx-text-fill: #f0f0f0;"
-            );
-
-            VBox loadingStack = new VBox(14, spinner, loadingLabel);
-            loadingStack.setAlignment(Pos.CENTER);
-            loadingStack.setMouseTransparent(true);
-            StackPane.setAlignment(loadingStack, Pos.BOTTOM_CENTER);
-            StackPane.setMargin(loadingStack, new Insets(0, 0, 56, 0));
-
-            // Subtle pulse so the label reads as "in progress"
-            FadeTransition pulse = new FadeTransition(Duration.millis(900), loadingLabel);
-            pulse.setFromValue(0.45);
-            pulse.setToValue(1.0);
-            pulse.setAutoReverse(true);
-            pulse.setCycleCount(FadeTransition.INDEFINITE);
-            pulse.play();
-
-            // Black-backed Region so any sub-pixel / layout gap stays black, not white
-            StackPane loadingRoot = new StackPane(loadingView, loadingStack);
-            loadingRoot.setStyle("-fx-background-color: black;");
-            prepareRootForFill(loadingRoot);
-            loadingView.fitWidthProperty().bind(loadingRoot.widthProperty());
-            loadingView.fitHeightProperty().bind(loadingRoot.heightProperty());
-
-            releaseRootBindings();
-            java.util.List<javafx.scene.Node> outgoing = new java.util.ArrayList<>(sceneHolder.getChildren());
-            // Underlay first while intro still covers the stage
-            sceneHolder.getChildren().add(0, loadingRoot);
-            sceneHolder.applyCss();
-            sceneHolder.layout();
-            // Now safe to drop the intro — loading is already sized and laid out
-            sceneHolder.getChildren().removeAll(outgoing);
-        } catch (Exception e) {
-            System.err.println("WARNING: Could not show loading screen: " + e.getMessage());
-        }
-    }
 
     public void switchToInstructionsScreen() {
         gameScreenActive = false;
-        loadCachedScreen("InstructionsScreen", "/game/gui/views/InstructionsScreen.fxml");
+        fadeToBlackThenShow(() ->
+            loadCachedScreen("InstructionsScreen", "/game/gui/views/InstructionsScreen.fxml"));
     }
 
     public void startGameScreen(game.engine.Role playerRole) {
         gameScreenActive = true;
         System.out.println("DEBUG: startGameScreen() called with role = " + playerRole);
-        try {
-            URL fxmlUrl = getClass().getResource("/game/gui/views/GameScreen.fxml");
-            if (fxmlUrl == null) {
-                System.err.println("ERROR: GameScreen.fxml not found in classpath!");
-                return;
+        fadeToBlackThenShow(() -> {
+            try {
+                URL fxmlUrl = getClass().getResource("/game/gui/views/GameScreen.fxml");
+                if (fxmlUrl == null) {
+                    System.err.println("ERROR: GameScreen.fxml not found in classpath!");
+                    return;
+                }
+                FXMLLoader loader = new FXMLLoader(fxmlUrl);
+                Parent root = loader.load();
+                System.out.println("DEBUG: GameScreen.fxml loaded OK");
+
+                GameController controller = loader.getController();
+                if (controller == null) {
+                    System.err.println("ERROR: GameController is null — check fx:controller in GameScreen.fxml");
+                    return;
+                }
+                controller.startGame(playerRole);
+                System.out.println("DEBUG: controller.startGame() called OK");
+
+                addStylesheetOnce("/game/gui/resources/css/styles.css");
+                switchToContent(root, false);
+                showStageIfNeeded();
+                System.out.println("DEBUG: Switched to GameScreen successfully");
+
+            } catch (IOException e) {
+                System.err.println("ERROR: IOException loading GameScreen.fxml");
+                e.printStackTrace();
+            } catch (Exception e) {
+                System.err.println("ERROR: Unexpected exception in startGameScreen()");
+                e.printStackTrace();
             }
-            FXMLLoader loader = new FXMLLoader(fxmlUrl);
-            Parent root = loader.load();
-            System.out.println("DEBUG: GameScreen.fxml loaded OK");
-
-            GameController controller = loader.getController();
-            if (controller == null) {
-                System.err.println("ERROR: GameController is null — check fx:controller in GameScreen.fxml");
-                return;
-            }
-            controller.startGame(playerRole);
-            System.out.println("DEBUG: controller.startGame() called OK");
-
-            addStylesheetOnce("/game/gui/resources/css/styles.css");
-            switchToContent(root, false);
-            showStageIfNeeded();
-            System.out.println("DEBUG: Switched to GameScreen successfully");
-
-        } catch (IOException e) {
-            System.err.println("ERROR: IOException loading GameScreen.fxml");
-            e.printStackTrace();
-        } catch (Exception e) {
-            System.err.println("ERROR: Unexpected exception in startGameScreen()");
-            e.printStackTrace();
-        }
+        });
     }
 
     public void switchToGameOverScreen(
@@ -434,29 +313,31 @@ public class SceneManager {
             String opponentRole,
             int opponentEnergy) {
         gameScreenActive = false;
-        try {
-            URL fxmlUrl = getClass().getResource("/game/gui/views/GameOverScreen.fxml");
-            if (fxmlUrl == null) {
-                System.err.println("ERROR: GameOverScreen.fxml not found!");
-                return;
+        fadeToBlackThenShow(() -> {
+            try {
+                URL fxmlUrl = getClass().getResource("/game/gui/views/GameOverScreen.fxml");
+                if (fxmlUrl == null) {
+                    System.err.println("ERROR: GameOverScreen.fxml not found!");
+                    return;
+                }
+                FXMLLoader loader = new FXMLLoader(fxmlUrl);
+                Parent root = loader.load();
+
+                GameOverController controller = loader.getController();
+                controller.setWinner(
+                    winnerName, winnerRole, playerRole,
+                    playerName, playerRoleStr, playerEnergy,
+                    opponentName, opponentRole, opponentEnergy
+                );
+
+                addStylesheetOnce("/game/gui/resources/css/styles.css");
+                switchToContent(root, false);
+                showStageIfNeeded();
+            } catch (Exception e) {
+                System.err.println("ERROR: Failed to load GameOverScreen");
+                e.printStackTrace();
             }
-            FXMLLoader loader = new FXMLLoader(fxmlUrl);
-            Parent root = loader.load();
-
-            GameOverController controller = loader.getController();
-            controller.setWinner(
-                winnerName, winnerRole, playerRole,
-                playerName, playerRoleStr, playerEnergy,
-                opponentName, opponentRole, opponentEnergy
-            );
-
-            addStylesheetOnce("/game/gui/resources/css/styles.css");
-            switchToContent(root, false);
-            showStageIfNeeded();
-        } catch (Exception e) {
-            System.err.println("ERROR: Failed to load GameOverScreen");
-            e.printStackTrace();
-        }
+        });
     }
 
     private void loadCachedScreen(String name, String fxmlPath) {
@@ -478,6 +359,73 @@ public class SceneManager {
             System.err.println("ERROR: Failed to load scene: " + fxmlPath);
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Generic fade-to-black-then-in transition used by EVERY scene switch
+     * above. Fades a solid black rectangle IN over whatever's currently
+     * showing, then — once fully black — runs {@code swapContent} to load
+     * and attach the new screen, then fades the black cover back OUT to
+     * reveal it. This is the same "fade to black, then black fades into
+     * the next screen" effect the intro→start transition used to have on
+     * its own; centralising it here means every screen change gets it for
+     * free instead of each caller re-implementing its own crossfade.
+     *
+     * {@code swapContent} typically calls {@link #switchToContent} (or
+     * {@link #loadCachedScreen}), which replaces sceneHolder's entire
+     * children list with just the new screen — that would also wipe out
+     * the black cover, so it's deliberately re-added immediately after
+     * swapContent runs, still on the FX thread before the next render
+     * pulse, so the new (possibly not-yet-laid-out) content is never
+     * shown unprotected even for a single frame.
+     */
+    private void fadeToBlackThenShow(Runnable swapContent) {
+        if (primaryStage == null) {
+            swapContent.run();
+            return;
+        }
+
+        Rectangle blackCover = new Rectangle();
+        blackCover.setFill(Color.BLACK);
+        blackCover.widthProperty().bind(sceneHolder.widthProperty());
+        blackCover.heightProperty().bind(sceneHolder.heightProperty());
+        blackCover.setMouseTransparent(true);
+
+        Runnable swapThenRevealFromBlack = () -> {
+            swapContent.run();
+            sceneHolder.getChildren().add(blackCover);
+            blackCover.toFront();
+
+            // Wait a couple pulses so the new content has actually laid
+            // out before we reveal it — avoids a flash of unstyled/unsized
+            // content peeking through as the cover fades away.
+            Platform.runLater(() -> Platform.runLater(() -> {
+                FadeTransition fadeFromBlack = new FadeTransition(Duration.millis(SCENE_FADE_MS), blackCover);
+                fadeFromBlack.setFromValue(1);
+                fadeFromBlack.setToValue(0);
+                fadeFromBlack.setOnFinished(ev -> sceneHolder.getChildren().remove(blackCover));
+                fadeFromBlack.play();
+            }));
+        };
+
+        if (sceneHolder.getChildren().isEmpty()) {
+            // Nothing on screen yet (very first launch) — nothing to fade
+            // FROM, so skip straight to black and fade the new content in.
+            blackCover.setOpacity(1);
+            sceneHolder.getChildren().add(blackCover);
+            swapThenRevealFromBlack.run();
+            return;
+        }
+
+        blackCover.setOpacity(0);
+        sceneHolder.getChildren().add(blackCover);
+        blackCover.toFront();
+
+        FadeTransition fadeToBlack = new FadeTransition(Duration.millis(SCENE_FADE_MS), blackCover);
+        fadeToBlack.setFromValue(0);
+        fadeToBlack.setToValue(1);
+        fadeToBlack.setOnFinished(e -> swapThenRevealFromBlack.run());
+        fadeToBlack.play();
     }
 
     /**

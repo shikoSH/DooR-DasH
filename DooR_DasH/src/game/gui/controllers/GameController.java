@@ -10,6 +10,7 @@ import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.effect.BoxBlur;
+import javafx.scene.effect.ColorAdjust;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -61,7 +62,6 @@ public class GameController {
     @FXML private VBox       actionLogContainer;
     @FXML private ImageView  cardDeckView;
     @FXML private ImageView  diceView;
-    @FXML private Label      diceResultLabel;
     @FXML private ImageView  powerUpImageBtn;
     @FXML private ImageView  rollImageBtn;
     @FXML private AnchorPane controlBar;
@@ -83,7 +83,6 @@ public class GameController {
     private Label actionLine1, actionLine2, actionLine3;
     private ImageView actionLogBg;   // stored for resize-binding in applyAllLayout
     private VBox actionLogTextBox;   // NEW
-    private Label actionLogHeaderLbl; // "ACTION LOG" header — rescaled every layout pass
 
     
     // =========================================================
@@ -200,18 +199,17 @@ public class GameController {
             actionLine3  = logRefs.line3;
             actionLogBg  = logRefs.background;
             actionLogTextBox = logRefs.textBox;   // NEW
-            actionLogHeaderLbl = logRefs.headerLbl;
 
             buildCardOverlay();
             buildMessageOverlay();
 
             if (powerUpImageBtn != null) {
                 powerUpImageBtn.setImage(loadImage(IMG_POWERUP_BTN));
-                addButtonHover(powerUpImageBtn);
+                setupPressStates(powerUpImageBtn, IMG_POWERUP_BTN, IMG_POWERUP_BTN_HALF, IMG_POWERUP_BTN_PRESSED, "#ffdd55");
             }
             if (rollImageBtn != null) {
                 rollImageBtn.setImage(loadImage(IMG_ROLL_BTN));
-                addButtonHover(rollImageBtn);
+                setupPressStates(rollImageBtn, IMG_ROLL_BTN, IMG_ROLL_BTN_HALF, IMG_ROLL_BTN_PRESSED, "#ff4444");
             }
             if (cardDeckView != null) {
                 cardDeckView.setImage(deckFull);
@@ -465,7 +463,7 @@ public class GameController {
             if (diceTimeline != null) diceTimeline.stop();
             SoundManager.getInstance().playDiceRoll();
             diceTimeline = GameAnimationHelper.animateDice(
-                diceView, diceImages, glowingDiceImages, diceResultLabel, diceFace,
+                diceView, diceImages, glowingDiceImages, null, diceFace,
                 () -> {
                     SoundManager.getInstance().playMovement();
                     // LEG 1: walk from the old position to the raw dice-landing cell
@@ -1768,6 +1766,76 @@ public class GameController {
         backgroundRoot.heightProperty().addListener((obs, old, val) -> applyAllLayout());
     }
 
+    /**
+     * Wires up a real three-state button image: the normal image, a
+     * "half-pressed" image while the mouse hovers (not clicked), and a
+     * fully "pressed" image while the mouse button is actually held
+     * down. Whichever image applies is recalculated from the button's
+     * OWN current hover/press state, so it's correct no matter which
+     * order the mouse events arrive in (e.g. releasing while still
+     * hovering goes back to half-pressed, not all the way to normal).
+     *
+     * Also restores a hover glow (the visual feedback the old opacity-
+     * dim hover effect used to give, before it was replaced by the
+     * image swap) so hovering still reads clearly even on top of a
+     * half-pressed image.
+     *
+     * If a real "pressed" image isn't available or fails to load —
+     * e.g. an AI-generated asset that came out wrong — this falls back
+     * to darkening + slightly shrinking whatever image IS showing via a
+     * runtime ColorAdjust + scale, instead of silently doing nothing.
+     * That reads as "pushed in" without needing pixel-perfect matching
+     * art, and costs nothing to keep even after real pressed art is
+     * ready (it just stops being used the moment pressedImg loads).
+     */
+    private void setupPressStates(ImageView btn, String normalPath, String halfPath, String pressedPath, String glowColor) {
+        if (btn == null) return;
+        Image normalImg   = loadImage(normalPath);
+        Image halfImg     = loadImage(halfPath);
+        Image pressedImg  = loadImage(pressedPath);
+
+        DropShadow hoverGlow = new DropShadow();
+        hoverGlow.setColor(Color.web(glowColor));
+        hoverGlow.setRadius(18);
+        hoverGlow.setSpread(0.45);
+
+        ColorAdjust pressedDarken = new ColorAdjust();
+        pressedDarken.setBrightness(-0.28);
+
+        final boolean[] hovering = {false};
+        final boolean[] pressed  = {false};
+
+        Runnable refresh = () -> {
+            if (pressed[0]) {
+                if (pressedImg != null) {
+                    btn.setImage(pressedImg);
+                    btn.setEffect(null);
+                } else {
+                    // Fallback: no usable pressed art yet — darken whatever
+                    // is currently showing instead of leaving press with no
+                    // visible feedback at all.
+                    btn.setImage(hovering[0] && halfImg != null ? halfImg : normalImg);
+                    btn.setEffect(pressedDarken);
+                }
+                btn.setScaleX(0.95); btn.setScaleY(0.95);
+                return;
+            }
+            btn.setScaleX(1.0); btn.setScaleY(1.0);
+            if (hovering[0]) {
+                btn.setImage(halfImg != null ? halfImg : normalImg);
+                btn.setEffect(hoverGlow);
+            } else {
+                btn.setImage(normalImg);
+                btn.setEffect(null);
+            }
+        };
+
+        btn.setOnMouseEntered(e -> { hovering[0] = true;  refresh.run(); });
+        btn.setOnMouseExited(e  -> { hovering[0] = false; refresh.run(); });
+        btn.setOnMousePressed(e -> { pressed[0]  = true;  refresh.run(); });
+        btn.setOnMouseReleased(e -> { pressed[0] = false; refresh.run(); });
+    }
+
     private void offset(javafx.scene.Node n, double x, double y) {
         if (n == null) return;
         n.setTranslateX(x);
@@ -1877,8 +1945,6 @@ public class GameController {
         setFontSize(opponent.energyLbl, energyFontPx);
         setFontSize(opponent.statusLbl, statusFontPx);
 
-        setFontSize(actionLogHeaderLbl, Math.max(8, panelW * TXT_ACTION_LOG_HEADER_FRAC));
-
         player.portrait.setFitWidth(panelW * PORTRAIT_W_MULT);
         opponent.portrait.setFitWidth(panelW * PORTRAIT_W_MULT);
         player.energyBar.setFitWidth(panelW * ENERGY_BAR_W_MULT);
@@ -1890,12 +1956,20 @@ public class GameController {
         // player and opponent so the two panels stay mirrored ───────────
         offset(player.portraitPane,   OFFSET_X_PORTRAIT,   OFFSET_Y_PORTRAIT);
         offset(opponent.portraitPane, OFFSET_X_PORTRAIT,   OFFSET_Y_PORTRAIT);
+        offset(player.posLbl,         OFFSET_X_POS_LABEL_PLAYER,   OFFSET_Y_POS_LABEL_PLAYER);
+        offset(opponent.posLbl,       OFFSET_X_POS_LABEL_OPPONENT, OFFSET_Y_POS_LABEL_OPPONENT);
         offset(player.profilePane,    OFFSET_X_PROFILE,    OFFSET_Y_PROFILE);
         offset(opponent.profilePane,  OFFSET_X_PROFILE,    OFFSET_Y_PROFILE);
+        offset(player.nameLbl,        OFFSET_X_NAME_LBL,   OFFSET_Y_NAME_LBL);
+        offset(opponent.nameLbl,      OFFSET_X_NAME_LBL,   OFFSET_Y_NAME_LBL);
+        offset(player.typeLbl,        OFFSET_X_TYPE_LBL,   OFFSET_Y_TYPE_LBL);
+        offset(opponent.typeLbl,      OFFSET_X_TYPE_LBL,   OFFSET_Y_TYPE_LBL);
+        offset(player.roleLbl,        OFFSET_X_ROLE_LBL,   OFFSET_Y_ROLE_LBL);
+        offset(opponent.roleLbl,      OFFSET_X_ROLE_LBL,   OFFSET_Y_ROLE_LBL);
         offset(player.energyRow,      OFFSET_X_ENERGY_NUM, OFFSET_Y_ENERGY_NUM);
         offset(opponent.energyRow,    OFFSET_X_ENERGY_NUM, OFFSET_Y_ENERGY_NUM);
-        offset(player.energyWrapper,  OFFSET_X_ENERGY_BAR, OFFSET_Y_ENERGY_BAR);
-        offset(opponent.energyWrapper,OFFSET_X_ENERGY_BAR, OFFSET_Y_ENERGY_BAR);
+        offset(player.energyWrapper,  OFFSET_X_ENERGY_BAR_PLAYER,   OFFSET_Y_ENERGY_BAR_PLAYER);
+        offset(opponent.energyWrapper,OFFSET_X_ENERGY_BAR_OPPONENT, OFFSET_Y_ENERGY_BAR_OPPONENT);
         offset(player.statusLbl,      OFFSET_X_STATUS_LBL, OFFSET_Y_STATUS_LBL);
         offset(opponent.statusLbl,    OFFSET_X_STATUS_LBL, OFFSET_Y_STATUS_LBL);
         offset(player.turnRow,        OFFSET_X_TURN_LBL,   OFFSET_Y_TURN_LBL); // opponent has no turn row
@@ -2001,18 +2075,6 @@ public class GameController {
         AnchorPane.setRightAnchor(diceView,  null);
         AnchorPane.setBottomAnchor(diceView, null);
         offset(diceView, OFFSET_X_DICE, OFFSET_Y_DICE);
-
-        double labelX = (REF_W / 2) - Math.max(40, REF_W * 0.04);
-        AnchorPane.setLeftAnchor(diceResultLabel,   labelX);
-        AnchorPane.setBottomAnchor(diceResultLabel, barH * 0.04);
-        AnchorPane.setRightAnchor(diceResultLabel,  null);
-        AnchorPane.setTopAnchor(diceResultLabel,    null);
-        offset(diceResultLabel, OFFSET_X_DICE_RESULT, OFFSET_Y_DICE_RESULT);
-        diceResultLabel.setStyle(
-            "-fx-font-family: '" + FONT + "';" +
-            "-fx-font-size: " + Math.max(TXT_DICE_RESULT, REF_H * 0.028) + "px;" +
-            "-fx-font-weight: bold;" +
-            "-fx-text-fill: #00ff88;");
 
         // ── Buttons ─────────────────────────────────────────────────────
         double btnW = REF_BTN_W;

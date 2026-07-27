@@ -3,6 +3,7 @@ package game.gui.controllers;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
+import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
@@ -55,20 +56,13 @@ public final class GamePanelBuilder {
         // ── Portrait + position badge ─────────────────────────────────────
         r.portrait.setPreserveRatio(true);
         addDropShadow(r.portrait, 12, Color.BLACK);
-        r.posLbl = makeLbl("0", "#00ff88", TXT_PLAYER_POS, true);
-        // Black filled pill with a bright green text and glow — clearly readable over any portrait
+        r.posLbl = makeLbl("0", "white", TXT_PLAYER_POS, true);
+        // Plain text, no background/border/box — per request.
         r.posLbl.setStyle(
             "-fx-font-family: '" + FONT + "';" +
             "-fx-font-size: " + (TXT_PLAYER_POS + 2) + "px;" +
             "-fx-font-weight: bold;" +
-            "-fx-text-fill: #00ff88;" +
-            "-fx-background-color: rgba(0,0,0,0.85);" +
-            "-fx-background-radius: 6;" +
-            "-fx-border-color: #00ff88;" +
-            "-fx-border-width: 1.5;" +
-            "-fx-border-radius: 6;" +
-            "-fx-padding: 2 3 2 3;" +
-            "-fx-effect: dropshadow(three-pass-box,rgba(0,255,136,0.7),6,0.4,0,0);");
+            "-fx-text-fill: white;");
         StackPane portraitPane = new StackPane(r.portrait, r.posLbl);
         r.portraitPane = portraitPane;
         StackPane.setAlignment(r.posLbl, Pos.BOTTOM_LEFT);
@@ -197,19 +191,12 @@ public final class GamePanelBuilder {
         // ── Portrait + position badge ─────────────────────────────────────
         r.portrait.setPreserveRatio(true);
         addDropShadow(r.portrait, 12, Color.BLACK);
-        r.posLbl = makeLbl("0", "#ff6666", TXT_PLAYER_POS, true);
+        r.posLbl = makeLbl("0", "white", TXT_PLAYER_POS, true);
         r.posLbl.setStyle(
             "-fx-font-family: '" + FONT + "';" +
             "-fx-font-size: " + (TXT_PLAYER_POS + 2) + "px;" +
             "-fx-font-weight: bold;" +
-            "-fx-text-fill: #ff6666;" +
-            "-fx-background-color: rgba(0,0,0,0.85);" +
-            "-fx-background-radius: 6;" +
-            "-fx-border-color: #ff6666;" +
-            "-fx-border-width: 1.5;" +
-            "-fx-border-radius: 6;" +
-            "-fx-padding: 2 3 2 3;" +
-            "-fx-effect: dropshadow(three-pass-box,rgba(255,102,102,0.7),6,0.4,0,0);");
+            "-fx-text-fill: white;");
         StackPane portPane = new StackPane(r.portrait, r.posLbl);
         r.portraitPane = portPane;
         StackPane.setAlignment(r.posLbl, Pos.BOTTOM_LEFT);
@@ -309,6 +296,15 @@ public final class GamePanelBuilder {
         // ── Background image ──────────────────────────────────────────────
         ImageView bg = new ImageView(loadImage(IMG_ACTION_LOG));
         bg.setPreserveRatio(true);
+        // Heavier than the standard addDropShadow helper (which is just
+        // radius+color, fully soft-edged) — spread makes the shadow read
+        // as more solid/heavy instead of a faint blur, so the log clearly
+        // pops in front of the board/background behind it.
+        DropShadow logShadow = new DropShadow();
+        logShadow.setRadius(28);
+        logShadow.setSpread(0.45);
+        logShadow.setColor(Color.BLACK);
+        bg.setEffect(logShadow);
 
         // ── Log text lines (appear inside the dark monitor screen) ─────────
         Label line1 = makeLbl("", ACTION_LOG_LINE1_COLOR, TXT_ACTION_LOG, false);
@@ -334,22 +330,9 @@ public final class GamePanelBuilder {
         StackPane logPane = new StackPane(bg, logText);
         StackPane.setAlignment(logText, Pos.TOP_LEFT);
 
-        // ── "ACTION LOG" header label ──────────────────────────────────────
-        Label header = new Label("ACTION LOG");
-        header.setStyle(
-            "-fx-font-family:'" + FONT + "';" +
-            "-fx-font-size:11px;" +          // fixed, never scales
-            "-fx-font-weight:bold;" +
-            "-fx-text-fill:#d4a843;" +        // amber — matches bezel colour in image
-            "-fx-letter-spacing: 1;" +
-            "-fx-padding: 0 0 2 2;");
-        header.setMouseTransparent(true);
-        HBox headerRow = new HBox(header);
-        headerRow.setAlignment(Pos.CENTER_LEFT);
-        headerRow.setPadding(new Insets(0, 0, 0, 2));
-
-        // Put header above the log image in the VBox
-        VBox actionLogGroup = new VBox(0, headerRow, logPane);
+        // "ACTION LOG" header label removed per request — logPane (the
+        // image + scrolling text) is now the container's only child.
+        VBox actionLogGroup = new VBox(0, logPane);
         actionLogGroup.setAlignment(Pos.TOP_LEFT);
 
         container.getChildren().add(actionLogGroup);
@@ -366,7 +349,6 @@ public final class GamePanelBuilder {
         public final Label     line1, line2, line3;
         public final ImageView background;
         public final VBox      textBox;   // wraps line1-3; controller rescales its padding to match the image
-		public Label headerLbl;
 
         public ActionLogRefs(Label l1, Label l2, Label l3, ImageView bg, VBox textBox) {
             this.line1 = l1; this.line2 = l2; this.line3 = l3;

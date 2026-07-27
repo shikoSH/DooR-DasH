@@ -149,18 +149,6 @@
                                    AnchorPane.rightAnchor="0"
                                    AnchorPane.topAnchor="6" />
 
-                        <!-- DICE RESULT -->
-                        <Label fx:id="diceResultLabel"
-                               alignment="CENTER"
-                               maxWidth="Infinity"
-                               text="—"
-                               style="-fx-text-fill: #00ff88;
-                                      -fx-font-size: 12px;
-                                      -fx-font-weight: bold;"
-                               AnchorPane.bottomAnchor="2"
-                               AnchorPane.leftAnchor="0"
-                               AnchorPane.rightAnchor="0" />
-
                         <!-- POWER UP -->
                         <ImageView fx:id="powerUpImageBtn"
                                    fitHeight="75" fitWidth="115"
