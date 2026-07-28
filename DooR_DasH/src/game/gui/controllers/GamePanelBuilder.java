@@ -140,7 +140,7 @@ public final class GamePanelBuilder {
 
         // ── Energy label ──────────────────────────────────────────────────
         r.energyLbl = makeLbl("-", "#00ff88", TXT_PLAYER_ENERGY, true);
-        addGlow(r.energyLbl, Color.web("#00ff88"), 16, 0.6);
+        addGlow(r.energyLbl, Color.web("#00ff88"), 4, 0.15);
         HBox energyRow = new HBox(r.energyLbl);
         r.energyRow = energyRow;
         energyRow.setAlignment(Pos.CENTER_LEFT);
@@ -252,7 +252,7 @@ public final class GamePanelBuilder {
 
         // ── Energy label ──────────────────────────────────────────────────
         r.energyLbl = makeLbl("-", "#ff6666", TXT_PLAYER_ENERGY, true);
-        addGlow(r.energyLbl, Color.web("#ff6666"), 16, 0.6);
+        addGlow(r.energyLbl, Color.web("#ff6666"), 4, 0.15);
         HBox energyRow = new HBox(r.energyLbl);
         r.energyRow = energyRow;
         energyRow.setAlignment(Pos.CENTER_LEFT);
