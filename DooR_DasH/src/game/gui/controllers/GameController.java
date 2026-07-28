@@ -1335,6 +1335,7 @@ public class GameController {
         }
 
         Label hint = makeLbl("tap to continue", "#888888", 10, false);
+        hint.setAlignment(Pos.CENTER);
         hint.setStyle(hint.getStyle() + "-fx-font-style: italic;");
 
         cardOverlay.getChildren().addAll(cardStack, cardOverlayName, cardOverlayDesc, cardOverlayEffect, hint);
