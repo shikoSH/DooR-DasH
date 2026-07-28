@@ -193,6 +193,7 @@ public class GameController {
             player   = GamePanelBuilder.buildPlayerPanel(playerPanelContainer, energyTiers[4]);
             opponent = GamePanelBuilder.buildOpponentPanel(opponentPanelContainer, energyTiers[4]);
 
+
             GamePanelBuilder.ActionLogRefs logRefs = GamePanelBuilder.buildActionLog(actionLogContainer);
             actionLine1  = logRefs.line1;
             actionLine2  = logRefs.line2;

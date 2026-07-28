@@ -2,10 +2,12 @@ package game.gui.controllers;
 
 import javafx.animation.*;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.effect.Glow;
@@ -13,14 +15,19 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.CycleMethod;
 import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.Stop;
 import javafx.scene.text.Text;
+import javafx.scene.text.TextAlignment;
 import javafx.util.Duration;
 
 public class StartController {
@@ -75,6 +82,8 @@ public class StartController {
         setupLogoBeams();
         setupAudio();
         setupHoverEffects();
+        setupMonsterDrawerTab();
+        setupCellGuideButton();
         SoundManager.getInstance().preloadAll();
     }
 
@@ -367,6 +376,8 @@ public class StartController {
     private void closeAllPopups() {
         optionsPopup.setVisible(false);
         creditsPopup.setVisible(false);
+        closeMonsterGuide();
+        closeCellGuide();
     }
 
     @FXML private void handleMute() {
@@ -425,5 +436,506 @@ public class StartController {
         ScaleTransition st = new ScaleTransition(Duration.millis(ms), target);
         st.setFromX(from); st.setFromY(from); st.setToX(to); st.setToY(to);
         st.play();
+    }
+
+    // =========================================================
+    //  MONSTER GUIDE  (NEW)
+    // -----------------------------------------------------------
+    //  Each monster belongs to a FIXED team (Scarer or Laugher) and has
+    //  one Monster Type (Dasher / Dynamo / MultiTasker / Schemer) that
+    //  determines its passive trait and active powerup. Both teams use
+    //  the plain character-portrait art (ImageLoader's "Monster portraits
+    //  - Scarer" section) rather than the "*_Screen.png" art (which is
+    //  the in-game laugher screen graphic, not the monster itself).
+    // =========================================================
+    private static final class MonsterInfo {
+        final String name, image, type, personality, ability;
+        final int energy;
+        MonsterInfo(String name, String image, String type, int energy, String personality, String ability) {
+            this.name = name; this.image = image; this.type = type;
+            this.energy = energy; this.personality = personality; this.ability = ability;
+        }
+    }
+
+    private static final String ABILITY_DASHER =
+        "DASHER — Lightning Movement: dice movement is doubled (2x speed).\n" +
+        "Powerup — Momentum Rush: 3x movement speed for the next 3 turns (replaces the passive while active).";
+    private static final String ABILITY_DYNAMO =
+        "DYNAMO — Energy Amplification: all energy gained or lost is doubled (2x) — a double-edged sword.\n" +
+        "Powerup — Energy Freeze: freezes the opponent, forcing them to skip their entire next turn.";
+    private static final String ABILITY_MULTITASKER =
+        "MULTITASKER — Movement & Energy: dice movement is halved, but every energy gain or loss gets a +200 bonus.\n" +
+        "Powerup — Focus Mode: moves at normal speed for the next 2 turns while keeping the +200 energy bonus.";
+    private static final String ABILITY_SCHEMER =
+        "SCHEMER — Energy Manipulation: every energy change (gain or loss) gets a +10 bonus.\n" +
+        "Powerup — Chain Attack: steals 10 energy (or their total, if less) from every other monster on the board, ignoring shields, gained all at once.";
+
+    private static final MonsterInfo[] SCARERS = {
+        new MonsterInfo("James P. Sullivan", "James sullivan.png", "Dynamo", 300,
+            "The top scarer—powerful and confident", ABILITY_DYNAMO),
+        new MonsterInfo("Randall Boggs", "Randall.png", "Schemer", 20,
+            "Sneaky and cunning—always has an angle", ABILITY_SCHEMER),
+        new MonsterInfo("Roz", "Roz.png", "MultiTasker", 100,
+            "Always watching—nothing escapes her notice", ABILITY_MULTITASKER),
+        new MonsterInfo("Henry J. Waternoose", "Henry_J._Waternoose_III.png", "Schemer", 70,
+            "Witty and strategic CEO", ABILITY_SCHEMER)
+    };
+
+    private static final MonsterInfo[] LAUGHERS = {
+        new MonsterInfo("Mike Wazowski", "Mike_Wazowski.png", "Dasher", 100,
+            "Fast and funny—the comedy speedster", ABILITY_DASHER),
+        new MonsterInfo("Celia Mae", "celia mae.png", "MultiTasker", 50,
+            "Organized receptionist—handles everything", ABILITY_MULTITASKER),
+        new MonsterInfo("Fungus", "Fungus.png", "Dasher", 50,
+            "Timid assistant—quick but nervous", ABILITY_DASHER),
+        new MonsterInfo("Yeti", "Yeti.png", "Dynamo", 100,
+            "Banished snow monster—surprisingly cheerful", ABILITY_DYNAMO)
+    };
+
+    // ── Monster drawer state ─────────────────────────────────────────
+    private StackPane monsterDrawerOverlay;   // dim backdrop, null when closed
+    private VBox       monsterDrawerCard;     // the sliding panel itself
+    private Label       monsterTabArrow;      // arrow glyph, flips direction open/closed
+    private boolean     monsterDrawerOpen = false;
+    // Large fixed off-screen offset (bigger than any reasonable window
+    // width) so the slide-in animation starts fully off-screen no matter
+    // how big the window is, now that the panel fills the whole screen.
+    private static final double DRAWER_HIDDEN_X = -2400;
+
+    /**
+     * Builds a small arrow tab pinned to the left edge of the window
+     * (vertically centered, always on top, independent of the scaled
+     * 1280x720 subtree so it stays put at any window size). Clicking /
+     * "pulling" it slides the monster guide in from the left; clicking
+     * it again (arrow now points back) slides it away. Replaces the old
+     * centered "MONSTERS" button + modal popup.
+     */
+    private void setupMonsterDrawerTab() {
+        monsterTabArrow = new Label("\u25B6"); // ▶
+        monsterTabArrow.setStyle(
+            "-fx-font-size: 20px;" +
+            "-fx-text-fill: #ffdd55;" +
+            "-fx-font-weight: bold;");
+
+        StackPane tab = new StackPane(monsterTabArrow);
+        tab.setPrefSize(30, 74);
+        tab.setMaxSize(30, 74);
+        tab.setStyle(
+            "-fx-background-color: rgba(20,20,30,0.75);" +
+            "-fx-border-color: #c9a227;" +
+            "-fx-border-width: 2 2 2 0;" +
+            "-fx-background-radius: 0 12 12 0;" +
+            "-fx-border-radius: 0 12 12 0;" +
+            "-fx-cursor: hand;");
+
+        DropShadow glow = new DropShadow();
+        glow.setColor(Color.web("#c9a227"));
+        glow.setRadius(16);
+        glow.setSpread(0.4);
+        tab.setOnMouseEntered(e -> { tab.setEffect(glow); playScaleRegion(tab, 1.0, 1.08, 120); });
+        tab.setOnMouseExited(e  -> { tab.setEffect(null); playScaleRegion(tab, 1.08, 1.0, 120); });
+        tab.setOnMouseClicked(e -> toggleMonsterDrawer());
+
+        StackPane.setAlignment(tab, Pos.CENTER_LEFT);
+        rootPane.getChildren().add(tab);
+        tab.toFront();
+    }
+
+    private void toggleMonsterDrawer() {
+        if (monsterDrawerOpen) {
+            closeMonsterGuide();
+        } else {
+            closeAllPopups();
+            openMonsterDrawer();
+        }
+    }
+
+    private void playScaleRegion(javafx.scene.layout.Region target, double from, double to, int ms) {
+        ScaleTransition st = new ScaleTransition(Duration.millis(ms), target);
+        st.setFromX(from); st.setFromY(from); st.setToX(to); st.setToY(to);
+        st.play();
+    }
+
+    /**
+     * Slides the monster guide in from the left edge to fill the whole
+     * screen. LAUGHERS are listed down the left side, SCARERS down the
+     * right side, with a vertical divider separating the two teams. All
+     * 8 monsters are visible at once — no ScrollPane.
+     */
+    private void openMonsterDrawer() {
+        if (monsterDrawerOverlay != null) return;
+        monsterDrawerOpen = true;
+        monsterTabArrow.setText("\u25C0"); // ◀ — pull it back to close
+
+        VBox laugherCol = new VBox(14, guideColumnHeader("LAUGHERS", "#ffee88"));
+        laugherCol.setAlignment(Pos.TOP_CENTER);
+        for (MonsterInfo m : LAUGHERS) laugherCol.getChildren().add(buildMonsterGuideEntry(m, "#ffee99", "#ffee88"));
+        HBox.setHgrow(laugherCol, Priority.ALWAYS);
+
+        VBox scarerCol = new VBox(14, guideColumnHeader("SCARERS", "#ff8888"));
+        scarerCol.setAlignment(Pos.TOP_CENTER);
+        for (MonsterInfo m : SCARERS) scarerCol.getChildren().add(buildMonsterGuideEntry(m, "#ff9999", "#ff8888"));
+        HBox.setHgrow(scarerCol, Priority.ALWAYS);
+
+        Region divider = new Region();
+        divider.setPrefWidth(2);
+        divider.setStyle("-fx-background-color: #c9a227;");
+        divider.setOpacity(0.6);
+
+        HBox columns = new HBox(28, laugherCol, divider, scarerCol);
+        columns.setAlignment(Pos.TOP_CENTER);
+        columns.setFillHeight(true);
+        VBox.setVgrow(columns, Priority.ALWAYS);
+
+        Label title = new Label("MONSTER GUIDE");
+        title.setStyle(
+            "-fx-font-family: '" + GameUIConstants.FONT + "';" +
+            "-fx-font-size: 30px;" +
+            "-fx-font-weight: bold;" +
+            "-fx-text-fill: #ffdd55;");
+
+        Button closeBtn = new Button("CLOSE");
+        closeBtn.setStyle(
+            "-fx-font-family: '" + GameUIConstants.FONT + "';" +
+            "-fx-font-size: 14px;" +
+            "-fx-font-weight: bold;" +
+            "-fx-text-fill: #dddddd;" +
+            "-fx-background-color: #1a1a1a;" +
+            "-fx-border-color: #888888;" +
+            "-fx-border-width: 1.5;" +
+            "-fx-border-radius: 8;" +
+            "-fx-background-radius: 8;" +
+            "-fx-padding: 8 26;" +
+            "-fx-cursor: hand;");
+        closeBtn.setOnMouseEntered(e -> closeBtn.setOpacity(0.8));
+        closeBtn.setOnMouseExited(e  -> closeBtn.setOpacity(1.0));
+        closeBtn.setOnAction(e -> closeMonsterGuide());
+
+        VBox card = new VBox(18, title, columns, closeBtn);
+        card.setAlignment(Pos.TOP_CENTER);
+        card.setPadding(new Insets(28, 40, 24, 40));
+        card.setMaxWidth(Double.MAX_VALUE);
+        card.setMaxHeight(Double.MAX_VALUE);
+        card.setStyle(
+            "-fx-background-color: linear-gradient(to bottom, rgba(16,16,24,0.97), rgba(6,6,12,0.99));" +
+            "-fx-background-radius: 16;" +
+            "-fx-border-color: #c9a227;" +
+            "-fx-border-radius: 16;" +
+            "-fx-border-width: 2;");
+        DropShadow cardShadow = new DropShadow();
+        cardShadow.setRadius(30);
+        cardShadow.setColor(Color.BLACK);
+        card.setEffect(cardShadow);
+        card.setOnMouseClicked(javafx.event.Event::consume);
+        card.setTranslateX(DRAWER_HIDDEN_X);
+
+        StackPane overlay = new StackPane(card);
+        overlay.setStyle("-fx-background-color: rgba(0,0,0,0.55);");
+        overlay.setPickOnBounds(true);
+        overlay.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+        StackPane.setAlignment(card, Pos.CENTER);
+        StackPane.setMargin(card, new Insets(24));
+        overlay.setOnMouseClicked(e -> { if (e.getTarget() == overlay) closeMonsterGuide(); });
+        overlay.setOpacity(0);
+
+        rootPane.getChildren().add(overlay);
+        overlay.toFront();
+        monsterDrawerOverlay = overlay;
+        monsterDrawerCard = card;
+
+        FadeTransition fade = new FadeTransition(Duration.millis(180), overlay);
+        fade.setFromValue(0); fade.setToValue(1);
+
+        TranslateTransition slide = new TranslateTransition(Duration.millis(280), card);
+        slide.setFromX(DRAWER_HIDDEN_X);
+        slide.setToX(0);
+        slide.setInterpolator(Interpolator.EASE_OUT);
+
+        new ParallelTransition(fade, slide).play();
+    }
+
+    private void closeMonsterGuide() {
+        if (monsterDrawerOverlay == null) return;
+        monsterDrawerOpen = false;
+        monsterTabArrow.setText("\u25B6"); // ▶
+
+        final StackPane overlay = monsterDrawerOverlay;
+        final VBox card = monsterDrawerCard;
+        monsterDrawerOverlay = null;
+        monsterDrawerCard = null;
+
+        FadeTransition fade = new FadeTransition(Duration.millis(160), overlay);
+        fade.setFromValue(overlay.getOpacity()); fade.setToValue(0);
+
+        TranslateTransition slide = new TranslateTransition(Duration.millis(220), card);
+        slide.setFromX(card.getTranslateX());
+        slide.setToX(DRAWER_HIDDEN_X);
+        slide.setInterpolator(Interpolator.EASE_IN);
+
+        ParallelTransition close = new ParallelTransition(fade, slide);
+        close.setOnFinished(e -> rootPane.getChildren().remove(overlay));
+        close.play();
+    }
+
+    private Label guideColumnHeader(String text, String color) {
+        Label l = new Label(text);
+        l.setStyle(
+            "-fx-font-family: '" + GameUIConstants.FONT + "';" +
+            "-fx-font-size: 18px;" +
+            "-fx-font-weight: bold;" +
+            "-fx-text-fill: " + color + ";");
+        return l;
+    }
+
+    /** One monster's portrait + name + type/energy + ability blurb, framed with an outline, for the full-screen guide. */
+    private HBox buildMonsterGuideEntry(MonsterInfo m, String nameColor, String outlineColor) {
+        ImageView iv = new ImageView(GameUIHelper.loadImage(m.image));
+        iv.setPreserveRatio(true);
+        iv.setFitWidth(92);
+        DropShadow ds = new DropShadow();
+        ds.setRadius(10);
+        ds.setColor(Color.BLACK);
+        iv.setEffect(ds);
+
+        Label nameLbl = new Label(m.name);
+        nameLbl.setWrapText(true);
+        nameLbl.setAlignment(Pos.CENTER_LEFT);
+        nameLbl.setTextAlignment(TextAlignment.LEFT);
+        nameLbl.setStyle(
+            "-fx-font-family: '" + GameUIConstants.FONT + "';" +
+            "-fx-font-size: 15px;" +
+            "-fx-font-weight: bold;" +
+            "-fx-text-fill: " + nameColor + ";");
+
+        Label typeLbl = new Label(m.type.toUpperCase() + "  •  " + m.energy + " ENERGY");
+        typeLbl.setWrapText(true);
+        typeLbl.setAlignment(Pos.CENTER_LEFT);
+        typeLbl.setTextAlignment(TextAlignment.LEFT);
+        typeLbl.setStyle(
+            "-fx-font-family: '" + GameUIConstants.FONT + "';" +
+            "-fx-font-size: 11px;" +
+            "-fx-font-weight: bold;" +
+            "-fx-text-fill: #c9a227;");
+
+        Label personalityLbl = new Label(m.personality);
+        personalityLbl.setWrapText(true);
+        personalityLbl.setAlignment(Pos.CENTER_LEFT);
+        personalityLbl.setTextAlignment(TextAlignment.LEFT);
+        personalityLbl.setStyle(
+            "-fx-font-family: '" + GameUIConstants.FONT + "';" +
+            "-fx-font-size: 10px;" +
+            "-fx-font-style: italic;" +
+            "-fx-text-fill: #999999;");
+
+        Label abilityLbl = new Label(m.ability);
+        abilityLbl.setWrapText(true);
+        abilityLbl.setAlignment(Pos.CENTER_LEFT);
+        abilityLbl.setTextAlignment(TextAlignment.LEFT);
+        abilityLbl.setStyle(
+            "-fx-font-family: '" + GameUIConstants.FONT + "';" +
+            "-fx-font-size: 10.5px;" +
+            "-fx-text-fill: #cccccc;");
+
+        VBox textBox = new VBox(3, nameLbl, typeLbl, personalityLbl, abilityLbl);
+        textBox.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(textBox, Priority.ALWAYS);
+
+        HBox row = new HBox(14, iv, textBox);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setPadding(new Insets(10, 16, 10, 14));
+        row.setMaxWidth(Double.MAX_VALUE);
+        row.setStyle(
+            "-fx-background-color: rgba(255,255,255,0.03);" +
+            "-fx-background-radius: 10;" +
+            "-fx-border-color: " + outlineColor + ";" +
+            "-fx-border-width: 1.5;" +
+            "-fx-border-radius: 10;");
+        return row;
+    }
+
+    // =========================================================
+    //  BOARD CELL GUIDE  (NEW)
+    // -----------------------------------------------------------
+    //  A blue "?" badge pinned to the top-right corner of the window
+    //  (same fixed, unscaled placement approach as the monster tab).
+    //  Clicking it opens a centered modal — the same visual style the
+    //  monster guide used to use — listing every board-cell type with
+    //  its image and a short description. Laid out in a FlowPane so
+    //  every cell fits on screen at once with no scrolling.
+    // =========================================================
+    private static final class CellInfo {
+        final String name, image, description;
+        CellInfo(String name, String image, String description) {
+            this.name = name; this.image = image; this.description = description;
+        }
+    }
+
+    private static final CellInfo[] CELLS = {
+        new CellInfo("Normal Cell", "NormalCell.png",
+            "An empty space on the board — no special effect, just a step along the path."),
+        new CellInfo("Scarer Door (Locked)", "Scarer_ClosedDoor_Cell2.png",
+            "A locked door on the Scarer path. The number shown is the energy needed to open it."),
+        new CellInfo("Scarer Door (Open)", "Scarer_OpenDoor_Cell.png",
+            "An unlocked Scarer door — already activated, so it's safe to pass through."),
+        new CellInfo("Laugher Door (Locked)", "Laugher_ClosedDoor_Cell.png",
+            "A locked door on the Laugher path. The number shown is the energy needed to open it."),
+        new CellInfo("Laugher Door (Open)", "Laugher_OpenDoor_Cell.png",
+            "An unlocked Laugher door — already activated, so it's safe to pass through."),
+        new CellInfo("Monster Cell", "MonsterCell_Grey.png",
+            "A station where a monster is holding position. Tap it in-game to see that monster's full stats."),
+        new CellInfo("Conveyor Belt", "Conveyor_belt_cell.png",
+            "Automatically carries any monster that lands here forward or backward. Tap it to preview where it leads."),
+        new CellInfo("Contamination Sock", "contamination_sock_cell.png",
+            "A trap cell that flings a monster to a different spot on the board. Tap it to preview its destination."),
+        new CellInfo("Card Cell", "CardCell.png",
+            "Landing here draws a random card from the deck, triggering its special effect.")
+    };
+
+    private StackPane cellGuideOverlay;
+
+    /** Builds the blue "?" badge and pins it to the top-right corner. */
+    private void setupCellGuideButton() {
+        Label q = new Label("?");
+        q.setStyle(
+            "-fx-font-family: '" + GameUIConstants.FONT + "';" +
+            "-fx-font-size: 22px;" +
+            "-fx-font-weight: bold;" +
+            "-fx-text-fill: white;");
+
+        StackPane badge = new StackPane(q);
+        badge.setPrefSize(42, 42);
+        badge.setMaxSize(42, 42);
+        badge.setStyle(
+            "-fx-background-color: #2b7fe0;" +
+            "-fx-background-radius: 999;" +
+            "-fx-border-color: #cfe4ff;" +
+            "-fx-border-width: 2;" +
+            "-fx-border-radius: 999;" +
+            "-fx-cursor: hand;");
+
+        DropShadow glow = new DropShadow();
+        glow.setColor(Color.web("#2b7fe0"));
+        glow.setRadius(18);
+        glow.setSpread(0.5);
+        badge.setOnMouseEntered(e -> { badge.setEffect(glow); playScaleRegion(badge, 1.0, 1.1, 120); });
+        badge.setOnMouseExited(e  -> { badge.setEffect(null); playScaleRegion(badge, 1.1, 1.0, 120); });
+        badge.setOnMouseClicked(e -> { closeAllPopups(); showCellGuide(); });
+
+        StackPane.setAlignment(badge, Pos.TOP_RIGHT);
+        StackPane.setMargin(badge, new Insets(18, 18, 0, 0));
+        rootPane.getChildren().add(badge);
+        badge.toFront();
+    }
+
+    private void showCellGuide() {
+        if (cellGuideOverlay != null) return;
+
+        FlowPane grid = new FlowPane(20, 20);
+        grid.setPrefWrapLength(780);
+        grid.setAlignment(Pos.CENTER);
+        for (CellInfo c : CELLS) grid.getChildren().add(buildCellGuideEntry(c));
+
+        Label title = new Label("BOARD CELL GUIDE");
+        title.setStyle(
+            "-fx-font-family: '" + GameUIConstants.FONT + "';" +
+            "-fx-font-size: 26px;" +
+            "-fx-font-weight: bold;" +
+            "-fx-text-fill: #8ec4ff;");
+
+        Button closeBtn = new Button("CLOSE");
+        closeBtn.setStyle(
+            "-fx-font-family: '" + GameUIConstants.FONT + "';" +
+            "-fx-font-size: 14px;" +
+            "-fx-font-weight: bold;" +
+            "-fx-text-fill: #dddddd;" +
+            "-fx-background-color: #1a1a1a;" +
+            "-fx-border-color: #888888;" +
+            "-fx-border-width: 1.5;" +
+            "-fx-border-radius: 8;" +
+            "-fx-background-radius: 8;" +
+            "-fx-padding: 8 26;" +
+            "-fx-cursor: hand;");
+        closeBtn.setOnMouseEntered(e -> closeBtn.setOpacity(0.8));
+        closeBtn.setOnMouseExited(e  -> closeBtn.setOpacity(1.0));
+        closeBtn.setOnAction(e -> closeCellGuide());
+
+        VBox card = new VBox(16, title, grid, closeBtn);
+        card.setAlignment(Pos.TOP_CENTER);
+        card.setPadding(new Insets(24));
+        card.setMaxWidth(840);
+        card.setStyle(
+            "-fx-background-color: linear-gradient(to bottom, rgba(16,16,24,0.97), rgba(6,6,12,0.99));" +
+            "-fx-background-radius: 16;" +
+            "-fx-border-color: #2b7fe0;" +
+            "-fx-border-radius: 16;" +
+            "-fx-border-width: 2;");
+        DropShadow cardShadow = new DropShadow();
+        cardShadow.setRadius(30);
+        cardShadow.setColor(Color.BLACK);
+        card.setEffect(cardShadow);
+        card.setOnMouseClicked(javafx.event.Event::consume);
+
+        cellGuideOverlay = new StackPane(card);
+        cellGuideOverlay.setStyle("-fx-background-color: rgba(0,0,0,0.65);");
+        cellGuideOverlay.setPickOnBounds(true);
+        cellGuideOverlay.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+        cellGuideOverlay.setOnMouseClicked(e -> {
+            if (e.getTarget() == cellGuideOverlay) closeCellGuide();
+        });
+        cellGuideOverlay.setOpacity(0);
+
+        rootPane.getChildren().add(cellGuideOverlay);
+        cellGuideOverlay.toFront();
+
+        FadeTransition fade = new FadeTransition(Duration.millis(200), cellGuideOverlay);
+        fade.setFromValue(0); fade.setToValue(1);
+        fade.play();
+    }
+
+    private void closeCellGuide() {
+        if (cellGuideOverlay == null) return;
+        final StackPane layer = cellGuideOverlay;
+        cellGuideOverlay = null;
+        FadeTransition fade = new FadeTransition(Duration.millis(160), layer);
+        fade.setFromValue(layer.getOpacity()); fade.setToValue(0);
+        fade.setOnFinished(e -> rootPane.getChildren().remove(layer));
+        fade.play();
+    }
+
+    /** One cell type's image + name + short description, sized so all 9 fit on screen with no scrolling. */
+    private VBox buildCellGuideEntry(CellInfo c) {
+        ImageView iv = new ImageView(GameUIHelper.loadImage(c.image));
+        iv.setPreserveRatio(true);
+        iv.setFitWidth(84);
+        DropShadow ds = new DropShadow();
+        ds.setRadius(10);
+        ds.setColor(Color.BLACK);
+        iv.setEffect(ds);
+
+        Label nameLbl = new Label(c.name);
+        nameLbl.setWrapText(true);
+        nameLbl.setMaxWidth(220);
+        nameLbl.setAlignment(Pos.CENTER);
+        nameLbl.setTextAlignment(TextAlignment.CENTER);
+        nameLbl.setStyle(
+            "-fx-font-family: '" + GameUIConstants.FONT + "';" +
+            "-fx-font-size: 12.5px;" +
+            "-fx-font-weight: bold;" +
+            "-fx-text-fill: #8ec4ff;");
+
+        Label descLbl = new Label(c.description);
+        descLbl.setWrapText(true);
+        descLbl.setMaxWidth(220);
+        descLbl.setAlignment(Pos.CENTER);
+        descLbl.setTextAlignment(TextAlignment.CENTER);
+        descLbl.setStyle(
+            "-fx-font-family: '" + GameUIConstants.FONT + "';" +
+            "-fx-font-size: 10px;" +
+            "-fx-text-fill: #cccccc;");
+
+        VBox box = new VBox(6, iv, nameLbl, descLbl);
+        box.setAlignment(Pos.TOP_CENTER);
+        box.setMaxWidth(230);
+        return box;
     }
 }

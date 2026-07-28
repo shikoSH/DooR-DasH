@@ -10,6 +10,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
+import javafx.scene.control.Tooltip;
 import javafx.util.Duration;
 
 import java.util.function.Consumer;
@@ -117,13 +118,56 @@ public final class GameUIHelper {
             ImageView pOff, ImageView pOn) {
         HBox row = new HBox(6);
         row.setAlignment(Pos.CENTER_LEFT);
-        row.getChildren().addAll(
-            makeStackedLight(tOff, tOn),
-            makeStackedLight(cOff, cOn),
-            makeStackedLight(fOff, fOn),
-            makeStackedLight(sOff, sOn),
-            makeStackedLight(pOff, pOn));
+
+        StackPane turnLight   = makeStackedLight(tOff, tOn);
+        StackPane confLight   = makeStackedLight(cOff, cOn);
+        StackPane freezeLight = makeStackedLight(fOff, fOn);
+        StackPane shieldLight = makeStackedLight(sOff, sOn);
+        StackPane powerLight  = makeStackedLight(pOff, pOn);
+
+        // NEW — hover tooltips so the player knows what each status icon
+        // means. Purely additive: doesn't touch the cross-fade logic in
+        // setLight(), just layers a Tooltip + tiny hover-scale on top of
+        // the same nodes. Order matches the fixed (turn, confusion,
+        // freeze, shield, power) order every caller already uses.
+        installLightTooltip(turnLight,   "TURN\nLights up during this monster's turn.");
+        installLightTooltip(confLight,   "CONFUSED\nThis monster's next move may go to a random cell instead of the rolled one.");
+        installLightTooltip(freezeLight, "FROZEN\nThis monster will miss its next turn.");
+        installLightTooltip(shieldLight, "SHIELDED\nBlocks the next negative effect used against this monster.");
+        installLightTooltip(powerLight,  "POWER-UP\nA power-up effect is currently active for this monster.");
+
+        row.getChildren().addAll(turnLight, confLight, freezeLight, shieldLight, powerLight);
         return row;
+    }
+
+    /**
+     * Installs a hover tooltip on a status-light StackPane and adds a
+     * small scale-up hover cue, so hovering any of the turn / confusion /
+     * freeze / shield / power icons tells the player what it means.
+     * Does not affect the on/off visibility or opacity driven by setLight().
+     */
+    private static void installLightTooltip(StackPane light, String text) {
+        Tooltip tip = new Tooltip(text);
+        // NOTE: setShowDelay()/setHideDelay() need JavaFX 9+; left out for
+        // compatibility. Tooltip just uses its default show/hide timing.
+        tip.setStyle(
+            "-fx-font-family: '" + GameUIConstants.FONT + "';" +
+            "-fx-font-size: 12px;" +
+            "-fx-background-color: rgba(10,10,14,0.95);" +
+            "-fx-text-fill: #f0f0f0;" +
+            "-fx-border-color: #c9a227;" +
+            "-fx-border-width: 1;" +
+            "-fx-padding: 6 10;");
+        Tooltip.install(light, tip);
+
+        light.setOnMouseEntered(e -> {
+            light.setScaleX(1.18);
+            light.setScaleY(1.18);
+        });
+        light.setOnMouseExited(e -> {
+            light.setScaleX(1.0);
+            light.setScaleY(1.0);
+        });
     }
 
     /** Stacks an off and an on light image, with only the off one initially visible. */
