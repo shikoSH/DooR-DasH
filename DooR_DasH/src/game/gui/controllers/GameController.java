@@ -1200,19 +1200,19 @@ public class GameController {
         Button closeBtn = styledOverlayButton("CLOSE", "rgba(30,30,30,0.90)", "#aaaaaa");
         closeBtn.setOnAction(e -> dismissCardDeckOverlay());
 
-        Label hint = makeLbl("tap outside to dismiss", "#444444", 9, false);
-        hint.setStyle(hint.getStyle() + "-fx-font-style:italic;");
+        //Label hint = makeLbl("tap outside to dismiss", "#444444", 9, false);
+        //hint.setStyle(hint.getStyle() + "-fx-font-style:italic;");
 
-        VBox panel = new VBox(16, title, row, closeBtn, hint);
+        VBox panel = new VBox(16, title, row, closeBtn);
         panel.setAlignment(Pos.CENTER);
         panel.setPadding(new Insets(24, 30, 20, 30));
         panel.setMaxWidth(curW * 0.95);
-        panel.setStyle(
+       /* panel.setStyle(
             "-fx-background-color:linear-gradient(to bottom,rgba(12,12,18,0.96),rgba(4,4,10,0.98));" +
             "-fx-background-radius:18;" +
             "-fx-border-color:#2a2a2a;" +
             "-fx-border-width:1.5;" +
-            "-fx-border-radius:18;");
+            "-fx-border-radius:18;"); */
         addDropShadow(panel, 40, Color.BLACK);
         panel.setOnMouseClicked(javafx.event.Event::consume);
 
