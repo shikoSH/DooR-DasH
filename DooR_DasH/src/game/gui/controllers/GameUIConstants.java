@@ -94,8 +94,8 @@ public final class GameUIConstants {
     // Lights row already has its own dedicated pair above:
     //   REF_LIGHTS_OFFSET_X / REF_LIGHTS_OFFSET_Y
     public static final double OFFSET_X_PORTRAIT   = 10, OFFSET_Y_PORTRAIT   = 0; // portrait + position badge
-    public static final double OFFSET_X_POS_LABEL_PLAYER   = 50, OFFSET_Y_POS_LABEL_PLAYER   = -100; // player's position number text
-    public static final double OFFSET_X_POS_LABEL_OPPONENT = 50, OFFSET_Y_POS_LABEL_OPPONENT = -100; // opponent's position number text
+    public static final double OFFSET_X_POS_LABEL_PLAYER   = 50, OFFSET_Y_POS_LABEL_PLAYER   = -97; // player's position number text
+    public static final double OFFSET_X_POS_LABEL_OPPONENT = 50, OFFSET_Y_POS_LABEL_OPPONENT = -97; // opponent's position number text
     public static final double OFFSET_X_PROFILE    = 10, OFFSET_Y_PROFILE   = 0; // profile card image + its text
     public static final double OFFSET_X_NAME_LBL   = 32, OFFSET_Y_NAME_LBL  = 32; // monster name text alone
     public static final double OFFSET_X_TYPE_LBL   = 0, OFFSET_Y_TYPE_LBL  = 15; // "CLASS" value text alone

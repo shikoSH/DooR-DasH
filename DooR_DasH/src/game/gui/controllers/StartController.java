@@ -84,7 +84,35 @@ public class StartController {
         setupHoverEffects();
         setupMonsterDrawerTab();
         setupCellGuideButton();
+        // Rebuilds whichever guide is currently open on resize — both
+        // guides are simple, stateless info panels (no user input to
+        // preserve), so rebuilding from scratch is the simplest way to
+        // keep their font/sizing genuinely responsive to the window
+        // instead of staying fixed at whatever size they were opened at.
+        rootPane.widthProperty().addListener((obs, o, n) -> rebuildOpenGuideIfNeeded());
+        rootPane.heightProperty().addListener((obs, o, n) -> rebuildOpenGuideIfNeeded());
         SoundManager.getInstance().preloadAll();
+    }
+
+    /** Reference size the guide font/size numbers above were tuned at — same 1280x720 reference used everywhere else. */
+    private double guideScale() {
+        double w = rootPane.getWidth();
+        double h = rootPane.getHeight();
+        if (w <= 0 || h <= 0) return 1.0;
+        return Math.min(w / 1280.0, h / 720.0);
+    }
+
+    private void rebuildOpenGuideIfNeeded() {
+        if (monsterDrawerOverlay != null) {
+            rootPane.getChildren().remove(monsterDrawerOverlay);
+            monsterDrawerOverlay = null;
+            monsterDrawerCard = null;
+            openMonsterDrawer();
+        } else if (cellGuideOverlay != null) {
+            rootPane.getChildren().remove(cellGuideOverlay);
+            cellGuideOverlay = null;
+            showCellGuide();
+        }
     }
 
     // =========================================================
@@ -567,14 +595,21 @@ public class StartController {
         monsterDrawerOpen = true;
         monsterTabArrow.setText("\u25C0"); // ◀ — pull it back to close
 
-        VBox laugherCol = new VBox(14, guideColumnHeader("LAUGHERS", "#ffee88"));
+        // Proportional to the actual window size — this overlay is built
+        // fresh every time it opens, and rebuilt on resize (see the
+        // rootPane listener in setupCellGuideButton()/initialize()), so
+        // this always reflects the current window rather than staying
+        // fixed at whatever size it was first opened at.
+        double scale = guideScale();
+
+        VBox laugherCol = new VBox(14, guideColumnHeader("LAUGHERS", "#ffee88", scale));
         laugherCol.setAlignment(Pos.TOP_CENTER);
-        for (MonsterInfo m : LAUGHERS) laugherCol.getChildren().add(buildMonsterGuideEntry(m, "#ffee99", "#ffee88"));
+        for (MonsterInfo m : LAUGHERS) laugherCol.getChildren().add(buildMonsterGuideEntry(m, "#ffee99", "#ffee88", scale));
         HBox.setHgrow(laugherCol, Priority.ALWAYS);
 
-        VBox scarerCol = new VBox(14, guideColumnHeader("SCARERS", "#ff8888"));
+        VBox scarerCol = new VBox(14, guideColumnHeader("SCARERS", "#ff8888", scale));
         scarerCol.setAlignment(Pos.TOP_CENTER);
-        for (MonsterInfo m : SCARERS) scarerCol.getChildren().add(buildMonsterGuideEntry(m, "#ff9999", "#ff8888"));
+        for (MonsterInfo m : SCARERS) scarerCol.getChildren().add(buildMonsterGuideEntry(m, "#ff9999", "#ff8888", scale));
         HBox.setHgrow(scarerCol, Priority.ALWAYS);
 
         Region divider = new Region();
@@ -590,14 +625,14 @@ public class StartController {
         Label title = new Label("MONSTER GUIDE");
         title.setStyle(
             "-fx-font-family: '" + GameUIConstants.FONT + "';" +
-            "-fx-font-size: 30px;" +
+            "-fx-font-size: " + (38 * scale) + "px;" +
             "-fx-font-weight: bold;" +
             "-fx-text-fill: #ffdd55;");
 
         Button closeBtn = new Button("CLOSE");
         closeBtn.setStyle(
             "-fx-font-family: '" + GameUIConstants.FONT + "';" +
-            "-fx-font-size: 14px;" +
+            "-fx-font-size: " + (17 * scale) + "px;" +
             "-fx-font-weight: bold;" +
             "-fx-text-fill: #dddddd;" +
             "-fx-background-color: #1a1a1a;" +
@@ -677,21 +712,21 @@ public class StartController {
         close.play();
     }
 
-    private Label guideColumnHeader(String text, String color) {
+    private Label guideColumnHeader(String text, String color, double scale) {
         Label l = new Label(text);
         l.setStyle(
             "-fx-font-family: '" + GameUIConstants.FONT + "';" +
-            "-fx-font-size: 18px;" +
+            "-fx-font-size: " + (22 * scale) + "px;" +
             "-fx-font-weight: bold;" +
             "-fx-text-fill: " + color + ";");
         return l;
     }
 
     /** One monster's portrait + name + type/energy + ability blurb, framed with an outline, for the full-screen guide. */
-    private HBox buildMonsterGuideEntry(MonsterInfo m, String nameColor, String outlineColor) {
+    private HBox buildMonsterGuideEntry(MonsterInfo m, String nameColor, String outlineColor, double scale) {
         ImageView iv = new ImageView(GameUIHelper.loadImage(m.image));
         iv.setPreserveRatio(true);
-        iv.setFitWidth(92);
+        iv.setFitWidth(92 * scale);
         DropShadow ds = new DropShadow();
         ds.setRadius(10);
         ds.setColor(Color.BLACK);
@@ -703,7 +738,7 @@ public class StartController {
         nameLbl.setTextAlignment(TextAlignment.LEFT);
         nameLbl.setStyle(
             "-fx-font-family: '" + GameUIConstants.FONT + "';" +
-            "-fx-font-size: 15px;" +
+            "-fx-font-size: " + (20 * scale) + "px;" +
             "-fx-font-weight: bold;" +
             "-fx-text-fill: " + nameColor + ";");
 
@@ -713,7 +748,7 @@ public class StartController {
         typeLbl.setTextAlignment(TextAlignment.LEFT);
         typeLbl.setStyle(
             "-fx-font-family: '" + GameUIConstants.FONT + "';" +
-            "-fx-font-size: 11px;" +
+            "-fx-font-size: " + (14 * scale) + "px;" +
             "-fx-font-weight: bold;" +
             "-fx-text-fill: #c9a227;");
 
@@ -723,7 +758,7 @@ public class StartController {
         personalityLbl.setTextAlignment(TextAlignment.LEFT);
         personalityLbl.setStyle(
             "-fx-font-family: '" + GameUIConstants.FONT + "';" +
-            "-fx-font-size: 10px;" +
+            "-fx-font-size: " + (13 * scale) + "px;" +
             "-fx-font-style: italic;" +
             "-fx-text-fill: #999999;");
 
@@ -733,7 +768,7 @@ public class StartController {
         abilityLbl.setTextAlignment(TextAlignment.LEFT);
         abilityLbl.setStyle(
             "-fx-font-family: '" + GameUIConstants.FONT + "';" +
-            "-fx-font-size: 10.5px;" +
+            "-fx-font-size: " + (13.5 * scale) + "px;" +
             "-fx-text-fill: #cccccc;");
 
         VBox textBox = new VBox(3, nameLbl, typeLbl, personalityLbl, abilityLbl);
@@ -830,22 +865,24 @@ public class StartController {
     private void showCellGuide() {
         if (cellGuideOverlay != null) return;
 
-        FlowPane grid = new FlowPane(20, 20);
-        grid.setPrefWrapLength(780);
+        double scale = guideScale();
+
+        FlowPane grid = new FlowPane(20 * scale, 20 * scale);
+        grid.setPrefWrapLength(780 * scale);
         grid.setAlignment(Pos.CENTER);
-        for (CellInfo c : CELLS) grid.getChildren().add(buildCellGuideEntry(c));
+        for (CellInfo c : CELLS) grid.getChildren().add(buildCellGuideEntry(c, scale));
 
         Label title = new Label("BOARD CELL GUIDE");
         title.setStyle(
             "-fx-font-family: '" + GameUIConstants.FONT + "';" +
-            "-fx-font-size: 26px;" +
+            "-fx-font-size: " + (32 * scale) + "px;" +
             "-fx-font-weight: bold;" +
             "-fx-text-fill: #8ec4ff;");
 
         Button closeBtn = new Button("CLOSE");
         closeBtn.setStyle(
             "-fx-font-family: '" + GameUIConstants.FONT + "';" +
-            "-fx-font-size: 14px;" +
+            "-fx-font-size: " + (17 * scale) + "px;" +
             "-fx-font-weight: bold;" +
             "-fx-text-fill: #dddddd;" +
             "-fx-background-color: #1a1a1a;" +
@@ -862,7 +899,7 @@ public class StartController {
         VBox card = new VBox(16, title, grid, closeBtn);
         card.setAlignment(Pos.TOP_CENTER);
         card.setPadding(new Insets(24));
-        card.setMaxWidth(840);
+        card.setMaxWidth(840 * scale);
         card.setStyle(
             "-fx-background-color: linear-gradient(to bottom, rgba(16,16,24,0.97), rgba(6,6,12,0.99));" +
             "-fx-background-radius: 16;" +
@@ -903,10 +940,10 @@ public class StartController {
     }
 
     /** One cell type's image + name + short description, sized so all 9 fit on screen with no scrolling. */
-    private VBox buildCellGuideEntry(CellInfo c) {
+    private VBox buildCellGuideEntry(CellInfo c, double scale) {
         ImageView iv = new ImageView(GameUIHelper.loadImage(c.image));
         iv.setPreserveRatio(true);
-        iv.setFitWidth(84);
+        iv.setFitWidth(84 * scale);
         DropShadow ds = new DropShadow();
         ds.setRadius(10);
         ds.setColor(Color.BLACK);
@@ -914,28 +951,28 @@ public class StartController {
 
         Label nameLbl = new Label(c.name);
         nameLbl.setWrapText(true);
-        nameLbl.setMaxWidth(220);
+        nameLbl.setMaxWidth(220 * scale);
         nameLbl.setAlignment(Pos.CENTER);
         nameLbl.setTextAlignment(TextAlignment.CENTER);
         nameLbl.setStyle(
             "-fx-font-family: '" + GameUIConstants.FONT + "';" +
-            "-fx-font-size: 12.5px;" +
+            "-fx-font-size: " + (16 * scale) + "px;" +
             "-fx-font-weight: bold;" +
             "-fx-text-fill: #8ec4ff;");
 
         Label descLbl = new Label(c.description);
         descLbl.setWrapText(true);
-        descLbl.setMaxWidth(220);
+        descLbl.setMaxWidth(220 * scale);
         descLbl.setAlignment(Pos.CENTER);
         descLbl.setTextAlignment(TextAlignment.CENTER);
         descLbl.setStyle(
             "-fx-font-family: '" + GameUIConstants.FONT + "';" +
-            "-fx-font-size: 10px;" +
+            "-fx-font-size: " + (13 * scale) + "px;" +
             "-fx-text-fill: #cccccc;");
 
         VBox box = new VBox(6, iv, nameLbl, descLbl);
         box.setAlignment(Pos.TOP_CENTER);
-        box.setMaxWidth(230);
+        box.setMaxWidth(230 * scale);
         return box;
     }
 }

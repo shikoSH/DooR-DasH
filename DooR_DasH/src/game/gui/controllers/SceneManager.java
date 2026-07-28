@@ -1,9 +1,12 @@
 package game.gui.controllers;
 
 import javafx.animation.FadeTransition;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
 import javafx.animation.ParallelTransition;
 import javafx.animation.PauseTransition;
 import javafx.animation.SequentialTransition;
+import javafx.animation.Timeline;
 import javafx.animation.TranslateTransition;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
@@ -35,6 +38,12 @@ public class SceneManager {
     private Scene persistentScene;
     private final HashMap<String, Parent> cachedRoots = new HashMap<>();
     private MediaPlayer mediaPlayer;
+    // The track list currently playing. Length 1 = single track, looped
+    // forever. Length > 1 = plays in order and wraps back to the start
+    // indefinitely (used for the game screen's two-song rotation).
+    private String[] currentPlaylist;
+    private int playlistIndex = 0;
+    private Timeline musicFadeTimeline; // in-flight volume fade, if any
     private double savedMusicVolume = 0.25;
     private boolean fullScreenPromptShown = false;
     private boolean startScreenShownOnce = false;
@@ -69,6 +78,47 @@ public class SceneManager {
     public void initialize(Stage stage) {
         this.primaryStage = stage;
         this.primaryStage.setTitle("DooR DasH: Scare vs Laugh Touchdown");
+
+        // Loaded here — the very first thing that runs, before ANY screen
+        // is shown — so the font is guaranteed registered before anything
+        // could possibly try to use it. Previously this only happened
+        // inside switchToStartScreen()'s first-time branch, which worked
+        // most of the time but meant every screen's font depended on the
+        // Start Screen having been the first thing to trigger it; loading
+        // it here removes that ordering dependency entirely.
+        //
+        // IMPORTANT: Font.loadFont() can fail SILENTLY — it returns null
+        // instead of throwing if the resource stream is missing/invalid,
+        // so a try/catch alone doesn't tell you anything. This explicitly
+        // checks and loudly prints the result, so it's actually possible
+        // to tell whether the font registered or not from the console —
+        // if you see the WARNING line below in your console output, the
+        // font genuinely never loaded (a build/resource problem, not a
+        // styling problem), and every -fx-font-family: 'ARCADECLASSIC'
+        // in the whole app will fall back to a system font no matter how
+        // many individual style rules get fixed.
+        try {
+            java.io.InputStream fontStream = getClass().getResourceAsStream(GameUIConstants.FONT_PATH);
+            if (fontStream == null) {
+                System.err.println("FONT WARNING: resource stream is NULL for path '"
+                    + GameUIConstants.FONT_PATH + "' — the font file isn't on the classpath "
+                    + "at that path in this build. Every ARCADECLASSIC style everywhere will "
+                    + "silently fall back to a system font.");
+            } else {
+                javafx.scene.text.Font loaded = javafx.scene.text.Font.loadFont(fontStream, 14);
+                if (loaded == null) {
+                    System.err.println("FONT WARNING: Font.loadFont() returned null — the file "
+                        + "at '" + GameUIConstants.FONT_PATH + "' was found but could not be "
+                        + "parsed as a font.");
+                } else {
+                    System.out.println("FONT OK: loaded '" + loaded.getFamily()
+                        + "' (requested family name is '" + GameUIConstants.FONT + "')");
+                }
+            }
+        } catch (Exception ex) {
+            System.err.println("FONT WARNING: exception while loading font: " + ex.getMessage());
+        }
+
         this.primaryStage.setWidth(DEFAULT_WIDTH);
         this.primaryStage.setHeight(DEFAULT_HEIGHT);
         this.primaryStage.setMinWidth(960);
@@ -152,31 +202,46 @@ public class SceneManager {
     }
 
     // ===== MUSIC =====
+    //
+    // All music now goes through crossfadeToPlaylist(), which smoothly
+    // fades the OLD track's volume down to silence, swaps to the new
+    // track(s), and fades back up to the saved volume — instead of the
+    // old hard cut-and-replace. A "playlist" of length 1 just loops that
+    // one track forever (main theme, win/loss); a playlist of length 2+
+    // (the game screen's two songs) plays them in order and wraps back
+    // to the start indefinitely, crossfading between EACH song change
+    // too, not just on screen transitions.
 
+    private static final String AUDIO_PATH = "/game/resources/audio/";
+    // Faster default for everything — theme, game songs, song-to-song
+    // rotation. Game-over gets its own longer, more dramatic duration.
+    private static final double MUSIC_FADE_MS = 350;
+    private static final double MUSIC_FADE_MS_GAME_OVER = 1500;
+
+    /** Main theme — used by the intro and the start screen. */
     public void startMusic() {
-        try {
-            URL musicUrl = getClass().getResource("/game/resources/audio/monsters_inc_theme.mp3");
-            if (musicUrl == null) {
-                System.err.println("WARNING: Music file not found, skipping.");
-                return;
-            }
-            if (mediaPlayer != null) {
-                mediaPlayer.stop();
-            }
-            Media media = new Media(musicUrl.toString());
-            mediaPlayer = new MediaPlayer(media);
-            mediaPlayer.setVolume(savedMusicVolume);
-            mediaPlayer.setCycleCount(MediaPlayer.INDEFINITE);
-            mediaPlayer.play();
-            System.out.println("DEBUG: Music started");
-        } catch (Exception e) {
-            System.err.println("WARNING: Could not play music: " + e.getMessage());
-        }
+        crossfadeToPlaylist(new String[]{ "monsters_inc_theme.mp3" }, MUSIC_FADE_MS);
+    }
+
+    /** Game screen — alternates between two songs, looping forever. */
+    public void startGameMusic() {
+        crossfadeToPlaylist(new String[]{ "GameScreen_Song1.mp3", "GameScreen_Song2.mp3" }, MUSIC_FADE_MS);
+    }
+
+    /** Game over screen — different track depending on whether the human player won. */
+    public void startGameOverMusic(boolean playerWon) {
+        crossfadeToPlaylist(
+            new String[]{ playerWon ? "Win_Soundtrack.mp3" : "Loss_Soundtrack.mp3" },
+            MUSIC_FADE_MS_GAME_OVER);
     }
 
     public void stopMusic() {
+        if (musicFadeTimeline != null) musicFadeTimeline.stop();
+        currentPlaylist = null;
         if (mediaPlayer != null) {
             mediaPlayer.stop();
+            mediaPlayer.dispose();
+            mediaPlayer = null;
         }
     }
 
@@ -186,11 +251,120 @@ public class SceneManager {
 
     public void setMusicVolume(double v) {
         savedMusicVolume = Math.max(0, Math.min(1, v));
-        if (mediaPlayer != null) mediaPlayer.setVolume(savedMusicVolume);
+        // Only snap the live player's volume directly if there's no fade
+        // in flight — otherwise this would fight the fade and cause a
+        // jump. The fade itself always targets savedMusicVolume, so once
+        // it finishes the slider value takes effect naturally anyway.
+        if (mediaPlayer != null && musicFadeTimeline == null) {
+            mediaPlayer.setVolume(savedMusicVolume);
+        }
     }
 
     public double getMusicVolume() {
         return savedMusicVolume;
+    }
+
+    /**
+     * Crossfades from whatever is currently playing into a new playlist.
+     * Fades the old player's volume down to 0, disposes it, then starts
+     * the new playlist faded in from 0 up to {@link #savedMusicVolume}.
+     * If nothing is currently playing, skips straight to fading the new
+     * track in from silence.
+     */
+    private void crossfadeToPlaylist(String[] tracks, double fadeMs) {
+        if (currentPlaylist != null && java.util.Arrays.equals(currentPlaylist, tracks)) {
+            // Already playing this exact playlist — nothing to do. This is
+            // what makes it safe to call startMusic() every single time we
+            // return to the start screen (from the game, from game over,
+            // from the intro) instead of only once: if the theme is
+            // already playing, this is a no-op instead of a pointless
+            // fade-out-then-back-in blip.
+            return;
+        }
+        if (musicFadeTimeline != null) musicFadeTimeline.stop();
+        currentPlaylist = tracks;
+        playlistIndex = 0;
+
+        MediaPlayer oldPlayer = mediaPlayer;
+        if (oldPlayer == null) {
+            playCurrentPlaylistTrack(true, fadeMs);
+            return;
+        }
+
+        fadeVolume(oldPlayer, oldPlayer.getVolume(), 0.0, fadeMs, () -> {
+            oldPlayer.stop();
+            oldPlayer.dispose();
+            playCurrentPlaylistTrack(true, fadeMs);
+        });
+    }
+
+    /** Loads and plays currentPlaylist[playlistIndex], wiring up auto-advance if it's a multi-track playlist. */
+    private void playCurrentPlaylistTrack(boolean fadeIn, double fadeMs) {
+        if (currentPlaylist == null || currentPlaylist.length == 0) return;
+        String file = currentPlaylist[playlistIndex];
+        try {
+            URL musicUrl = getClass().getResource(AUDIO_PATH + file);
+            if (musicUrl == null) {
+                System.err.println("WARNING: Music file not found, skipping: " + file);
+                return;
+            }
+            Media media = new Media(musicUrl.toString());
+            MediaPlayer player = new MediaPlayer(media);
+            mediaPlayer = player;
+
+            if (currentPlaylist.length == 1) {
+                // Single track — loop it forever, no manual advancing needed.
+                player.setCycleCount(MediaPlayer.INDEFINITE);
+            } else {
+                // Multi-track playlist — crossfade into the next track once
+                // this one ends, wrapping back to the start indefinitely.
+                // Always uses the fast default, regardless of how long the
+                // fade was that first brought us into this playlist — only
+                // the ENTRY transition (e.g. into game-over) should be slow.
+                player.setOnEndOfMedia(() -> {
+                    playlistIndex = (playlistIndex + 1) % currentPlaylist.length;
+                    crossfadeWithinPlaylist();
+                });
+            }
+
+            player.setVolume(fadeIn ? 0.0 : savedMusicVolume);
+            player.play();
+            System.out.println("DEBUG: Music started: " + file);
+            if (fadeIn) fadeVolume(player, 0.0, savedMusicVolume, fadeMs, null);
+        } catch (Exception e) {
+            System.err.println("WARNING: Could not play music: " + file + " - " + e.getMessage());
+        }
+    }
+
+    /** Crossfades from the currently-playing playlist track into the next one (index already advanced). Always fast. */
+    private void crossfadeWithinPlaylist() {
+        MediaPlayer oldPlayer = mediaPlayer;
+        if (oldPlayer == null) { playCurrentPlaylistTrack(true, MUSIC_FADE_MS); return; }
+        fadeVolume(oldPlayer, oldPlayer.getVolume(), 0.0, MUSIC_FADE_MS, () -> {
+            oldPlayer.stop();
+            oldPlayer.dispose();
+            playCurrentPlaylistTrack(true, MUSIC_FADE_MS);
+        });
+    }
+
+    /** Smoothly animates a MediaPlayer's volume — FadeTransition only works on Nodes, so this uses a Timeline instead. */
+    private void fadeVolume(MediaPlayer player, double from, double to, double fadeMs, Runnable onFinished) {
+        if (musicFadeTimeline != null) musicFadeTimeline.stop();
+        if (player == null) {
+            if (onFinished != null) onFinished.run();
+            return;
+        }
+        player.setVolume(from);
+        Timeline fade = new Timeline(
+            new KeyFrame(Duration.ZERO, new KeyValue(player.volumeProperty(), from)),
+            new KeyFrame(Duration.millis(fadeMs), new KeyValue(player.volumeProperty(), to))
+        );
+        fade.setOnFinished(e -> {
+            musicFadeTimeline = null;
+            if (onFinished != null) onFinished.run();
+        });
+        musicFadeTimeline = fade;
+        fade.play();
     }
 
     // ===== SCREENS =====
@@ -218,17 +392,16 @@ public class SceneManager {
     }
 
     public void switchToStartScreen() {
-        if (!startScreenShownOnce) {
-            // Font is otherwise only loaded in GameController (after this
-            // screen) — preload it here so the start screen has the game
-            // font ready immediately instead of a brief fallback-font flash.
-            try {
-                javafx.scene.text.Font.loadFont(
-                    getClass().getResourceAsStream(GameUIConstants.FONT_PATH), 14);
-            } catch (Exception ignored) {
-                // Fall back to system fonts via CSS family list.
-            }
-        }
+        // Triggered here — before the scene transition even begins — for
+        // two reasons: (1) this is what makes returning to the start
+        // screen from the game-over screen (or anywhere else) actually
+        // switch back to the main theme, since previously only the intro
+        // ever called startMusic(); (2) starting the crossfade now lets
+        // it run IN PARALLEL with the fade-to-black/fade-in scene
+        // transition instead of only starting once the screen is already
+        // visible, which is what caused the few-second delay before music
+        // was audible on other screens.
+        startMusic();
         fadeToBlackThenShow(this::loadStartScreenContent);
     }
 
@@ -268,6 +441,13 @@ public class SceneManager {
     public void startGameScreen(game.engine.Role playerRole) {
         gameScreenActive = true;
         System.out.println("DEBUG: startGameScreen() called with role = " + playerRole);
+        // Triggered here, before the fade-to-black even starts, so the
+        // crossfade (fade old track out, fade new one in) runs IN
+        // PARALLEL with the scene transition instead of only starting
+        // once the game screen is already visible — that sequential
+        // ordering is what caused the couple-second wait before music
+        // was audible after arriving on the game screen.
+        startGameMusic();
         fadeToBlackThenShow(() -> {
             try {
                 URL fxmlUrl = getClass().getResource("/game/gui/views/GameScreen.fxml");
@@ -299,7 +479,8 @@ public class SceneManager {
                 System.err.println("ERROR: Unexpected exception in startGameScreen()");
                 e.printStackTrace();
             }
-        });
+        }, 1000); // extra hold in black — gives the game screen's layout
+                  // time to fully settle before it's revealed
     }
 
     public void switchToGameOverScreen(
@@ -311,8 +492,12 @@ public class SceneManager {
             int playerEnergy,
             String opponentName,
             String opponentRole,
-            int opponentEnergy) {
+            int opponentEnergy,
+            boolean playerWon) {
         gameScreenActive = false;
+        // See startGameScreen() for why this fires before the transition
+        // instead of after.
+        startGameOverMusic(playerWon);
         fadeToBlackThenShow(() -> {
             try {
                 URL fxmlUrl = getClass().getResource("/game/gui/views/GameOverScreen.fxml");
@@ -380,6 +565,16 @@ public class SceneManager {
      * shown unprotected even for a single frame.
      */
     private void fadeToBlackThenShow(Runnable swapContent) {
+        fadeToBlackThenShow(swapContent, 0);
+    }
+
+    /**
+     * Same as {@link #fadeToBlackThenShow(Runnable)}, but holds at full
+     * black for an extra {@code extraHoldMs} before starting the reveal
+     * fade — used by the game screen, which needs a little more time for
+     * its layout to fully settle before it's uncovered.
+     */
+    private void fadeToBlackThenShow(Runnable swapContent, double extraHoldMs) {
         if (primaryStage == null) {
             swapContent.run();
             return;
@@ -398,13 +593,19 @@ public class SceneManager {
 
             // Wait a couple pulses so the new content has actually laid
             // out before we reveal it — avoids a flash of unstyled/unsized
-            // content peeking through as the cover fades away.
+            // content peeking through as the cover fades away. extraHoldMs
+            // (if any) adds a further deliberate pause on top of that,
+            // for screens whose layout needs a bit more time to settle.
             Platform.runLater(() -> Platform.runLater(() -> {
-                FadeTransition fadeFromBlack = new FadeTransition(Duration.millis(SCENE_FADE_MS), blackCover);
-                fadeFromBlack.setFromValue(1);
-                fadeFromBlack.setToValue(0);
-                fadeFromBlack.setOnFinished(ev -> sceneHolder.getChildren().remove(blackCover));
-                fadeFromBlack.play();
+                PauseTransition extraHold = new PauseTransition(Duration.millis(Math.max(0, extraHoldMs)));
+                extraHold.setOnFinished(pe -> {
+                    FadeTransition fadeFromBlack = new FadeTransition(Duration.millis(SCENE_FADE_MS), blackCover);
+                    fadeFromBlack.setFromValue(1);
+                    fadeFromBlack.setToValue(0);
+                    fadeFromBlack.setOnFinished(ev -> sceneHolder.getChildren().remove(blackCover));
+                    fadeFromBlack.play();
+                });
+                extraHold.play();
             }));
         };
 
@@ -438,6 +639,19 @@ public class SceneManager {
         releaseRootBindings();
         prepareRootForFill(content);
         sceneHolder.getChildren().setAll(content);
+
+        // Force the new content's bound width/height to resolve to their
+        // real, final values RIGHT NOW instead of waiting for the next
+        // pulse. Without this, a screen's very first layout computation
+        // (e.g. GameController's applyAllLayout(), triggered off its own
+        // sceneProperty listener) could run while its own width/height
+        // were still 0/stale, silently no-op, and the screen would
+        // render briefly at its raw unscaled size before "snapping" into
+        // the correctly-scaled layout a moment later — this is what
+        // caused the game screen's UI to look oversized for an instant
+        // right after arriving before jumping into place.
+        sceneHolder.applyCss();
+        sceneHolder.layout();
 
         if (showPrompt) {
             Platform.runLater(this::showFullScreenPrompt);

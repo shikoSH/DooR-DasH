@@ -92,6 +92,16 @@ public class GameController {
     private ImageView cardOverlayBack, cardOverlayFace;
     private Label     cardOverlayName, cardOverlayDesc, cardOverlayEffect;
     private final BoxBlur worldBlur = new BoxBlur(0, 0, 2);
+    // Applied directly to controlPanelView (no wrapping Group — each node
+    // gets its own blur effect, animated in lockstep with worldBlur).
+    private final BoxBlur panelBlur = new BoxBlur(0, 0, 2);
+    // backgroundView already has its own permanent, always-on ambient blur
+    // for the depth-of-field parallax look; bgOverlayBlur is chained ON
+    // TOP of it (via setInput) so the overlay blur ADDS to the ambient
+    // blur instead of replacing it, and at width/height 0 it's a no-op —
+    // the background just shows its normal ambient blur.
+    private final BoxBlur bgAmbientBlur = new BoxBlur(3, 3, 2);
+    private final BoxBlur bgOverlayBlur = new BoxBlur(0, 0, 2);
 
     // =========================================================
     //  CARD DECK SPREAD OVERLAY
@@ -169,13 +179,28 @@ public class GameController {
                 backgroundRoot.widthProperty().multiply(BG_OVERSIZE));
             backgroundView.fitHeightProperty().bind(
                 backgroundRoot.heightProperty().multiply(BG_OVERSIZE));
-            backgroundView.setEffect(new BoxBlur(3, 3, 2));
+            // Background keeps its permanent ambient blur always; the
+            // dynamic overlay blur is chained on top of it so opening a
+            // card/monster-info/menu overlay ADDS blur on top of the
+            // ambient look instead of replacing it.
+            bgOverlayBlur.setInput(bgAmbientBlur);
+            backgroundView.setEffect(bgOverlayBlur);
 
             controlPanelView.setImage(loadImage(IMG_CONTROL));
             // Sized manually in applyAllLayout() using ONE uniform scale
             // factor for both width and height — see GameUIConstants
             // "UNIFORM-SCALE LAYOUT" for why. No property binding here;
             // a bound property can't also be set directly every resize.
+            // panelBlur is assigned here, once, permanently — at
+            // width/height 0 (its resting state) a BoxBlur is a no-op, so
+            // this doesn't visually change anything until a blur-in
+            // animation actually raises its width/height.
+            controlPanelView.setEffect(panelBlur);
+
+            // Same one-time, permanent assignment for masterLayout —
+            // width/height start at 0 (no-op) and only the blur-in/out
+            // animations below ever touch worldBlur's properties again.
+            masterLayout.setEffect(worldBlur);
 
             setupParallax();
 
@@ -698,10 +723,10 @@ public class GameController {
         backgroundRoot.getChildren().add(optionsDimLayer);
         optionsDimLayer.toFront();
 
-        masterLayout.setEffect(worldBlur);
-        Timeline blurIn = new Timeline(
-            new KeyFrame(Duration.ZERO,       ev -> { worldBlur.setWidth(0);  worldBlur.setHeight(0); }),
-            new KeyFrame(Duration.millis(350), ev -> { worldBlur.setWidth(14); worldBlur.setHeight(14); }));
+        // Gradual blur across background + control panel + board/panels
+        // together (see buildBlurInTimeline) instead of a delayed snap on
+        // just masterLayout.
+        Timeline blurIn = buildBlurInTimeline(350);
         FadeTransition dimFade = new FadeTransition(Duration.millis(300), optionsDimLayer);
         dimFade.setFromValue(0); dimFade.setToValue(1);
         optionsMenuCard.setScaleX(0.90); optionsMenuCard.setScaleY(0.90);
@@ -754,17 +779,17 @@ public class GameController {
             optionsDimLayer = null;
         }
         optionsMenuVisible = false;
-        masterLayout.setEffect(null);
-        worldBlur.setWidth(0);
-        worldBlur.setHeight(0);
+        worldBlur.setWidth(0);     worldBlur.setHeight(0);
+        panelBlur.setWidth(0);     panelBlur.setHeight(0);
+        bgOverlayBlur.setWidth(0); bgOverlayBlur.setHeight(0);
     }
 
     private void dismissOptionsMenu() {
         if (optionsDimLayer == null) return;
-        Timeline blurOut = new Timeline(
-            new KeyFrame(Duration.ZERO,       ev -> { worldBlur.setWidth(14); worldBlur.setHeight(14); }),
-            new KeyFrame(Duration.millis(280), ev -> { worldBlur.setWidth(0);  worldBlur.setHeight(0);
-                                                        masterLayout.setEffect(null); }));
+        // Gradual blur-out across all three, same reasoning as blurIn.
+        // Effects stay permanently attached now (0-width BoxBlur is a
+        // no-op), so there's no setEffect(null) needed anymore.
+        Timeline blurOut = buildBlurOutTimeline(280, null);
         FadeTransition fadeOut = new FadeTransition(Duration.millis(240), optionsDimLayer);
         fadeOut.setFromValue(1); fadeOut.setToValue(0);
         final StackPane layer = optionsDimLayer;
@@ -1002,10 +1027,10 @@ public class GameController {
         backgroundRoot.getChildren().add(monsterDimLayer);
         monsterDimLayer.toFront();
 
-        masterLayout.setEffect(worldBlur);
-        Timeline blurIn = new Timeline(
-            new KeyFrame(Duration.ZERO,       ev -> { worldBlur.setWidth(0);  worldBlur.setHeight(0); }),
-            new KeyFrame(Duration.millis(350), ev -> { worldBlur.setWidth(14); worldBlur.setHeight(14); }));
+        // Gradual blur across background + control panel + board/panels
+        // together (see buildBlurInTimeline) instead of a delayed snap on
+        // just masterLayout.
+        Timeline blurIn = buildBlurInTimeline(350);
         FadeTransition dimFade = new FadeTransition(Duration.millis(300), monsterDimLayer);
         dimFade.setFromValue(0); dimFade.setToValue(1);
         monsterOverlayCard.setScaleX(0.90); monsterOverlayCard.setScaleY(0.90);
@@ -1068,17 +1093,17 @@ public class GameController {
             monsterDimLayer = null;
         }
         monsterOverlayVisible = false;
-        masterLayout.setEffect(null);
-        worldBlur.setWidth(0);
-        worldBlur.setHeight(0);
+        worldBlur.setWidth(0);     worldBlur.setHeight(0);
+        panelBlur.setWidth(0);     panelBlur.setHeight(0);
+        bgOverlayBlur.setWidth(0); bgOverlayBlur.setHeight(0);
     }
 
     private void dismissMonsterOverlay() {
         if (monsterDimLayer == null) return;
-        Timeline blurOut = new Timeline(
-            new KeyFrame(Duration.ZERO,       ev -> { worldBlur.setWidth(14); worldBlur.setHeight(14); }),
-            new KeyFrame(Duration.millis(280), ev -> { worldBlur.setWidth(0);  worldBlur.setHeight(0);
-                                                        masterLayout.setEffect(null); }));
+        // Gradual blur-out across all three, same reasoning as blurIn.
+        // Effects stay permanently attached now (0-width BoxBlur is a
+        // no-op), so there's no setEffect(null) needed anymore.
+        Timeline blurOut = buildBlurOutTimeline(280, null);
         FadeTransition fadeOut = new FadeTransition(Duration.millis(240), monsterDimLayer);
         fadeOut.setFromValue(1); fadeOut.setToValue(0);
         final StackPane layer = monsterDimLayer;
@@ -1207,10 +1232,10 @@ public class GameController {
 
         // ── Blur + dim fade in, cards spread out from centre in a
         //    staggered cascade so the deck visibly "fans open". ─────────
-        masterLayout.setEffect(worldBlur);
-        Timeline blurIn = new Timeline(
-            new KeyFrame(Duration.ZERO,       ev -> { worldBlur.setWidth(0);  worldBlur.setHeight(0); }),
-            new KeyFrame(Duration.millis(350), ev -> { worldBlur.setWidth(14); worldBlur.setHeight(14); }));
+        // Gradual blur across background + control panel + board/panels
+        // together (see buildBlurInTimeline) instead of a delayed snap on
+        // just masterLayout.
+        Timeline blurIn = buildBlurInTimeline(350);
         FadeTransition dimFade = new FadeTransition(Duration.millis(300), cardDeckDimLayer);
         dimFade.setFromValue(0); dimFade.setToValue(1);
 
@@ -1250,10 +1275,10 @@ public class GameController {
 
     private void dismissCardDeckOverlay() {
         if (cardDeckDimLayer == null) return;
-        Timeline blurOut = new Timeline(
-            new KeyFrame(Duration.ZERO,       ev -> { worldBlur.setWidth(14); worldBlur.setHeight(14); }),
-            new KeyFrame(Duration.millis(280), ev -> { worldBlur.setWidth(0);  worldBlur.setHeight(0);
-                                                        masterLayout.setEffect(null); }));
+        // Gradual blur-out across all three, same reasoning as blurIn.
+        // Effects stay permanently attached now (0-width BoxBlur is a
+        // no-op), so there's no setEffect(null) needed anymore.
+        Timeline blurOut = buildBlurOutTimeline(280, null);
         FadeTransition fadeOut = new FadeTransition(Duration.millis(240), cardDeckDimLayer);
         fadeOut.setFromValue(1); fadeOut.setToValue(0);
         final StackPane layer = cardDeckDimLayer;
@@ -1336,6 +1361,13 @@ public class GameController {
         // the flying copy is what the user sees travelling from the deck.
         cardOverlay.setOpacity(0);
         cardOverlay.setVisible(false);
+
+        // Blur starts HERE, right as the card pull begins, instead of only
+        // once the card lands — ~600ms roughly matches the flight's own
+        // duration (120ms pop-in + 480ms travel), so the background/panel
+        // blur gradually deepens throughout the whole pull and reaches
+        // full strength right around when the card arrives.
+        buildBlurInTimeline(600).play();
 
         playCardDrawFlight(() -> revealCardOverlay());
     }
@@ -1426,15 +1458,11 @@ public class GameController {
     private void revealCardOverlay() {
         cardOverlay.setVisible(true);
 
-        masterLayout.setEffect(worldBlur);
-        Timeline blurIn = new Timeline(
-            new KeyFrame(Duration.millis(0),   e -> { worldBlur.setWidth(0);  worldBlur.setHeight(0); }),
-            new KeyFrame(Duration.millis(250), e -> { worldBlur.setWidth(14); worldBlur.setHeight(14); }));
+        // Blur is already playing (started in showCardOverlay(), right when
+        // the pull began) — only the overlay's own fade-in happens here.
         FadeTransition cardIn = new FadeTransition(Duration.millis(200), cardOverlay);
         cardIn.setFromValue(0); cardIn.setToValue(1);
-
-        ParallelTransition arrive = new ParallelTransition(blurIn, cardIn);
-        arrive.setOnFinished(e -> {
+        cardIn.setOnFinished(e -> {
             // Real card-flip: rotate the back out on the Y axis, swap to the
             // front at the 90° midpoint, then rotate the front in. Starts
             // immediately — no pause — so it flows straight from the flight.
@@ -1462,14 +1490,11 @@ public class GameController {
             });
             flipOutBack.play();
         });
-        arrive.play();
+        cardIn.play();
     }
 
     private void dismissCardOverlay() {
-        Timeline blurOut = new Timeline(
-            new KeyFrame(Duration.millis(0),   e -> { worldBlur.setWidth(14); worldBlur.setHeight(14); }),
-            new KeyFrame(Duration.millis(350), e -> { worldBlur.setWidth(0);  worldBlur.setHeight(0);
-                                                       masterLayout.setEffect(null); }));
+        Timeline blurOut = buildBlurOutTimeline(350, null);
         FadeTransition cardOut = new FadeTransition(Duration.millis(280), cardOverlay);
         cardOut.setFromValue(1); cardOut.setToValue(0);
         cardOut.setOnFinished(e -> {
@@ -1837,6 +1862,41 @@ public class GameController {
         btn.setOnMouseReleased(e -> { pressed[0] = false; refresh.run(); });
     }
 
+    /**
+     * Builds a gradual blur-IN animation for every overlay (card draw,
+     * monster info, card deck spread, options menu, message dialogs).
+     * Animates worldBlur, panelBlur, and bgOverlayBlur TOGETHER using
+     * real KeyValue interpolation (not a delayed snap), and touches all
+     * three so the background and control panel actually blur along
+     * with the board/panels — previously only masterLayout ever did.
+     */
+    private Timeline buildBlurInTimeline(double ms) {
+        return new Timeline(
+            new KeyFrame(Duration.ZERO,
+                new KeyValue(worldBlur.widthProperty(), 0),     new KeyValue(worldBlur.heightProperty(), 0),
+                new KeyValue(panelBlur.widthProperty(), 0),     new KeyValue(panelBlur.heightProperty(), 0),
+                new KeyValue(bgOverlayBlur.widthProperty(), 0), new KeyValue(bgOverlayBlur.heightProperty(), 0)),
+            new KeyFrame(Duration.millis(ms),
+                new KeyValue(worldBlur.widthProperty(), 14),     new KeyValue(worldBlur.heightProperty(), 14),
+                new KeyValue(panelBlur.widthProperty(), 14),     new KeyValue(panelBlur.heightProperty(), 14),
+                new KeyValue(bgOverlayBlur.widthProperty(), 14), new KeyValue(bgOverlayBlur.heightProperty(), 14))
+        );
+    }
+
+    /** Same idea in reverse — fades all three blurs back down to 0, gradually. */
+    private Timeline buildBlurOutTimeline(double ms, Runnable onDone) {
+        return new Timeline(
+            new KeyFrame(Duration.ZERO,
+                new KeyValue(worldBlur.widthProperty(), 14),     new KeyValue(worldBlur.heightProperty(), 14),
+                new KeyValue(panelBlur.widthProperty(), 14),     new KeyValue(panelBlur.heightProperty(), 14),
+                new KeyValue(bgOverlayBlur.widthProperty(), 14), new KeyValue(bgOverlayBlur.heightProperty(), 14)),
+            new KeyFrame(Duration.millis(ms), e -> { if (onDone != null) onDone.run(); },
+                new KeyValue(worldBlur.widthProperty(), 0),     new KeyValue(worldBlur.heightProperty(), 0),
+                new KeyValue(panelBlur.widthProperty(), 0),     new KeyValue(panelBlur.heightProperty(), 0),
+                new KeyValue(bgOverlayBlur.widthProperty(), 0), new KeyValue(bgOverlayBlur.heightProperty(), 0))
+        );
+    }
+
     private void offset(javafx.scene.Node n, double x, double y) {
         if (n == null) return;
         n.setTranslateX(x);
@@ -2161,7 +2221,8 @@ public class GameController {
         SceneManager.getInstance().switchToGameOverScreen(
             winner.getName(), winner.getRole().toString(), p.getRole(),
             p.getName(), p.getRole().toString(), p.getEnergy(),
-            o.getName(), o.getRole().toString(), o.getEnergy());
+            o.getName(), o.getRole().toString(), o.getEnergy(),
+            winner == p);
     }
 
     // =========================================================

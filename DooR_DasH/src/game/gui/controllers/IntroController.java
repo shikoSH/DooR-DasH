@@ -59,12 +59,6 @@ public class IntroController {
 
         ParallelTransition creditsFadeOut = new ParallelTransition(teamFadeOut, disclaimerFadeOut);
 
-        // Music now starts when creditsFadeOut BEGINS (i.e. when teamHold
-        // finishes) instead of when it ends — creditsFadeOut is 1000ms
-        // long, so this is exactly 1 second earlier than before, and the
-        // music is already playing by the time the logo starts appearing.
-        teamHold.setOnFinished(e -> SceneManager.getInstance().startMusic());
-
         // === PHASE 2: Logo appears big and scales down ===
         // setVisible(false) in addition to opacity 0 — belt-and-suspenders
         // so the logo is guaranteed invisible during Phase 1 (the "A GAME
@@ -90,7 +84,14 @@ public class IntroController {
         PauseTransition logoHold = new PauseTransition(Duration.millis(1200));
 
         PauseTransition preLogoPause = new PauseTransition(Duration.millis(500));
-        preLogoPause.setOnFinished(e -> logoImage.setVisible(true));
+        preLogoPause.setOnFinished(e -> {
+            logoImage.setVisible(true);
+            // Starts exactly when the logo appears — it was previously
+            // triggered earlier (when the credits started fading out),
+            // which meant the music began noticeably before the logo
+            // was actually visible.
+            SceneManager.getInstance().startMusic();
+        });
 
         // === CHAIN ===
         // No fade-out phase here anymore — SceneManager.switchToStartScreen()

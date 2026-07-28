@@ -60,6 +60,7 @@
        					onMouseClicked="#handleMenuButton"
        					style="-fx-font-size: 20px;
               			-fx-font-weight: bold;
+              			-fx-font-family: 'ARCADECLASSIC';
               			-fx-text-fill: #dddddd;
               			-fx-background-color: rgba(0,0,0,0.45);
               			-fx-background-radius: 6;

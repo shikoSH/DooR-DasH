@@ -101,7 +101,19 @@ public class GameOverController {
             // FXML set this to a fixed 48px that never rescaled before —
             // now it's a fixed reference value like everything else,
             // and the scale transform handles the actual on-screen size.
-            winsLabel.setStyle("-fx-font-size: " + (REF_H * 0.067) + "px;");
+            //
+            // Font-FAMILY is now set explicitly here too — the FXML used
+            // to hardcode <font name="Book Antiqua Bold" .../> on this
+            // label, which is a real JavaFX gotcha: once a Label's font
+            // is set directly (FXML's <font> tag counts as this, same as
+            // calling setFont() in code), a later -fx-font-size-only
+            // style like the old one here doesn't touch font-family, so
+            // this label kept quietly rendering in Book Antiqua forever
+            // regardless of anything else in the app trying to apply the
+            // arcade font. Removed the FXML override and set both here.
+            winsLabel.setStyle(
+                "-fx-font-family: '" + GameUIConstants.FONT + "';" +
+                "-fx-font-size: " + (REF_H * 0.067) + "px;");
         }
 
         // ── Glow image buttons ────────────────────────────────

@@ -34,9 +34,6 @@
                    AnchorPane.leftAnchor="0.0"
                    AnchorPane.rightAnchor="0.0"
                    AnchorPane.topAnchor="330.0">
-               <font>
-                  <Font name="Book Antiqua Bold" size="48.0" />
-               </font>
             </Label>
             <!-- Action buttons — glow image buttons -->
             <HBox fx:id="buttonRow"
