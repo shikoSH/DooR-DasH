@@ -24,6 +24,7 @@ import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -98,25 +99,30 @@ public class SceneManager {
         // in the whole app will fall back to a system font no matter how
         // many individual style rules get fixed.
         try {
-            java.io.InputStream fontStream = getClass().getResourceAsStream(GameUIConstants.FONT_PATH);
-            if (fontStream == null) {
-                System.err.println("FONT WARNING: resource stream is NULL for path '"
-                    + GameUIConstants.FONT_PATH + "' — the font file isn't on the classpath "
-                    + "at that path in this build. Every ARCADECLASSIC style everywhere will "
-                    + "silently fall back to a system font.");
-            } else {
-                javafx.scene.text.Font loaded = javafx.scene.text.Font.loadFont(fontStream, 14);
-                if (loaded == null) {
-                    System.err.println("FONT WARNING: Font.loadFont() returned null — the file "
-                        + "at '" + GameUIConstants.FONT_PATH + "' was found but could not be "
-                        + "parsed as a font.");
-                } else {
-                    System.out.println("FONT OK: loaded '" + loaded.getFamily()
-                        + "' (requested family name is '" + GameUIConstants.FONT + "')");
-                }
+            URL fontURL = getClass().getResource(GameUIConstants.FONT_PATH);
+
+            if (fontURL == null) {
+                System.err.println("Font NOT FOUND: " + GameUIConstants.FONT_PATH);
+                return;
             }
-        } catch (Exception ex) {
-            System.err.println("FONT WARNING: exception while loading font: " + ex.getMessage());
+
+            System.out.println("Font URL = " + fontURL);
+
+            Font loaded = Font.loadFont(fontURL.toExternalForm(), 14);
+
+            if (loaded == null) {
+                System.err.println("Could not parse font.");
+                return;
+            }
+
+            System.out.println("Loaded family = " + loaded.getFamily());
+
+            persistentScene.getRoot().setStyle(
+                    "-fx-font-family:'" + loaded.getFamily() + "';"
+            );
+
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
         this.primaryStage.setWidth(DEFAULT_WIDTH);

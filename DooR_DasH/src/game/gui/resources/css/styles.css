@@ -1,0 +1,14 @@
+/* Global styles for the game */
+.root {
+    -fx-font-family: 'ArcadeClassic', 'ARCADECLASSIC', 'Segoe UI', 'Book Antiqua', sans-serif;
+}
+
+/* Default label styling */
+.label {
+    -fx-font-family: 'ArcadeClassic', 'ARCADECLASSIC', 'Segoe UI', 'Book Antiqua', sans-serif;
+}
+
+/* Button styling */
+.button {
+    -fx-font-family: 'ArcadeClassic', 'ARCADECLASSIC', 'Segoe UI', 'Book Antiqua', sans-serif;
+}

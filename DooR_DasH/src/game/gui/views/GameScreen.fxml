@@ -46,7 +46,8 @@
                        alignment="CENTER"
                        maxWidth="Infinity"
                        text="Loading..."
-                       style="-fx-font-size: 15px;
+                       style="-fx-font-family: 'ArcadeClassic', 'ARCADECLASSIC';
+                              -fx-font-size: 15px;
                               -fx-font-weight: bold;
                               -fx-padding: 5 0 3 0;
                               -fx-text-fill: #00ff88;"

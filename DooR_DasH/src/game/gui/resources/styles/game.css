@@ -1,10 +1,11 @@
 /* Game Over screen styles */
 
 .game-over-screen {
-    -fx-font-family: 'Segoe UI', 'Book Antiqua', sans-serif;
+    -fx-font-family: 'ArcadeClassic', 'ARCADECLASSIC', 'Segoe UI', 'Book Antiqua', sans-serif;
 }
 
 .game-over-title {
+    -fx-font-family: 'ArcadeClassic', 'ARCADECLASSIC', 'Segoe UI', 'Book Antiqua', sans-serif;
     -fx-text-fill: linear-gradient(from 0% 0% to 0% 100%, #fffacd, #ffd800);
     -fx-font-size: 48px;
     -fx-font-weight: bold;
@@ -75,7 +76,4 @@
 
 .game-over-title { -fx-letter-spacing: 1px; }
 
-@media screen and (max-width: 900px) {
-    .game-over-title { -fx-font-size: 36px; }
-    .button { -fx-font-size: 16px; -fx-pref-width: 200px; }
-}
+

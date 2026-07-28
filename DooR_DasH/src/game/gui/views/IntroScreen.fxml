@@ -17,11 +17,11 @@
         <VBox alignment="CENTER" spacing="16">
             <Text fx:id="teamText"
                   text="A GAME BY TEAM 85"
-                  style="-fx-fill: white; -fx-font-size: 58px; -fx-font-family: 'Georgia'; -fx-font-weight: bold;"
+                  style="-fx-fill: white; -fx-font-size: 58px; -fx-font-family: 'ArcadeClassic', 'ARCADECLASSIC'; -fx-font-weight: bold;"
                   opacity="0" />
             <Text fx:id="disclaimerText"
                   text="disney please don't sue us, we are broke students 🙏"
-                  style="-fx-fill: #aaaaaa; -fx-font-size: 20px; -fx-font-family: 'Georgia'; -fx-font-style: italic;"
+                  style="-fx-fill: #aaaaaa; -fx-font-size: 20px; -fx-font-family: 'ArcadeClassic', 'ARCADECLASSIC'; -fx-font-style: italic;"
                   opacity="0" />
         </VBox>
 

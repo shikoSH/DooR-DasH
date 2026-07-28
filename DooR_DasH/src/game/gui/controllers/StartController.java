@@ -541,6 +541,7 @@ public class StartController {
     private void setupMonsterDrawerTab() {
         monsterTabArrow = new Label("\u25B6"); // ▶
         monsterTabArrow.setStyle(
+            "-fx-font-family: '" + GameUIConstants.FONT + "';" +
             "-fx-font-size: 20px;" +
             "-fx-text-fill: #ffdd55;" +
             "-fx-font-weight: bold;");

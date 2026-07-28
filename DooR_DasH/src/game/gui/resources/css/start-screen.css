@@ -1,0 +1,12 @@
+/* Start screen specific styles */
+.root {
+    -fx-font-family: 'ArcadeClassic', 'ARCADECLASSIC', 'Segoe UI', 'Book Antiqua', sans-serif;
+}
+
+.label {
+    -fx-font-family: 'ArcadeClassic', 'ARCADECLASSIC', 'Segoe UI', 'Book Antiqua', sans-serif;
+}
+
+.button {
+    -fx-font-family: 'ArcadeClassic', 'ARCADECLASSIC', 'Segoe UI', 'Book Antiqua', sans-serif;
+}

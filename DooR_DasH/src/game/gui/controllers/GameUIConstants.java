@@ -16,8 +16,9 @@ public final class GameUIConstants {
     // =========================================================
     //  FONT
     // =========================================================
-    public static final String FONT      = "ARCADECLASSIC";
-    public static final String FONT_PATH = "/game/gui/resources/fonts/ARCADECLASSIC.TTF";
+    public static final String FONT      = "ArcadeClassic";
+    public static final String FONT_PATH =
+            "/game/gui/resources/fonts/ARCADECLASSIC.TTF";
 
     // =========================================================
     //  TEXT SIZES  (px)

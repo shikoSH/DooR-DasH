@@ -702,7 +702,7 @@ if (portrait != null) {
 
     Label burst = new Label("POWER UP!");
     burst.setStyle(
-        "-fx-font-family: 'ARCADECLASSIC';" +
+        "-fx-font-family: 'ArcadeClassic';" +
         "-fx-font-size: 15px;" +
         "-fx-font-weight: bold;" +
         "-fx-text-fill: #ffdd33;" +

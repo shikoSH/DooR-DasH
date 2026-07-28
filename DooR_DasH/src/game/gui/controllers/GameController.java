@@ -169,8 +169,10 @@ public class GameController {
     @FXML
     private void initialize() {
         try {
-            javafx.scene.text.Font.loadFont(
-                getClass().getResourceAsStream(FONT_PATH), 14);
+        	javafx.scene.text.Font loadedFont = javafx.scene.text.Font.loadFont(
+        		    getClass().getResourceAsStream(FONT_PATH), 14);
+        		System.out.println("DEBUG: Font.loadFont returned: " +
+        		    (loadedFont == null ? "null (FAILED TO LOAD)" : loadedFont.getFamily()));
 
             loadAllImages();
 

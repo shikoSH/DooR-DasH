@@ -93,26 +93,28 @@
                                -fx-padding: 36 40 36 40;
                                -fx-effect: dropshadow(gaussian,black,30,0.6,0,0);">
                      <Text style="-fx-fill: #FFD700; -fx-font-size: 26px;
-                                  -fx-font-weight: bold; -fx-font-family: Georgia;"
+                                  -fx-font-weight: bold; -fx-font-family: 'ArcadeClassic', 'ARCADECLASSIC';"
                            text="⚙ OPTIONS" />
                      <HBox alignment="CENTER" spacing="14">
-                        <Text style="-fx-fill: white; -fx-font-size: 15px;" text="🔊 Volume" />
+                        <Text style="-fx-fill: white; -fx-font-size: 15px; -fx-font-family: 'ArcadeClassic', 'ARCADECLASSIC';" text="🔊 Volume" />
                         <Slider fx:id="volumeSlider" max="1" min="0" prefWidth="180"
                                 style="-fx-accent: #FFD700;" value="0.5" />
                         <Text fx:id="volumeLabel"
-                              style="-fx-fill: #FFD700; -fx-font-size: 14px; -fx-font-weight: bold;"
+                              style="-fx-fill: #FFD700; -fx-font-size: 14px; -fx-font-weight: bold; -fx-font-family: 'ArcadeClassic', 'ARCADECLASSIC';"
                               text="50%" />
                      </HBox>
                      <HBox alignment="CENTER" spacing="16">
                         <Button fx:id="muteButton" onAction="#handleMute"
                                 style="-fx-background-color: #8B0000;
                                        -fx-text-fill: white; -fx-font-size: 13px;
+                                       -fx-font-family: 'ArcadeClassic', 'ARCADECLASSIC';
                                        -fx-font-weight: bold; -fx-padding: 8 22;
                                        -fx-background-radius: 8; -fx-cursor: hand;"
                                 text="🔇 MUTE" />
                         <Button onAction="#handleCloseOptions"
                                 style="-fx-background-color: #333;
                                        -fx-text-fill: white; -fx-font-size: 13px;
+                                       -fx-font-family: 'ArcadeClassic', 'ARCADECLASSIC';
                                        -fx-font-weight: bold; -fx-padding: 8 22;
                                        -fx-background-radius: 8; -fx-cursor: hand;"
                                 text="✕  CLOSE" />
@@ -135,26 +137,27 @@
                                -fx-padding: 36 48 36 48;
                                -fx-effect: dropshadow(gaussian,black,30,0.6,0,0);">
                      <Text style="-fx-fill: #FFD700; -fx-font-size: 28px;
-                                  -fx-font-weight: bold; -fx-font-family: Georgia;"
+                                  -fx-font-weight: bold; -fx-font-family: 'ArcadeClassic', 'ARCADECLASSIC';"
                            text="✦ CREDITS ✦" />
                      <Text style="-fx-fill: white; -fx-font-size: 20px;
-                                  -fx-font-weight: bold; -fx-font-family: Georgia;"
+                                  -fx-font-weight: bold; -fx-font-family: 'ArcadeClassic', 'ARCADECLASSIC';"
                            text="TEAM 85" />
                      <Text style="-fx-fill: #FFD700; -fx-font-size: 12px;"
                            text="━━━━━━━━━━━━━━━━━━━━━━" />
-                     <Text style="-fx-fill: #dddddd; -fx-font-size: 16px; -fx-font-family: Georgia;"
+                     <Text style="-fx-fill: #dddddd; -fx-font-size: 16px; -fx-font-family: 'ArcadeClassic', 'ARCADECLASSIC';"
                            text="Yassin Elsetohy  —  64-10815" />
-                     <Text style="-fx-fill: #dddddd; -fx-font-size: 16px; -fx-font-family: Georgia;"
+                     <Text style="-fx-fill: #dddddd; -fx-font-size: 16px; -fx-font-family: 'ArcadeClassic', 'ARCADECLASSIC';"
                            text="Sherif Tamer  —  64-11320" />
-                     <Text style="-fx-fill: #dddddd; -fx-font-size: 16px; -fx-font-family: Georgia;"
+                     <Text style="-fx-fill: #dddddd; -fx-font-size: 16px; -fx-font-family: 'ArcadeClassic', 'ARCADECLASSIC';"
                            text="Ahmed Walid  —  64-25319" />
-                     <Text style="-fx-fill: #dddddd; -fx-font-size: 16px; -fx-font-family: Georgia;"
+                     <Text style="-fx-fill: #dddddd; -fx-font-size: 16px; -fx-font-family: 'ArcadeClassic', 'ARCADECLASSIC';"
                            text="Ziad Yasser  —  65-33790" />
                      <Text style="-fx-fill: #FFD700; -fx-font-size: 12px;"
                            text="━━━━━━━━━━━━━━━━━━━━━━" />
                      <Button onAction="#handleCloseCredits"
                              style="-fx-background-color: #333;
                                     -fx-text-fill: white; -fx-font-size: 13px;
+                                    -fx-font-family: 'ArcadeClassic', 'ARCADECLASSIC';
                                     -fx-font-weight: bold; -fx-padding: 8 28;
                                     -fx-background-radius: 8; -fx-cursor: hand;"
                              text="✕  CLOSE" />

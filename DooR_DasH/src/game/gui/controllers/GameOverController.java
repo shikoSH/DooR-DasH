@@ -461,7 +461,9 @@ public class GameOverController {
 
     private Label makeLabel(String text, String color, int size, boolean bold) {
         Label l = new Label(text);
-        l.setStyle("-fx-text-fill:" + color + ";-fx-font-size:" + size + "px;" +
+        l.setStyle("-fx-font-family: '" + GameUIConstants.FONT + "';" +
+            "-fx-text-fill:" + color + ";" +
+            "-fx-font-size:" + size + "px;" +
             (bold ? "-fx-font-weight:bold;" : ""));
         l.setWrapText(true); l.setMaxWidth(180); l.setAlignment(Pos.CENTER);
         return l;
