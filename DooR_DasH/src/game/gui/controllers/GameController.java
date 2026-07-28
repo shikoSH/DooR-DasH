@@ -25,7 +25,6 @@ import game.engine.cells.*;
 import game.engine.monsters.Monster;
 import javafx.scene.control.Slider;
 import javafx.scene.media.MediaPlayer;
-
 import static game.gui.controllers.GameUIConstants.*;
 import static game.gui.controllers.GameUIHelper.*;
 
@@ -168,11 +167,7 @@ public class GameController {
     // =========================================================
     @FXML
     private void initialize() {
-        try {
-        	javafx.scene.text.Font loadedFont = javafx.scene.text.Font.loadFont(
-        		    getClass().getResourceAsStream(FONT_PATH), 14);
-        		System.out.println("DEBUG: Font.loadFont returned: " +
-        		    (loadedFont == null ? "null (FAILED TO LOAD)" : loadedFont.getFamily()));
+        try {        		
 
             loadAllImages();
 
@@ -351,7 +346,7 @@ public class GameController {
         boolean pConf = !p.getOriginalRole().equals(p.getRole());
         player.roleLbl.setText(p.getRole().toString());
         player.roleLbl.setStyle(
-            "-fx-font-family: '" + FONT + "';" +
+            "-fx-font-family: '" + GameUIConstants.FONT + "';" +
             "-fx-font-size: " + TXT_PLAYER_ROLE + "px;" +
             "-fx-text-fill: " + (pConf ? "#ff00ff" : "white") + ";" +
             (pConf ? "-fx-font-weight: bold;" : ""));
@@ -370,7 +365,7 @@ public class GameController {
         boolean oConf = !o.getOriginalRole().equals(o.getRole());
         opponent.roleLbl.setText(o.getRole().toString());
         opponent.roleLbl.setStyle(
-            "-fx-font-family: '" + FONT + "';" +
+            "-fx-font-family: '" + GameUIConstants.FONT + "';" +
             "-fx-font-size: " + TXT_PLAYER_ROLE + "px;" +
             "-fx-text-fill: " + (oConf ? "#ff00ff" : "white") + ";" +
             (oConf ? "-fx-font-weight: bold;" : ""));
@@ -382,7 +377,7 @@ public class GameController {
         // ── Top label ─────────────────────────────────────────
         myLabel.setText(cur == p ? "YOUR TURN - PRESS ROLL!" : "OPPONENT TURN - PRESS ROLL!");
         myLabel.setStyle(
-            "-fx-font-family: '" + FONT + "';" +
+            "-fx-font-family: '" + GameUIConstants.FONT + "';" +
             "-fx-font-size: " + TXT_TOP_LABEL + "px;" +
             "-fx-font-weight: bold;" +
             "-fx-padding: 5 0 3 0;" +
@@ -961,9 +956,9 @@ public class GameController {
 
         java.util.function.BiFunction<String, String, HBox> statRow = (key, val) -> {
             Label k = new Label(key);
-            k.setStyle("-fx-font-family:'" + FONT + "';-fx-font-size:" + statFontPx + "px;-fx-text-fill:#888888;");
+            k.setStyle("-fx-font-family:'" + GameUIConstants.FONT + "';-fx-font-size:" + statFontPx + "px;-fx-text-fill:#888888;");
             Label v = new Label(val);
-            v.setStyle("-fx-font-family:'" + FONT + "';-fx-font-size:" + statFontPx + "px;-fx-font-weight:bold;-fx-text-fill:#e8e8e8;");
+            v.setStyle("-fx-font-family:'" + GameUIConstants.FONT + "';-fx-font-size:" + statFontPx + "px;-fx-font-weight:bold;-fx-text-fill:#e8e8e8;");
             Region sp = new Region();
             HBox.setHgrow(sp, Priority.ALWAYS);
             HBox row = new HBox(k, sp, v);

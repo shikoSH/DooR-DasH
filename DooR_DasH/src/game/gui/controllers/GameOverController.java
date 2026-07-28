@@ -208,7 +208,7 @@ public class GameOverController {
                                         String glowColor) {
         Button btn = new Button(text);
         String baseStyle =
-            "-fx-font-family: 'ARCADECLASSIC', 'Courier New', monospace;" +
+        	"-fx-font-family: '" + game.gui.controllers.GameUIConstants.FONT + "', 'Courier New', monospace;" +
             "-fx-font-size: 18px;" +
             "-fx-font-weight: bold;" +
             "-fx-text-fill: " + borderColor + ";" +
@@ -225,7 +225,7 @@ public class GameOverController {
         btn.setPrefHeight(56);
 
         String hoverStyle =
-            "-fx-font-family: 'ARCADECLASSIC', 'Courier New', monospace;" +
+        		"-fx-font-family: '" + game.gui.controllers.GameUIConstants.FONT + "', 'Courier New', monospace;" +
             "-fx-font-size: 18px;" +
             "-fx-font-weight: bold;" +
             "-fx-text-fill: " + bgColor + ";" +

@@ -208,9 +208,9 @@ public final class GamePanelBuilder {
 
         r.nameLbl   = makeLbl("-", "#ffe8e8", TXT_PLAYER_NAME, true);
         r.nameLbl.setWrapText(true);
-        r.typeLbl   = makeLbl("-", "#ffc8c8", TXT_PLAYER_TYPE, false);
-        r.roleLbl   = makeLbl("-", "#ffc8c8", TXT_PLAYER_ROLE, false);
-        r.statusLbl = makeLbl("NORMAL", "#ddbbbb", TXT_PLAYER_STATUS, false);
+        r.typeLbl   = makeLbl("-", "#ffc8c8", TXT_PLAYER_TYPE, true);
+        r.roleLbl   = makeLbl("-", "#ffc8c8", TXT_PLAYER_ROLE, true);
+        r.statusLbl = makeLbl("NORMAL", "#ddbbbb", TXT_PLAYER_STATUS, true);
         r.statusLbl.setWrapText(true);
 
         GridPane grid = new GridPane();

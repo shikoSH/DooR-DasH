@@ -98,6 +98,24 @@ public class SceneManager {
         // styling problem), and every -fx-font-family: 'ARCADECLASSIC'
         // in the whole app will fall back to a system font no matter how
         // many individual style rules get fixed.
+        
+
+        this.primaryStage.setWidth(DEFAULT_WIDTH);
+        this.primaryStage.setHeight(DEFAULT_HEIGHT);
+        this.primaryStage.setMinWidth(960);
+        this.primaryStage.setMinHeight(640);
+        this.primaryStage.setResizable(true);
+        this.primaryStage.centerOnScreen();
+        // Disable the built-in ESC key so we manage fullscreen toggling ourselves
+        this.primaryStage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);
+        this.primaryStage.setFullScreenExitHint("");
+
+        sceneHolder.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+        // Black fill so any content swap never flashes the Scene/StackPane default white
+        sceneHolder.setStyle("-fx-background-color: black;");
+        persistentScene = new Scene(sceneHolder, DEFAULT_WIDTH, DEFAULT_HEIGHT);
+        persistentScene.setFill(Color.BLACK);
+
         try {
             URL fontURL = getClass().getResource(GameUIConstants.FONT_PATH);
 
@@ -124,23 +142,6 @@ public class SceneManager {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-        this.primaryStage.setWidth(DEFAULT_WIDTH);
-        this.primaryStage.setHeight(DEFAULT_HEIGHT);
-        this.primaryStage.setMinWidth(960);
-        this.primaryStage.setMinHeight(640);
-        this.primaryStage.setResizable(true);
-        this.primaryStage.centerOnScreen();
-        // Disable the built-in ESC key so we manage fullscreen toggling ourselves
-        this.primaryStage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);
-        this.primaryStage.setFullScreenExitHint("");
-
-        sceneHolder.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-        // Black fill so any content swap never flashes the Scene/StackPane default white
-        sceneHolder.setStyle("-fx-background-color: black;");
-        persistentScene = new Scene(sceneHolder, DEFAULT_WIDTH, DEFAULT_HEIGHT);
-        persistentScene.setFill(Color.BLACK);
-
         // ── Game-screen-only windowed 16:9 lock ─────────────────────────
         // Reacts to the SCENE's own live size (the real content area,
         // immune to guessing window-chrome thickness) rather than a
