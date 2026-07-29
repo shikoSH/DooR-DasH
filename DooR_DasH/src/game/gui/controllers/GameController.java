@@ -782,7 +782,14 @@ public class GameController {
     }
 
     private void dismissOptionsMenu() {
-        if (optionsDimLayer == null) return;
+        dismissOptionsMenu(null);
+    }
+
+    private void dismissOptionsMenu(Runnable onComplete) {
+        if (optionsDimLayer == null) {
+            if (onComplete != null) onComplete.run();
+            return;
+        }
         // Gradual blur-out across all three, same reasoning as blurIn.
         // Effects stay permanently attached now (0-width BoxBlur is a
         // no-op), so there's no setEffect(null) needed anymore.
@@ -795,10 +802,11 @@ public class GameController {
             optionsMenuVisible = false;
             optionsDimLayer = null;
             optionsMenuCard = null;
-            optionsTitleLbl = null; optionsMusicLbl = null; optionsSfxLbl = null;   // ADD
+            optionsTitleLbl = null; optionsMusicLbl = null; optionsSfxLbl = null;
             optionsSep = null;
-            optionsResumeBtn = null; optionsRestartBtn = null; optionsMainMenuBtn = null;   // ADD
-            optionsMusicSlider = null; optionsSfxSlider = null;                     // ADD
+            optionsResumeBtn = null; optionsRestartBtn = null; optionsMainMenuBtn = null;
+            optionsMusicSlider = null; optionsSfxSlider = null;
+            if (onComplete != null) onComplete.run();
         });
         new ParallelTransition(blurOut, fadeOut).play();
     }
@@ -816,8 +824,8 @@ public class GameController {
     }
 
     private void handleGoToMainMenu() {
-        dismissOptionsMenu();
-        SceneManager.getInstance().switchToStartScreen();
+        System.out.println("DEBUG: MAIN MENU button clicked");
+        dismissOptionsMenu(() -> SceneManager.getInstance().switchToStartScreen());
     }
     
     

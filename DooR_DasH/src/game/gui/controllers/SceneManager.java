@@ -409,7 +409,7 @@ public class SceneManager {
         // visible, which is what caused the few-second delay before music
         // was audible on other screens.
         startMusic();
-        fadeToBlackThenShow(this::loadStartScreenContent);
+        fadeToBlackThenShow(this::loadStartScreenContent, 0, 500);
     }
 
     private void loadStartScreenContent() {
@@ -529,7 +529,7 @@ public class SceneManager {
                 System.err.println("ERROR: Failed to load GameOverScreen");
                 e.printStackTrace();
             }
-        });
+        }, 0, 500);   // same 900ms fade as switchToStartScreen()
     }
 
     private void loadCachedScreen(String name, String fxmlPath) {
@@ -572,16 +572,14 @@ public class SceneManager {
      * shown unprotected even for a single frame.
      */
     private void fadeToBlackThenShow(Runnable swapContent) {
-        fadeToBlackThenShow(swapContent, 0);
+        fadeToBlackThenShow(swapContent, 0, SCENE_FADE_MS);
     }
 
-    /**
-     * Same as {@link #fadeToBlackThenShow(Runnable)}, but holds at full
-     * black for an extra {@code extraHoldMs} before starting the reveal
-     * fade — used by the game screen, which needs a little more time for
-     * its layout to fully settle before it's uncovered.
-     */
     private void fadeToBlackThenShow(Runnable swapContent, double extraHoldMs) {
+        fadeToBlackThenShow(swapContent, extraHoldMs, SCENE_FADE_MS);
+    }
+
+    private void fadeToBlackThenShow(Runnable swapContent, double extraHoldMs, double fadeMs) {
         if (primaryStage == null) {
             swapContent.run();
             return;
@@ -598,15 +596,10 @@ public class SceneManager {
             sceneHolder.getChildren().add(blackCover);
             blackCover.toFront();
 
-            // Wait a couple pulses so the new content has actually laid
-            // out before we reveal it — avoids a flash of unstyled/unsized
-            // content peeking through as the cover fades away. extraHoldMs
-            // (if any) adds a further deliberate pause on top of that,
-            // for screens whose layout needs a bit more time to settle.
             Platform.runLater(() -> Platform.runLater(() -> {
                 PauseTransition extraHold = new PauseTransition(Duration.millis(Math.max(0, extraHoldMs)));
                 extraHold.setOnFinished(pe -> {
-                    FadeTransition fadeFromBlack = new FadeTransition(Duration.millis(SCENE_FADE_MS), blackCover);
+                    FadeTransition fadeFromBlack = new FadeTransition(Duration.millis(fadeMs), blackCover);
                     fadeFromBlack.setFromValue(1);
                     fadeFromBlack.setToValue(0);
                     fadeFromBlack.setOnFinished(ev -> sceneHolder.getChildren().remove(blackCover));
@@ -617,8 +610,6 @@ public class SceneManager {
         };
 
         if (sceneHolder.getChildren().isEmpty()) {
-            // Nothing on screen yet (very first launch) — nothing to fade
-            // FROM, so skip straight to black and fade the new content in.
             blackCover.setOpacity(1);
             sceneHolder.getChildren().add(blackCover);
             swapThenRevealFromBlack.run();
@@ -629,7 +620,7 @@ public class SceneManager {
         sceneHolder.getChildren().add(blackCover);
         blackCover.toFront();
 
-        FadeTransition fadeToBlack = new FadeTransition(Duration.millis(SCENE_FADE_MS), blackCover);
+        FadeTransition fadeToBlack = new FadeTransition(Duration.millis(fadeMs), blackCover);
         fadeToBlack.setFromValue(0);
         fadeToBlack.setToValue(1);
         fadeToBlack.setOnFinished(e -> swapThenRevealFromBlack.run());
