@@ -307,15 +307,15 @@ public final class GamePanelBuilder {
         bg.setEffect(logShadow);
 
         // ── Log text lines (appear inside the dark monitor screen) ─────────
-        Label line1 = makeLbl("", ACTION_LOG_LINE1_COLOR, TXT_ACTION_LOG, false);
-        Label line2 = makeLbl("", ACTION_LOG_LINE2_COLOR, TXT_ACTION_LOG, false);
-        Label line3 = makeLbl("", ACTION_LOG_LINE3_COLOR, TXT_ACTION_LOG, false);
+        Label line1 = makeLbl("", ACTION_LOG_LINE1_COLOR, GameUIConstants.TXT_ACTION_LOG, false);
+        Label line2 = makeLbl("", ACTION_LOG_LINE2_COLOR, GameUIConstants.TXT_ACTION_LOG, false);
+        Label line3 = makeLbl("", ACTION_LOG_LINE3_COLOR, GameUIConstants.TXT_ACTION_LOG, false);
         for (Label l : new Label[]{line1, line2, line3}) {
             l.setWrapText(true);
             // Initial fallback sizing — the controller overrides this with a
             // size proportional to the rendered image on the first layout pass.
             l.setStyle(l.getStyle() +
-                "-fx-font-size:" + TXT_ACTION_LOG + "px;" +
+                "-fx-font-size:" + GameUIConstants.TXT_ACTION_LOG + "px;" +
                 "-fx-font-family:'" + FONT + "';");
         }
 

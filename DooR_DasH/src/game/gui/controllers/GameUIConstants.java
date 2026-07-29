@@ -30,7 +30,7 @@ public final class GameUIConstants {
     public static final int TXT_PLAYER_ENERGY = 20;
     public static final int TXT_PLAYER_STATUS = 10;
     public static final int TXT_PLAYER_TURN   = 15;
-    public static final int TXT_ACTION_LOG    = 5;
+    public static final int TXT_ACTION_LOG    = 3;
     public static final int TXT_TOP_LABEL     = 14;
     public static final int TXT_DICE_RESULT   = 20;
     public static final int TXT_CARD_NAME     = 20;
