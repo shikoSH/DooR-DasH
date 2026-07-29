@@ -1195,6 +1195,8 @@ public class GameController {
             entry.setTranslateY(0);
             entry.setOpacity(0);
             entry.setScaleX(0.5); entry.setScaleY(0.5);
+            entry.setCache(true);
+            entry.setCacheHint(javafx.scene.CacheHint.SPEED);
 
             entries.add(entry);
             row.getChildren().add(entry);
@@ -1276,6 +1278,7 @@ public class GameController {
         }
 
         new ParallelTransition(blurIn, dimFade, cardsSpread).play();
+        setOverlayBlurCache(true);
     }
 
     private void dismissCardDeckOverlay() {
@@ -1283,7 +1286,7 @@ public class GameController {
         // Gradual blur-out across all three, same reasoning as blurIn.
         // Effects stay permanently attached now (0-width BoxBlur is a
         // no-op), so there's no setEffect(null) needed anymore.
-        Timeline blurOut = buildBlurOutTimeline(280, null);
+        Timeline blurOut = buildBlurOutTimeline(280, () -> setOverlayBlurCache(false));
         FadeTransition fadeOut = new FadeTransition(Duration.millis(240), cardDeckDimLayer);
         fadeOut.setFromValue(1); fadeOut.setToValue(0);
         final StackPane layer = cardDeckDimLayer;
@@ -1327,11 +1330,15 @@ public class GameController {
         cardOverlayBack = new ImageView(cardBack);
         cardOverlayBack.setPreserveRatio(true);
         addDropShadow(cardOverlayBack, 22, Color.BLACK);
+        cardOverlayBack.setCache(true);
+        cardOverlayBack.setCacheHint(javafx.scene.CacheHint.SPEED);
 
         cardOverlayFace = new ImageView();
         cardOverlayFace.setPreserveRatio(true);
         cardOverlayFace.setOpacity(0);
         addDropShadow(cardOverlayFace, 22, Color.BLACK);
+        cardOverlayFace.setCache(true);
+        cardOverlayFace.setCacheHint(javafx.scene.CacheHint.SPEED);
 
         StackPane cardStack = new StackPane(cardOverlayBack, cardOverlayFace);
 
@@ -1374,6 +1381,7 @@ public class GameController {
         // blur gradually deepens throughout the whole pull and reaches
         // full strength right around when the card arrives.
         buildBlurInTimeline(600).play();
+        setOverlayBlurCache(true);
 
         playCardDrawFlight(() -> revealCardOverlay());
     }
@@ -1413,6 +1421,8 @@ public class GameController {
         flying.setPreserveRatio(true);
         flying.setFitWidth(Math.max(40, deckBoundsInScene.getWidth() * 0.9));
         addDropShadow(flying, 18, Color.BLACK);
+        flying.setCache(true);
+        flying.setCacheHint(javafx.scene.CacheHint.SPEED);
 
         // Position it at the deck's centre using translate offsets from the
         // StackPane's own centre (StackPane children default to centred).
@@ -1500,7 +1510,7 @@ public class GameController {
     }
 
     private void dismissCardOverlay() {
-        Timeline blurOut = buildBlurOutTimeline(350, null);
+        Timeline blurOut = buildBlurOutTimeline(350, () -> setOverlayBlurCache(false));
         FadeTransition cardOut = new FadeTransition(Duration.millis(280), cardOverlay);
         cardOut.setFromValue(1); cardOut.setToValue(0);
         cardOut.setOnFinished(e -> {
@@ -1876,6 +1886,30 @@ public class GameController {
      * three so the background and control panel actually blur along
      * with the board/panels — previously only masterLayout ever did.
      */
+    /**
+     * Turns node caching on/off for the three nodes the shared blur
+     * timeline animates (masterLayout, controlPanelView, backgroundView).
+     *
+     * This is only toggled ON for the brief window one of the two overlay
+     * animations (card pull, card deck spread) is actually playing, and
+     * OFF again as soon as it finishes. Animating a BoxBlur's width/height
+     * forces a full re-render of whatever it's applied to on every frame
+     * unless that input is cached — caching fixes the choppiness during
+     * the animation. Leaving the cache on permanently, however, would mean
+     * ANY unrelated UI update anywhere in these large subtrees (labels,
+     * hover states, dice, etc.) invalidates and rebuilds the whole cached
+     * bitmap during ordinary gameplay too, which is worse than no caching
+     * at all — hence only flipping it on for the animation's duration.
+     */
+    private void setOverlayBlurCache(boolean on) {
+        javafx.scene.Node[] targets = { masterLayout, controlPanelView, backgroundView };
+        for (javafx.scene.Node n : targets) {
+            if (n == null) continue;
+            n.setCache(on);
+            if (on) n.setCacheHint(javafx.scene.CacheHint.SPEED);
+        }
+    }
+
     private Timeline buildBlurInTimeline(double ms) {
         return new Timeline(
             new KeyFrame(Duration.ZERO,
